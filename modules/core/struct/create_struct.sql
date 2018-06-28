@@ -103,3 +103,4 @@ apex_user      varchar2(100));
 
 create index opas_groups2apexusr_gr on opas_groups2apexusr(group_id);
 create index opas_groups2apexusr_usr on opas_groups2apexusr(apex_user);
+

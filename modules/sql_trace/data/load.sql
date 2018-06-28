@@ -8,4 +8,10 @@ insert into opas_groups (group_name,modname,group_descr,access_level) values ('A
 insert into opas_groups (group_name,modname,group_descr,access_level) values ('Reas-write users','&MODNM.','All application functions',1);
 insert into opas_groups (group_name,modname,group_descr,access_level) values ('Read-only users','&MODNM.','Read-only functions',2);
 
+--Dictionatiries
+insert into trc_dic_retention (ret_code, ret_display_name) values ('DEFAULT', 'Default');
+insert into trc_dic_retention (ret_code, ret_display_name) values ('KEEPFOREVER', 'Keep forever');
+insert into trc_dic_retention (ret_code, ret_display_name) values ('KEEPFILESONLY', 'Keep files only');
+insert into trc_dic_retention (ret_code, ret_display_name) values ('KEEPPARSEDONLY', 'Keep parsed only');
+insert into trc_dic_retention (ret_code, ret_display_name) values ('CLEANUPOLD', 'Cleanup old parsed/files');
 commit;

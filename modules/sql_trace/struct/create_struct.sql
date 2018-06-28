@@ -192,6 +192,12 @@ card       number);
 create index idx_trc_stat_stmt on trc_stat(stmt_id);
 create index idx_trc_stat_file on trc_stat(trc_file_id);
 
+--Dictionaries
+create table trc_dic_retention (
+ret_code varchar2(32) primary key,
+ret_display_name varchar2(100));
+
+alter table trc_projects add constraint fk_proj_retention foreign key (retention) references trc_dic_retention;
 
 create or replace view v$trc_projects as
 select x.*,
