@@ -13,6 +13,7 @@ grant create view to &localscheme.;
 grant create synonym to &localscheme.;
 grant create job to &localscheme.;
 grant execute on dbms_xplan to &localscheme.;
+grant create database link to &localscheme.;
 
 --APEX 18.1 uploading files
 grant update on apex_180100.WWV_FLOW_TEMP_FILES to &localscheme.;

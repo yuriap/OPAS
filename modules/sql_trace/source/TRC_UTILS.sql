@@ -163,7 +163,8 @@ create or replace PACKAGE BODY TRC_UTILS AS
   begin
     select * into l_proj from trc_projects where trcproj_id=p_trcproj_id;
     if l_proj.owner = 'PUBLIC' or l_proj.owner = V('APP_USER') then
-      for i in (select file_content from trc_file_source where trcproj_id=p_trcproj_id) loop
+      for i in (select file_content, trc_file_id from trc_file_source where trcproj_id=p_trcproj_id) loop
+        update trc_file_source set file_content=null where trc_file_id=i.trc_file_id;
         COREFILE_API.delete_file(i.file_content);
       end loop;
       delete from trc_projects where trcproj_id = p_trcproj_id;
@@ -179,26 +180,53 @@ create or replace PACKAGE BODY TRC_UTILS AS
                                 p_file_content TRC_FILE_SOURCE.file_content%type,
                                 p_trc_file_id out TRC_FILE.trc_file_id%type)
   is
+    l_db_source TRC_FILE_SOURCE.file_db_source%type;
   begin
     INSERT INTO trc_file (trcproj_id, filename, owner, created) VALUES (p_trcproj_id,p_filename, nvl(p_owner,COREMOD_API.gDefaultOwner), default ) returning trc_file_id into p_trc_file_id;
-    INSERT INTO trc_file_source (trcproj_id, trc_file_id, file_db_source, file_content ) VALUES (p_trcproj_id, p_trc_file_id, p_db_source, p_file_content);
+    if nvl(p_db_source,'$LOCAL$') = '$LOCAL$' then
+      l_db_source := p_db_source;
+    else
+      select DB_LINK_NAME into l_db_source from v$opas_db_links where ORA_DB_LINK=p_db_source;
+    end if;
+    INSERT INTO trc_file_source (trcproj_id, trc_file_id, file_db_source, file_content ) VALUES (p_trcproj_id, p_trc_file_id, l_db_source, p_file_content);
   end;
 
   procedure delete_file(p_trc_file_id TRC_FILE.trc_file_id%type, p_keep_file boolean default false, p_keep_parsed boolean default false)
   is
+    l_file_id trc_file_source.file_content%type;
+    l_file_status TRC_FILE.status%type;
   begin
     if p_keep_file and p_keep_parsed then
       raise_application_error(-20000,'Invalid input for delete_file.');
     end if;
-    if not p_keep_file then
+    
+    select file_content into l_file_id from trc_file_source where trc_file_id=p_trc_file_id;
+    select status into l_file_status from trc_file where trc_file_id=p_trc_file_id;
+
+    if not p_keep_file and l_file_id is not null then
       update trc_file_source set file_content=null where trc_file_id=p_trc_file_id;
-      for i in (select file_content from trc_file_source where trc_file_id=p_trc_file_id) loop
-        COREFILE_API.delete_file(i.file_content);
-      end loop;
+      COREFILE_API.delete_file(l_file_id);
     end if;
+
+    --delete file anyway
+    if (l_file_status='NEW' and not p_keep_file) or
+       (not p_keep_parsed and not p_keep_file) or
+       (not p_keep_parsed and l_file_id is null)
+    then
+      delete trc_file_source where trc_file_id=p_trc_file_id;
+      delete from trc_file where trc_file_id=p_trc_file_id;    
+    end if;
+    
     if not p_keep_parsed then
-      update trc_file_source set trc_file_id=null where trc_file_id=p_trc_file_id;
-      delete from trc_file where trc_file_id=p_trc_file_id;
+      update trc_file set status='NEW' where trc_file_id=p_trc_file_id;
+      delete from trc_stat where trc_file_id=p_trc_file_id;
+      delete from trc_wait where trc_file_id=p_trc_file_id;
+      delete from trc_binds where trc_file_id=p_trc_file_id;
+      delete from trc_call where trc_file_id=p_trc_file_id;
+      delete from trc_statement where trc_file_id=p_trc_file_id;
+      delete from trc_client_identity where trc_file_id=p_trc_file_id;
+      delete from trc_trans where trc_file_id=p_trc_file_id;
+      delete from trc_session where trc_file_id=p_trc_file_id;
     end if;
   end;
 

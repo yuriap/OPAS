@@ -620,14 +620,14 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
 
     delete from trc$tmp_file_content;
 
-    if l_trc_file.filename is not null and l_trc_file_source.file_db_source = 'LOCAL' then
+    if l_trc_file.filename is not null and l_trc_file_source.file_db_source = '$LOCAL$' then
       insert into trc$tmp_file_content select rownum, payload from V$DIAG_TRACE_FILE_CONTENTS where trace_filename=l_trc_file.filename order by line_number;
-    elsif l_trc_file.filename is not null and l_trc_file_source.file_db_source != 'LOCAL' then
+    elsif l_trc_file.filename is not null and l_trc_file_source.file_db_source != '$LOCAL$' then
       execute immediate 'insert into trc$tmp_file_content select rownum, payload from V$DIAG_TRACE_FILE_CONTENTS@'||l_trc_file_source.file_db_source||' where trace_filename=:p1 order by line_number' using l_trc_file.filename;
-    elsif l_trc_file.filename is null and l_trc_file_source.file_db_source = 'LOCAL' then
+    elsif l_trc_file.filename is null and l_trc_file_source.file_db_source = '$LOCAL$' then
       insert into trc$tmp_file_content select line_number, payload from table(page_clob(p_trc_file_id));
     else
-      raise_application_error(-20000, 'File ID:'||p_trc_file_id||' can not be processed: unknown source ('||l_trc_file.filename||':'||l_trc_file_source.file_db_source||')');
+      raise_application_error(-20000, 'File ID: '||p_trc_file_id||' can not be processed: unknown source ('||l_trc_file.filename||':'||nvl(l_trc_file_source.file_db_source,'N/A')||')');
     end if;
 
     open l_file_crsr for select * from trc$tmp_file_content;

@@ -31,9 +31,29 @@ create index idx_log_ts on opas_log(ts);
 --Database link dictionary
 create table opas_db_links (
 DB_LINK_NAME    varchar2(128) primary key,
+DISPLAY_NAME    varchar2(128),
 OWNER           varchar2(128),
 DDL_TEXT        varchar2(4000),
-STATUS          varchar2(32) default 'NEW');
+STATUS          varchar2(32) default 'NEW',
+is_public       varchar2(1) default 'Y');
+
+create or replace view v$opas_db_links as
+select DB_LINK_NAME,
+       case
+         when DB_LINK_NAME = '$LOCAL$' then DB_LINK_NAME
+         else l.db_link
+       end ORA_DB_LINK,
+       DISPLAY_NAME,
+       OWNER,
+       STATUS,
+       IS_PUBLIC
+  from OPAS_DB_LINKS o, user_db_links l
+ where owner =
+       decode(owner,
+              'PUBLIC',
+              owner,
+              decode(is_public, 'Y', owner, nvl(V('APP_USER'), '~^')))
+   and l.db_link(+) like o.DB_LINK_NAME || '%';
 
 --Task execution infrasrtucture
 create table opas_task (
