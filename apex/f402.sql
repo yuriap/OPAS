@@ -27,7 +27,7 @@ prompt APPLICATION 402 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     402
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   17:42 Friday June 29, 2018
+--   Date and Time:   19:34 Saturday June 30, 2018
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -123,7 +123,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20180629174052'
+,p_last_upd_yyyymmddhh24miss=>'20180630190530'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>15
 ,p_ui_type_name => null
@@ -10451,7 +10451,7 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(2290179326470913)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20180629162822'
+,p_last_upd_yyyymmddhh24miss=>'20180630190025'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(2500521202694435)
@@ -10792,6 +10792,7 @@ wwv_flow_api.create_report_region(
 '    created,',
 '    status,',
 '    s.file_db_source,',
+'    case when file_content is not null then ''Stored'' when filename is not null then ''Reference'' end file_storage,',
 '    ''Preview'' Preview,',
 '    ''Open''    Open,',
 '    ''Delete''  Del',
@@ -10887,20 +10888,31 @@ wwv_flow_api.create_report_columns(
 ,p_include_in_export=>'Y'
 );
 wwv_flow_api.create_report_columns(
- p_id=>wwv_flow_api.id(9162113912213812)
+ p_id=>wwv_flow_api.id(9165888371213849)
 ,p_query_column_id=>8
-,p_column_alias=>'PREVIEW'
+,p_column_alias=>'FILE_STORAGE'
 ,p_column_display_sequence=>9
+,p_column_heading=>'File Storage'
+,p_use_as_row_header=>'N'
+,p_disable_sort_column=>'N'
+,p_derived_column=>'N'
+,p_include_in_export=>'Y'
+);
+wwv_flow_api.create_report_columns(
+ p_id=>wwv_flow_api.id(9162113912213812)
+,p_query_column_id=>9
+,p_column_alias=>'PREVIEW'
+,p_column_display_sequence=>10
 ,p_column_heading=>'File preview'
 ,p_use_as_row_header=>'N'
-,p_column_link=>'f?p=&APP_ID.:104:&SESSION.::&DEBUG.:RP,104:P104_SOURCE_DB,P104_TRC_FILE_ID:$LOCAL$,#TRC_FILE_ID#'
+,p_column_link=>'f?p=&APP_ID.:104:&SESSION.::&DEBUG.:RP,104:P104_TRC_FILE_ID,P104_FILENAME:#TRC_FILE_ID#,#FILENAME#'
 ,p_column_linktext=>'#PREVIEW#'
 ,p_derived_column=>'N'
 ,p_include_in_export=>'Y'
 );
 wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(9162261568213813)
-,p_query_column_id=>9
+,p_query_column_id=>10
 ,p_column_alias=>'OPEN'
 ,p_column_display_sequence=>2
 ,p_column_heading=>'Open'
@@ -10912,9 +10924,9 @@ wwv_flow_api.create_report_columns(
 );
 wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(9163323891213824)
-,p_query_column_id=>10
+,p_query_column_id=>11
 ,p_column_alias=>'DEL'
-,p_column_display_sequence=>10
+,p_column_display_sequence=>11
 ,p_column_heading=>'Delete'
 ,p_use_as_row_header=>'N'
 ,p_column_link=>'f?p=&APP_ID.:107:&SESSION.::&DEBUG.:RP:P107_TRC_FILE_ID:#TRC_FILE_ID#'
@@ -11507,7 +11519,7 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(2290179326470913)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20180629174052'
+,p_last_upd_yyyymmddhh24miss=>'20180630190530'
 );
 wwv_flow_api.create_report_region(
  p_id=>wwv_flow_api.id(9086979051656218)
@@ -11582,18 +11594,22 @@ wwv_flow_api.create_report_region(
 '  l_fs trc_file_source%rowtype;',
 '  l_dblink varchar2(100);',
 'begin',
-'  ',
-'  SELECT',
-'    trc_file_id,',
-'    file_db_source,',
-'    trcproj_id,',
-'    file_content into l_fs',
-'  FROM',
-'    trc_file_source',
-'  where trc_file_id = nvl(:P104_TRC_FILE_ID,221);  ',
+'',
+'  begin',
+'    SELECT',
+'      trc_file_id,',
+'      file_db_source,',
+'      trcproj_id,',
+'      file_content into l_fs',
+'    FROM',
+'      trc_file_source',
+'    where trc_file_id = :P104_TRC_FILE_ID;  ',
+'  exception',
+'    when others then null;',
+'  end;',
 '',
 '  if l_fs.file_content is not null then',
-'    return q''[SELECT line_number, payload ',
+'    return q''[SELECT line_number line_num, payload ',
 'FROM file_contentbyrow where file_id=(select file_content from trc_file_source where trc_file_id=:P104_TRC_FILE_ID) order by line_number]'';',
 '  else',
 '    if nvl(l_fs.file_db_source,''$LOCAL$'') <> ''$LOCAL$'' then',
@@ -11607,7 +11623,7 @@ wwv_flow_api.create_report_region(
 'end;',
 '',
 ''))
-,p_display_when_condition=>':P104_SOURCE_DB=''$LOCAL$'' and :P104_TRC_FILE_ID is not null and :P104_FILENAME is null'
+,p_display_when_condition=>':P104_TRC_FILE_ID is not null and :P104_FILENAME is not null'
 ,p_display_condition_type=>'PLSQL_EXPRESSION'
 ,p_ajax_enabled=>'Y'
 ,p_query_row_template=>wwv_flow_api.id(2113381531170245)
@@ -11623,13 +11639,12 @@ wwv_flow_api.create_report_region(
 ,p_plug_query_strip_html=>'N'
 );
 wwv_flow_api.create_report_columns(
- p_id=>wwv_flow_api.id(9161602100213807)
+ p_id=>wwv_flow_api.id(9165950775213850)
 ,p_query_column_id=>1
-,p_column_alias=>'LINE_NUMBER'
-,p_column_display_sequence=>1
-,p_column_heading=>'Line Number'
+,p_column_alias=>'LINE_NUM'
+,p_column_display_sequence=>2
+,p_column_heading=>'Line Num'
 ,p_use_as_row_header=>'N'
-,p_default_sort_column_sequence=>1
 ,p_disable_sort_column=>'N'
 ,p_derived_column=>'N'
 ,p_include_in_export=>'Y'
@@ -11638,7 +11653,7 @@ wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(9161745740213808)
 ,p_query_column_id=>2
 ,p_column_alias=>'PAYLOAD'
-,p_column_display_sequence=>2
+,p_column_display_sequence=>1
 ,p_column_heading=>'Payload'
 ,p_use_as_row_header=>'N'
 ,p_derived_column=>'N'

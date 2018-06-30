@@ -33,7 +33,8 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
   cStat    constant t_row_type := 'STAT';
   cQuery   constant t_row_type := 'PARSING IN CURSOR';
 
-  g_version varchar2(32);
+  g_version number;
+  g_release number;
 
   g_delim   varchar2(1):=',';
 
@@ -124,12 +125,15 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
       raise_application_error(-20000,'Token not found: "'||p_statnm||'" "'||p_row||'"');
     end if;
   end;
-  procedure set_version(p_db_ver varchar2, p_trc_ver in out varchar2)
+  procedure set_version(p_db_ver varchar2, p_trc_ver in out number, p_trc_release in out number)
   is
   begin
-    if p_db_ver is null then p_trc_ver:='12';
+
+    if p_db_ver is null then p_trc_ver:=12;p_trc_release:=2;
     else
       p_trc_ver:=substr(p_db_ver,1,instr(p_db_ver,'.')-1);
+      p_trc_release:=substr(p_db_ver,instr(p_db_ver,'.')+1,instr(p_db_ver,'.',2)-1);
+--raise_application_error(-20000,p_db_ver||':'||p_trc_ver||':'||p_trc_release);
     end if;
   end;
 
@@ -313,11 +317,18 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
           p_stat.cr:=getntoken(l_row,8);
           p_stat.pr:=getntoken(l_row,9);
           p_stat.pw:=getntoken(l_row,10);
-          p_stat.str:=getntoken(l_row,11);
-          p_stat.tim:=replace(getntoken(l_row,12),' us');--assuming the only measurement is us and it means 1e-6 sec as all other times
-          p_stat.cost:=getntoken(l_row,13);
-          p_stat.sz:=getntoken(l_row,14);
-          p_stat.card:=getntoken(l_row,15);
+          if g_release=2 then
+            p_stat.str:=getntoken(l_row,11);
+            p_stat.tim:=replace(getntoken(l_row,12),' us');--assuming the only measurement is us and it means 1e-6 sec as all other times
+            p_stat.cost:=getntoken(l_row,13);
+            p_stat.sz:=getntoken(l_row,14);
+            p_stat.card:=getntoken(l_row,15);
+          elsif g_release=1 then
+            p_stat.tim:=replace(getntoken(l_row,11),' us');--assuming the only measurement is us and it means 1e-6 sec as all other times
+            p_stat.cost:=getntoken(l_row,12);
+            p_stat.sz:=getntoken(l_row,13);
+            p_stat.card:=getntoken(l_row,14);
+          end if;
     end if;
     exception
       when others then
@@ -364,7 +375,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     l_sess2slot t_trc_row_type;
     l_sess_not_found boolean := false;
   begin
-    set_version(null,g_version); --default trace file version
+    set_version(null,g_version,g_release); --default trace file version
 
     INSERT INTO trc_session (trc_file_id,row_num,sid,serial#,start_ts,end_ts) VALUES (l_file_id,0,null,null,null,null) returning session_id into l_session_id;
     --open p_file;
@@ -387,7 +398,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
           exit when is_row_empty(l_file_rec.frow);
           if l_db_ver is null and instr(l_file_rec.frow,'Release')>0 then
             l_db_ver:=substr(l_file_rec.frow,instr(l_file_rec.frow,'Release')+8,instr(l_file_rec.frow,' ',instr(l_file_rec.frow,'Release')+8)-instr(l_file_rec.frow,'Release')-8);
-            set_version(l_db_ver,g_version);
+            set_version(l_db_ver,g_version,g_release);
           end if;
           l_header:=l_header||l_file_rec.frow;
         end loop;
@@ -609,7 +620,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
   is
     l_trc_file TRC_FILE%rowtype;
     l_trc_file_source TRC_FILE_SOURCE%rowtype;
-
+    l_dblink varchar2(100);
     l_file_crsr sys_refcursor;
   begin
     TRC_UTILS.get_file(p_trc_file_id,l_trc_file,l_trc_file_source);
@@ -620,12 +631,15 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
 
     delete from trc$tmp_file_content;
 
-    if l_trc_file.filename is not null and l_trc_file_source.file_db_source = '$LOCAL$' then
+    if l_trc_file_source.file_content is not null then
+      insert into trc$tmp_file_content select line_number, payload from table(page_clob(l_trc_file_source.file_content));
+    elsif l_trc_file.filename is not null and l_trc_file_source.file_db_source = '$LOCAL$' then
       insert into trc$tmp_file_content select rownum, payload from V$DIAG_TRACE_FILE_CONTENTS where trace_filename=l_trc_file.filename order by line_number;
     elsif l_trc_file.filename is not null and l_trc_file_source.file_db_source != '$LOCAL$' then
-      execute immediate 'insert into trc$tmp_file_content select rownum, payload from V$DIAG_TRACE_FILE_CONTENTS@'||l_trc_file_source.file_db_source||' where trace_filename=:p1 order by line_number' using l_trc_file.filename;
-    elsif l_trc_file.filename is null and l_trc_file_source.file_db_source = '$LOCAL$' then
-      insert into trc$tmp_file_content select line_number, payload from table(page_clob(p_trc_file_id));
+      if nvl(l_trc_file_source.file_db_source,'$LOCAL$') <> '$LOCAL$' then
+        select ora_db_link into l_dblink from v$opas_db_links where db_link_name=l_trc_file_source.file_db_source;
+      end if;    
+      execute immediate 'insert into trc$tmp_file_content select rownum, payload from V$DIAG_TRACE_FILE_CONTENTS@'||l_dblink||' where trace_filename=:p1 order by line_number' using l_trc_file.filename;
     else
       raise_application_error(-20000, 'File ID: '||p_trc_file_id||' can not be processed: unknown source ('||l_trc_file.filename||':'||nvl(l_trc_file_source.file_db_source,'N/A')||')');
     end if;
