@@ -16,6 +16,11 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
 
   subtype t_row_type is varchar2(100);
   type t_trc_row_type is table of number index by t_row_type;
+  
+  subtype t_token_type is varchar2(100);
+  type t_token_type_indx is table of number index by t_token_type;
+  type t_token_type_indx_v is table of t_token_type_indx index by t_token_type;
+  g_stat_token_indx t_token_type_indx_v;
 
   g_trc_row_type t_trc_row_type;
 
@@ -32,6 +37,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
   cTrans   constant t_row_type := 'XCTEND';
   cStat    constant t_row_type := 'STAT';
   cQuery   constant t_row_type := 'PARSING IN CURSOR';
+  cParseErr   constant t_row_type := 'PARSE ERROR';
 
   g_version number;
   g_release number;
@@ -85,8 +91,14 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     end if;
     l_idx:=g_trc_row_type.first;
     loop
-      if p_row like l_idx||'%' then
-        return l_idx;
+      if cParse=l_idx then
+        if p_row like l_idx||' #%' then
+          return l_idx;
+        end if;      
+      else
+        if p_row like l_idx||'%'  then
+          return l_idx;
+        end if;
       end if;
       l_idx:=g_trc_row_type.next(l_idx);
       exit when l_idx is null;
@@ -99,7 +111,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     l_result number;
   begin
     case
-      when p_row_type in (cWAIT,cPARSE,cEXEC,cBINDS,cFETCH,cCLOSE) then
+      when p_row_type in (cWAIT,cPARSE,cEXEC,cBINDS,cFETCH,cCLOSE,cParseErr) then
         l_result:=substr(p_row,instr(p_row,'#')+1,instr(p_row,':')-instr(p_row,'#')-1);
       when p_row_type in (cTrans,cSTAT,cQuery) then
         l_result:=substr(p_row,instr(p_row,'#')+1,instr(p_row,' ',instr(p_row,'#'))-instr(p_row,'#')-1);
@@ -213,7 +225,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
         raise_application_error(-20000, 'parse_call_row: '||sqlerrm);
   end;
 
-  procedure parse_stmt_row(p_row varchar2, p_stmt out trc_statement%rowtype)
+  procedure parse_stmt_row(p_row varchar2, p_rowtp varchar2, p_stmt out trc_statement%rowtype)
   is
     l_row varchar2(32765);
   begin
@@ -221,15 +233,17 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     if g_version='12' then
         begin
           l_row:=rtrim(rtrim(
-                 replace(replace(
-                 replace(replace(
+                 replace(replace(replace(
                  replace(replace(replace(replace(
-                 replace(replace(p_row,'PARSING IN CURSOR #','')
+                 replace(replace(replace(replace(
+                 replace(replace(p_row,'PARSING IN CURSOR #',''),'PARSE ERROR #',''),':len=',',')
                                       ,' len=',','),' dep=',',')
                                       ,' uid=',','),' oct=',','),' lid=',',')
                                       ,' tim=',','),' hv=',','),' ad=',',')
-                                      ,' sqlid=',','),chr(10)), chr(13))||g_delim;
+                                      ,' sqlid=',',')
+                                      ,' err=',','),chr(10)), chr(13))||g_delim;
         end;
+        if p_rowtp = cQuery then
           p_stmt.trc_slot:=getntoken(l_row,1);
           p_stmt.len:=getntoken(l_row,2);
           p_stmt.dep:=getntoken(l_row,3);
@@ -240,7 +254,18 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
           p_stmt.hv:=getntoken(l_row,8);
           p_stmt.ad:=trim(both q'[']' from getntoken(l_row,9));
           p_stmt.sqlid:=trim(both q'[']' from getntoken(l_row,10));
+        elsif p_rowtp = cParseErr then
+          p_stmt.trc_slot:=getntoken(l_row,1);
+          p_stmt.len:=getntoken(l_row,2);
+          p_stmt.dep:=getntoken(l_row,3);
+          p_stmt.uid#:=getntoken(l_row,4);
+          p_stmt.oct:=getntoken(l_row,5);
+          p_stmt.lid:=getntoken(l_row,6);
+          p_stmt.tim:=getntoken(l_row,7);
+          p_stmt.err:=getntoken(l_row,8);
+        end if;
     end if;
+    if p_stmt.trc_slot is null then raise_application_error(-20000,'slot is null: '||p_rowtp);end if;
     exception
       when others then
         COREMOD_LOG.log('parse_stmt_row: '||sqlerrm);
@@ -288,13 +313,49 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
         raise_application_error(-20000, 'parse_wait_row: '||sqlerrm);
   end;
 
+  procedure init_version_dependencies
+  is
+  begin
+    g_stat_token_indx('trc_slot')('12.2'):=1;
+    g_stat_token_indx('id')('12.2'):=2;
+    g_stat_token_indx('cnt')('12.2'):=3;
+    g_stat_token_indx('pid')('12.2'):=4;
+    g_stat_token_indx('pos')('12.2'):=5;
+    g_stat_token_indx('obj')('12.2'):=6;
+    g_stat_token_indx('op')('12.2'):=7;
+    g_stat_token_indx('cr')('12.2'):=8;
+    g_stat_token_indx('pr')('12.2'):=9;
+    g_stat_token_indx('pw')('12.2'):=10;
+    g_stat_token_indx('str')('12.2'):=11;
+    g_stat_token_indx('tim')('12.2'):=12;
+    g_stat_token_indx('cost')('12.2'):=13;
+    g_stat_token_indx('sz')('12.2'):=14;
+    g_stat_token_indx('card')('12.2'):=15;  
+
+    g_stat_token_indx('trc_slot')('12.1'):=1;
+    g_stat_token_indx('id')('12.1'):=2;
+    g_stat_token_indx('cnt')('12.1'):=3;
+    g_stat_token_indx('pid')('12.1'):=4;
+    g_stat_token_indx('pos')('12.1'):=5;
+    g_stat_token_indx('obj')('12.1'):=6;
+    g_stat_token_indx('op')('12.1'):=7;
+    g_stat_token_indx('cr')('12.1'):=8;
+    g_stat_token_indx('pr')('12.1'):=9;
+    g_stat_token_indx('pw')('12.1'):=10;
+    g_stat_token_indx('tim')('12.1'):=11;
+    g_stat_token_indx('cost')('12.1'):=12;
+    g_stat_token_indx('sz')('12.1'):=13;
+    g_stat_token_indx('card')('12.1'):=14;   
+  end;
+  
   procedure parse_stat_row(p_row varchar2, p_stat out trc_stat%rowtype)
   is
     l_row varchar2(32765);
   begin
-
-    if g_version='12' then
-        begin
+--STAT #139705803211616 id=1 cnt=1 pid=0 pos=1 obj=0 op='VIEW  (cr=0 pr=0 pw=0 time=38 us)'
+--STAT #140556341179024 id=1 cnt=0 pid=0 pos=1 obj=0 op='UPDATE  T1 (cr=160 pr=0 pw=0 time=149301 us)'
+    --if g_version='12' then
+--        begin
           l_row:=rtrim(rtrim(replace(replace(
                  replace(replace(replace(replace(
                  replace(replace(replace(replace(
@@ -305,8 +366,8 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
                                       ,q'[ op=']',','),' (cr=',','),' pr=',',')
                                       ,' pw=',','),' str=',','),' time=',','),' cost=',','),' size=',','),' card=',','),q'[)']')
                                       ,chr(10)), chr(13))||g_delim;
-        end;
-
+--        end;
+/*
           p_stat.trc_slot:=getntoken(l_row,1);
           p_stat.id:=getntoken(l_row,2);
           p_stat.cnt:=getntoken(l_row,3);
@@ -329,15 +390,60 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
             p_stat.sz:=getntoken(l_row,13);
             p_stat.card:=getntoken(l_row,14);
           end if;
-    end if;
+*/          
+      if g_stat_token_indx.exists('trc_slot') and g_stat_token_indx('trc_slot').exists(g_version||'.'||g_release) then p_stat.trc_slot:=getntoken(l_row,g_stat_token_indx('trc_slot')(g_version||'.'||g_release)); end if;   
+      if g_stat_token_indx.exists('id') and g_stat_token_indx('id').exists(g_version||'.'||g_release) then p_stat.id:=getntoken(l_row,g_stat_token_indx('id')(g_version||'.'||g_release)); end if;
+      if g_stat_token_indx.exists('cnt') and g_stat_token_indx('cnt').exists(g_version||'.'||g_release) then p_stat.cnt:=getntoken(l_row,g_stat_token_indx('cnt')(g_version||'.'||g_release)); end if;
+      if g_stat_token_indx.exists('pid') and g_stat_token_indx('pid').exists(g_version||'.'||g_release) then p_stat.pid:=getntoken(l_row,g_stat_token_indx('pid')(g_version||'.'||g_release)); end if;
+      if g_stat_token_indx.exists('pos') and g_stat_token_indx('pos').exists(g_version||'.'||g_release) then p_stat.pos:=getntoken(l_row,g_stat_token_indx('pos')(g_version||'.'||g_release)); end if;
+      if g_stat_token_indx.exists('obj') and g_stat_token_indx('obj').exists(g_version||'.'||g_release) then p_stat.obj:=getntoken(l_row,g_stat_token_indx('obj')(g_version||'.'||g_release)); end if;
+      if g_stat_token_indx.exists('op') and g_stat_token_indx('op').exists(g_version||'.'||g_release) then p_stat.op:=getntoken(l_row,g_stat_token_indx('op')(g_version||'.'||g_release)); end if;
+      if g_stat_token_indx.exists('cr') and g_stat_token_indx('cr').exists(g_version||'.'||g_release) then p_stat.cr:=getntoken(l_row,g_stat_token_indx('cr')(g_version||'.'||g_release)); end if;
+      if g_stat_token_indx.exists('pr') and g_stat_token_indx('pr').exists(g_version||'.'||g_release) then p_stat.pr:=getntoken(l_row,g_stat_token_indx('pr')(g_version||'.'||g_release)); end if;
+      if g_stat_token_indx.exists('pw') and g_stat_token_indx('pw').exists(g_version||'.'||g_release) then p_stat.pw:=getntoken(l_row,g_stat_token_indx('pw')(g_version||'.'||g_release)); end if;
+      if g_stat_token_indx.exists('str') and g_stat_token_indx('str').exists(g_version||'.'||g_release) then p_stat.str:=getntoken(l_row,g_stat_token_indx('str')(g_version||'.'||g_release)); end if;
+      if g_stat_token_indx.exists('tim') and g_stat_token_indx('tim').exists(g_version||'.'||g_release) then p_stat.tim:=replace(getntoken(l_row,g_stat_token_indx('tim')(g_version||'.'||g_release)),' us'); end if;--assuming the only measurement is us and it means 1e-6 sec as all other times
+      if g_stat_token_indx.exists('cost') and g_stat_token_indx('cost').exists(g_version||'.'||g_release) then p_stat.cost:=getntoken(l_row,g_stat_token_indx('cost')(g_version||'.'||g_release)); end if;
+      if g_stat_token_indx.exists('sz') and g_stat_token_indx('sz').exists(g_version||'.'||g_release) then p_stat.sz:=getntoken(l_row,g_stat_token_indx('sz')(g_version||'.'||g_release)); end if;
+      if g_stat_token_indx.exists('card') and g_stat_token_indx('card').exists(g_version||'.'||g_release) then p_stat.card:=getntoken(l_row,g_stat_token_indx('card')(g_version||'.'||g_release)); end if;
+      
+--    end if;
     exception
       when others then
-        COREMOD_LOG.log('parse_stat_row: '||sqlerrm);
+        COREMOD_LOG.log('parse_stat_row: '||g_version||'.'||g_release||':'||sqlerrm);
         COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
         COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
         COREMOD_LOG.log(p_row);
         COREMOD_LOG.log(l_row);
+        --COREMOD_LOG.log(g_stat_token_indx('tim')(g_version||'.'||g_release)||':'||getntoken(l_row,g_stat_token_indx('tim')(g_version||'.'||g_release)));
         raise_application_error(-20000, 'parse_stat_row: '||sqlerrm);
+  end;
+
+  procedure parse_trans_row(p_row varchar2, p_trans out trc_trans%rowtype)
+  is
+    l_row varchar2(32765);
+  begin
+
+--    if g_version='12' then
+        begin
+          l_row:=rtrim(rtrim(
+                 replace(
+                 replace(replace(p_row,'XCTEND rlbk=','')
+                                      ,', rd_only=',','),', tim=',','),chr(10)), chr(13))||g_delim;
+        end;
+          p_trans.rlbk:=getntoken(l_row,1);
+          p_trans.rd_only:=getntoken(l_row,2);
+          p_trans.tim:=getntoken(l_row,3);
+
+--    end if;
+    exception
+      when others then
+        COREMOD_LOG.log('parse_trans_row: '||sqlerrm);
+        COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
+        COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+        COREMOD_LOG.log(p_row);
+        COREMOD_LOG.log(l_row);
+        raise_application_error(-20000, 'parse_trans_row: '||sqlerrm);
   end;
 
   procedure parse_file_i(p_trc_file_id TRC_FILE.trc_file_id%type, p_file sys_refcursor)
@@ -357,7 +463,10 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     l_call       trc_call%rowtype;
     l_wait       trc_wait%rowtype;
     l_stat       trc_stat%rowtype;
+    l_trans      trc_trans%rowtype;
     l_row_num    number;
+    
+    l_curr_XCTEND_stmt_id    TRC_STATEMENT.stmt_id%type;
 
     l_str     varchar2(4000);
     l_rowid   rowid;
@@ -376,7 +485,8 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     l_sess_not_found boolean := false;
   begin
     set_version(null,g_version,g_release); --default trace file version
-
+    l_curr_XCTEND_stmt_id:=null;
+    
     INSERT INTO trc_session (trc_file_id,row_num,sid,serial#,start_ts,end_ts) VALUES (l_file_id,0,null,null,null,null) returning session_id into l_session_id;
     --open p_file;
     loop
@@ -396,8 +506,9 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
           fetch p_file into l_file_rec;
           exit when p_file%notfound;
           exit when is_row_empty(l_file_rec.frow);
-          if l_db_ver is null and instr(l_file_rec.frow,'Release')>0 then
+          if l_db_ver is null and instr(l_file_rec.frow,'Release ')>0 then
             l_db_ver:=substr(l_file_rec.frow,instr(l_file_rec.frow,'Release')+8,instr(l_file_rec.frow,' ',instr(l_file_rec.frow,'Release')+8)-instr(l_file_rec.frow,'Release')-8);
+--raise_application_error(-20000,l_file_rec.frow||':'||l_db_ver);            
             set_version(l_db_ver,g_version,g_release);
           end if;
           l_header:=l_header||l_file_rec.frow;
@@ -473,25 +584,27 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
       end if;
 
       --=============================
-      if l_curr_row_type = cQuery then
+      if l_curr_row_type in ( cQuery, cParseErr ) then
         --l_trc_slot:=get_trc_slot(l_file_rec.frow, l_curr_row_type);
         --l_stmt.dep:=gs(l_file_rec.frow,'dep=');
         l_sql_text:=null;
         l_row_num:=l_file_rec.rn;
-        parse_stmt_row(l_file_rec.frow,l_stmt);
+        parse_stmt_row(l_file_rec.frow,l_curr_row_type,l_stmt);
         loop
           fetch p_file into l_file_rec;
           exit when p_file%notfound;
           exit when trimrow(l_file_rec.frow)='END OF STMT';
           l_sql_text:=l_sql_text||l_file_rec.frow;
         end loop;
+        
         INSERT INTO trc_statement
                    (cli_ident,session_id,row_num,trc_slot,trc_file_id,
-                    len,dep,uid#,oct,lid,tim,hv,ad,sqlid,sql_text)
+                    len,dep,uid#,oct,lid,tim,hv,ad,sqlid,sql_text,err)
             VALUES (l_curr_cl_id,l_session_id,l_row_num,l_stmt.trc_slot,l_file_id,
-                    l_stmt.len,l_stmt.dep,l_stmt.uid#,l_stmt.oct,l_stmt.lid,l_stmt.tim,l_stmt.hv,l_stmt.ad,l_stmt.sqlid,l_sql_text)
+                    l_stmt.len,l_stmt.dep,l_stmt.uid#,l_stmt.oct,l_stmt.lid,l_stmt.tim,l_stmt.hv,l_stmt.ad,l_stmt.sqlid,l_sql_text,l_stmt.err)
          returning stmt_id into l_stmt_id;
-         l_sess2slot(l_stmt.trc_slot):=l_stmt_id;
+        l_sess2slot(l_stmt.trc_slot):=l_stmt_id;
+        if l_stmt.oct=44 then l_curr_XCTEND_stmt_id:=l_stmt_id; end if;
       end if;
 
       --=============================
@@ -550,9 +663,10 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
       l_rowid:=null;
 
       if l_curr_row_type in (cTrans) then
+        parse_trans_row(l_file_rec.frow,l_trans);
         INSERT INTO trc_trans
-                    (session_id,trc_file_id,row_num,rlbk,rd_only,tim)
-             VALUES (l_session_id,l_file_id,l_file_rec.rn,null,null,null);
+                    (session_id,trc_file_id,row_num,rlbk,rd_only,tim, stmt_id)
+             VALUES (l_session_id,l_file_id,l_file_rec.rn,l_trans.rlbk,l_trans.rd_only,l_trans.tim, l_curr_XCTEND_stmt_id);
       end if;
 
       --=============================
@@ -614,6 +728,9 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
       end loop;
     end;
 
+    --load object dictionary
+    insert into trc_obj_dic (trc_file_id,object_id, object_name)
+      select unique l_file_id, obj, substr(op,instr(op,' ',-1)+1) from trc_stat where trc_file_id=l_file_id and obj<>0;
   end;
 
   procedure parse_file(p_trc_file_id TRC_FILE.trc_file_id%type)
@@ -652,6 +769,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
 
 begin
   init();
+  init_version_dependencies();
 END TRC_PROCESSFILE;
 /
 

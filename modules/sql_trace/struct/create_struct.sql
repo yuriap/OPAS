@@ -62,18 +62,6 @@ end_ts      timestamp with time zone
 
 create index idx_trc_session_fil on trc_session(trc_file_id);
 
-create table trc_trans (
-trans_id   NUMBER GENERATED ALWAYS AS IDENTITY primary key,
-session_id NUMBER REFERENCES trc_session ( session_id ) on delete cascade,
-trc_file_id NUMBER NOT NULL REFERENCES trc_file ( trc_file_id ) on delete cascade,
-row_num    number,
-rlbk       number,
-rd_only    number,
-tim        number);
-
-create index idx_trc_trans_sess on trc_trans(session_id);
-create index idx_trc_trans_file on trc_trans(trc_file_id);
-
 create table trc_client_identity (
 cli_id     NUMBER GENERATED ALWAYS AS IDENTITY primary key,
 session_id NUMBER REFERENCES trc_session ( session_id ) on delete cascade,
@@ -103,11 +91,26 @@ hv         number,
 ad         varchar2(100),
 sqlid      varchar2(100),
 sql_text   clob,
-cli_ident  NUMBER REFERENCES trc_client_identity ( cli_id ) on delete cascade
+cli_ident  NUMBER REFERENCES trc_client_identity ( cli_id ) on delete cascade,
+err        number
 );
 
 create index idx_trc_statement_sess on trc_statement(session_id);
 create index idx_trc_statement_file on trc_statement(trc_file_id);
+
+create table trc_trans (
+trans_id   NUMBER GENERATED ALWAYS AS IDENTITY primary key,
+session_id NUMBER REFERENCES trc_session ( session_id ) on delete cascade,
+trc_file_id NUMBER NOT NULL REFERENCES trc_file ( trc_file_id ) on delete cascade,
+stmt_id    NUMBER REFERENCES trc_statement ( stmt_id ) on delete cascade,
+row_num    number,
+rlbk       number,
+rd_only    number,
+tim        number);
+
+create index idx_trc_trans_sess on trc_trans(session_id);
+create index idx_trc_trans_file on trc_trans(trc_file_id);
+create index idx_trc_trans_stmt on trc_trans(stmt_id);
 
 create table trc_call (
 call_id    NUMBER GENERATED ALWAYS AS IDENTITY primary key,
@@ -191,6 +194,13 @@ card       number);
 
 create index idx_trc_stat_stmt on trc_stat(stmt_id);
 create index idx_trc_stat_file on trc_stat(trc_file_id);
+
+create table trc_obj_dic (
+trc_file_id NUMBER NOT NULL REFERENCES trc_file ( trc_file_id ) on delete cascade,
+object_id number,
+object_name varchar2(128));
+
+create index idx_trc_obj_dic_file on trc_obj_dic(trc_file_id);
 
 --Dictionaries
 create table trc_dic_retention (

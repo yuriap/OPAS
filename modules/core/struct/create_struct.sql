@@ -43,7 +43,10 @@ select DB_LINK_NAME,
          when DB_LINK_NAME = '$LOCAL$' then DB_LINK_NAME
          else l.db_link
        end ORA_DB_LINK,
-       DISPLAY_NAME,
+       case
+         when DB_LINK_NAME = '$LOCAL$' then DISPLAY_NAME
+         else DISPLAY_NAME||' ('||l.username||'@'||l.host||')'
+         end DISPLAY_NAME,
        OWNER,
        STATUS,
        IS_PUBLIC

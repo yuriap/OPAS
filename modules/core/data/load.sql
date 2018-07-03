@@ -5,4 +5,16 @@ INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RE
 
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','LOGGING','LOGGING_LEVEL','INFO','Current logging level. INFO|DEBUG');
 
+declare
+  l_script clob;
+begin
+  l_script := 
+q'[
+@@../scripts/awr.css
+]';
+  delete from opas_scripts where script_id='PROC_AWRCSS';
+  insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRCSS','&MODNM.',l_script);  
+end;
+/
+
 commit;

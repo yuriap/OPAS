@@ -6,4 +6,8 @@
 @@COREFILE_API
 @@COREMOD_SEC
 
+set define off
+@@COREMOD_REPORT_UTILS
+set define on
+
 @@filebyrow
