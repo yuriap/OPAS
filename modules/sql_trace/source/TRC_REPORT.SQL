@@ -70,10 +70,12 @@ create or replace package body trc_report as
       l_nonidle       number;
       
       l_min_dep       number;
+      l_very_first_we trc_wait.row_num%type;
     begin
       select min(dep) into l_min_dep from (
         select dep from trc_statement where trc_file_id=p_trc_file_id union all
         select dep from trc_call where trc_file_id=p_trc_file_id);
+        
       select max(tim)-min(tim) into l_file_tot_time from (
         select tim from trc_statement where trc_file_id=p_trc_file_id union all
         select tim from trc_trans where trc_file_id=p_trc_file_id union all
@@ -81,11 +83,32 @@ create or replace package body trc_report as
         select tim from trc_wait where trc_file_id=p_trc_file_id);
       
       select sum(c) cpu_time, sum(e) ela_tim into l_cpu, l_ela from trc_call where trc_file_id=p_trc_file_id and dep=l_min_dep;
-      select sum(ela) into l_idle from trc_wait where trc_file_id=p_trc_file_id and nam in (select name from V$EVENT_NAME where wait_class='Idle');
+      
+      --the very first idle wait event is excluded from calc
+      begin
+      select row_num into l_very_first_we from trc_wait
+       where row_num = (
+      select min(x.row_num) from (
+             select min(row_num) row_num from trc_statement where trc_file_id=p_trc_file_id union all
+             select min(row_num) from trc_trans where trc_file_id=p_trc_file_id union all
+             select min(row_num) from trc_call where trc_file_id=p_trc_file_id union all
+             select min(row_num) from trc_wait where trc_file_id=p_trc_file_id) x)
+             and nam in (select name from V$EVENT_NAME where wait_class='Idle')
+             and trc_file_id=p_trc_file_id;
+      exception
+        when no_data_found then l_very_first_we:=-1;
+      end;
+        
+      select sum(ela) into l_idle from trc_wait 
+       where trc_file_id=p_trc_file_id and nam in (select name from V$EVENT_NAME where wait_class='Idle')
+         and row_num != l_very_first_we;
+         
       select sum(ela) into l_nonidle from trc_wait where trc_file_id=p_trc_file_id and nam not in (select name from V$EVENT_NAME where wait_class='Idle');      
       
       p('Total file time, us (tim column): '||trim(to_char(l_file_tot_time,'999g999g999g999g999g999')));p(HTF.BR);
-      p(case when l_min_dep=0 then 'Top' else 'dep=' end||l_min_dep ||' level call Elapsed, CPU time, us: '||trim(to_char(l_ela,'999g999g999g999g999g999'))||'; '||trim(to_char(l_cpu,'999g999g999g999g999g999')));p(HTF.BR);
+      p(case when l_min_dep=0 then 'Top' else 'The highest dep='||l_min_dep end ||' level calls:');p(HTF.BR);
+      p('Elapsed, us: '||trim(to_char(l_ela,'999g999g999g999g999g999')));p(HTF.BR);
+      p('CPU time, us: '||trim(to_char(l_cpu,'999g999g999g999g999g999')));p(HTF.BR);
       p('Idle wait time, us: '||trim(to_char(l_idle,'999g999g999g999g999g999')));p(HTF.BR);
       p('Nonidle wait time, us: '||trim(to_char(l_nonidle,'999g999g999g999g999g999')));p(HTF.BR);
       p('Total file time - Elapsed - Idle (% of total), us: '||trim(to_char((l_file_tot_time-l_ela-l_idle),'999g999g999g999g999g999'))||' ( '||round(100*(l_file_tot_time-l_ela-l_idle)/l_file_tot_time,2)||'% )');p(HTF.BR);
@@ -93,37 +116,22 @@ create or replace package body trc_report as
 
     p(HTF.BR);
     
-    p('Top level calls, time in seconds.');
+    p(HTF.BIG('Top level calls, time in seconds.'));
     
     l_sql := q'[select * from (
 with call_list as (select 'PARSE' nm from dual union select 'EXEC' from dual union select 'FETCH' from dual union select 'CLOSE' from dual)
 select 
-  call_list.nm  "Call",
-  count(trc_call.call_type)   "Count",
-  sum(c)/1e6 "CPU",
-  sum(e)/1e6 "Elapsed",
-  sum(p)     "Disk",
-  sum(cr)    "Query",
-  sum(cu)    "Current",
-  sum(r)     "Rows",
-  sum(mis)   "Mis",
-  0           noprn_lastrow
-from trc_call, call_list where call_type(+)=call_list.nm and trc_file_id(+)=]'||p_trc_file_id||q'[ and dep(+)=]'||l_min_dep||q'[ 
+  call_list.nm "Call", count(trc_call.call_type) "Count", sum(c)/1e6 "CPU", sum(e)/1e6 "Elapsed", sum(p) "Disk",
+  sum(cr) "Query", sum(cu) "Current", sum(r) "Rows", sum(mis) "Mis", 0 noprn_lastrow
+from trc_call, call_list where call_type(+)=call_list.nm and trc_file_id(+)=<P_TRC_FILE_ID> and dep(+)=<MIN_DEP> 
 group by call_list.nm
 union all
 select 
-  'Total:'   "Call",
-  count(1)   "Count",
-  sum(c)/1e6 "CPU",
-  sum(e)/1e6 "Elapsed",
-  sum(p)     "Disk",
-  sum(cr)    "Query",
-  sum(cu)    "Current",
-  sum(r)     "Rows",
-  sum(mis)   "Mis",
-  1           noprn_lastrow
-from trc_call, call_list where call_type=call_list.nm and trc_file_id=]'||p_trc_file_id||q'[ and dep=]'||l_min_dep||q'[)
+  'Total:' "Call", count(1) "Count", sum(c)/1e6 "CPU", sum(e)/1e6 "Elapsed", sum(p) "Disk", 
+  sum(cr) "Query", sum(cu) "Current", sum(r) "Rows", sum(mis) "Mis", 1  noprn_lastrow
+from trc_call, call_list where call_type=call_list.nm and trc_file_id=<P_TRC_FILE_ID> and dep=<MIN_DEP>)
 order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';    
+    l_sql:=replace(replace(l_sql,'<P_TRC_FILE_ID>',p_trc_file_id),'<MIN_DEP>',l_min_dep);
     COREMOD_REPORT_UTILS.print_table_html_new
                                          (p_query => l_sql,
                                           p_width => 600,
@@ -142,14 +150,15 @@ order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';
     p(HTF.BR);
     p(HTF.BR);
 
-    p('NonIdle Wait events, time in seconds.');
+    p(HTF.BIG('NonIdle Wait events, time in seconds.'));
     
     l_sql := q'[select 0 noprn_lastrow, nam "Event", count(1) "Times waited", sum(ela)/1e6 "Total time", max(ela)/1e6 "Max time", PERCENTILE_CONT(0.95) within group (order by ela)/1e6 "95% Percetile" 
-from trc_wait where trc_file_id=]'||p_trc_file_id||q'[ and nam not in (select name from V$EVENT_NAME where wait_class='Idle') group by nam 
+from trc_wait where trc_file_id=<P_TRC_FILE_ID> and nam not in (select name from V$EVENT_NAME where wait_class='Idle') group by nam 
 union all
 select 1 noprn_lastrow, 'Total:' "Event", count(1) "Times waited", sum(ela)/1e6 "Total time", max(ela)/1e6 "Max time", PERCENTILE_CONT(0.95) within group (order by ela)/1e6 "95% Percetile" 
-from trc_wait where trc_file_id=]'||p_trc_file_id||q'[ and nam not in (select name from V$EVENT_NAME where wait_class='Idle') 
-order by 1,4 desc]';    
+from trc_wait where trc_file_id=<P_TRC_FILE_ID> and nam not in (select name from V$EVENT_NAME where wait_class='Idle') 
+order by 1,4 desc]';   
+    l_sql:=replace(l_sql,'<P_TRC_FILE_ID>',p_trc_file_id);
     COREMOD_REPORT_UTILS.print_table_html_new
                                          (p_query => l_sql,
                                           p_width => 600,
@@ -168,14 +177,16 @@ order by 1,4 desc]';
     p(HTF.BR);
     p(HTF.BR);
 
-    p('Idle Wait events, time in seconds.');
+    p(HTF.BIG('Idle Wait events, time in seconds.'));
     
     l_sql := q'[select 0 noprn_lastrow, nam "Event", count(1) "Times waited", sum(ela)/1e6 "Total time", max(ela)/1e6 "Max time", PERCENTILE_CONT(0.95) within group (order by ela)/1e6 "95% Percetile" 
-from trc_wait where trc_file_id=]'||p_trc_file_id||q'[ and nam in (select name from V$EVENT_NAME where wait_class='Idle') group by nam 
+from trc_wait where trc_file_id=<P_TRC_FILE_ID> and nam in (select name from V$EVENT_NAME where wait_class='Idle') and row_num!=<P_FIRST_IDLE>
+group by nam 
 union all
 select 1 noprn_lastrow, 'Total:' "Event", count(1) "Times waited", sum(ela)/1e6 "Total time", max(ela)/1e6 "Max time", PERCENTILE_CONT(0.95) within group (order by ela)/1e6 "95% Percetile" 
-from trc_wait where trc_file_id=]'||p_trc_file_id||q'[ and nam in (select name from V$EVENT_NAME where wait_class='Idle') 
+from trc_wait where trc_file_id=<P_TRC_FILE_ID> and nam in (select name from V$EVENT_NAME where wait_class='Idle') and row_num!=<P_FIRST_IDLE>
 order by 1,4 desc]';    
+    l_sql:=replace(replace(l_sql,'<P_TRC_FILE_ID>',p_trc_file_id),'<P_FIRST_IDLE>',l_very_first_we);
     COREMOD_REPORT_UTILS.print_table_html_new
                                          (p_query => l_sql,
                                           p_width => 600,

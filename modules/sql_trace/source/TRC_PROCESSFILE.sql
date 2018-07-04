@@ -731,6 +731,15 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     --load object dictionary
     insert into trc_obj_dic (trc_file_id,object_id, object_name)
       select unique l_file_id, obj, substr(op,instr(op,' ',-1)+1) from trc_stat where trc_file_id=l_file_id and obj<>0;
+      
+    -- self statistics calculation
+    for i in (select * from trc_call where trc_file_id = p_trc_file_id) loop
+      INSERT INTO trc_call_self (call_id, c, e, p, cr, cu) 
+          select * from (
+             select i.call_id, i.c - sum(c) cs, i.e - sum(e) es, i.p - sum(p) ps, i.cr - sum(cr) crs, i.cu - sum(cu) cus
+               from trc_call where trc_file_id = p_trc_file_id and parent_id=i.call_id)
+               where cs is not null or es is not null or ps is not null or crs is not null or cus is not null;
+    end loop;    
   end;
 
   procedure parse_file(p_trc_file_id TRC_FILE.trc_file_id%type)

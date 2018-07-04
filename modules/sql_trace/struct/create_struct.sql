@@ -136,7 +136,17 @@ typ        number --CLOSE call type field
 
 create index idx_trc_call_sess on trc_call(stmt_id);
 create index idx_trc_call_prnt on trc_call(parent_id);
-create index idx_trc_call_file on trc_call(trc_file_id);
+create index idx_trc_call_file on trc_call(trc_file_id,parent_id);
+
+create table trc_call_self (
+call_id    NUMBER NOT NULL REFERENCES trc_call ( call_id ) on delete cascade,
+c          number,
+e          number,
+p          number,
+cr         number,
+cu         number);
+
+create index idx_trc_call_self_cll on trc_call_self(call_id);
 
 create table trc_binds (
 stmt_id    NUMBER NOT NULL REFERENCES trc_statement ( stmt_id ) on delete cascade,

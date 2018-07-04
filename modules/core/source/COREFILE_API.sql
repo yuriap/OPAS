@@ -17,6 +17,9 @@ create or replace PACKAGE COREFILE_API AS
                           p_content opas_files.file_contentc%type);
                           
   procedure delete_file(p_file_id opas_files.file_id%type);
+  
+  function get_filec_size(p_file_id opas_files.file_id%type) return number;
+  function get_fileb_size(p_file_id opas_files.file_id%type) return number;
 
 END COREFILE_API;
 /
@@ -66,6 +69,22 @@ create or replace PACKAGE BODY COREFILE_API AS
   begin
     delete from opas_files where file_id = p_file_id;
   end;
+  
+  function get_filec_size(p_file_id opas_files.file_id%type) return number
+  is
+    l_size number;
+  begin
+    select dbms_lob.getlength(file_contentc) into l_size from opas_files where file_id=p_file_id;
+    return l_size;
+  end;
+  
+  function get_fileb_size(p_file_id opas_files.file_id%type) return number
+  is
+    l_size number;
+  begin
+    select dbms_lob.getlength(file_contentb) into l_size from opas_files where file_id=p_file_id;
+    return l_size;
+  end;  
   
 END COREFILE_API;
 /
