@@ -73,8 +73,8 @@ create or replace package body trc_report as
       l_very_first_we trc_wait.row_num%type;
     begin
       select min(dep) into l_min_dep from (
-        select dep from trc_statement where trc_file_id=p_trc_file_id union all
-        select dep from trc_call where trc_file_id=p_trc_file_id);
+        select min(dep) dep from trc_statement where trc_file_id=p_trc_file_id union all
+        select min(dep) from trc_call where trc_file_id=p_trc_file_id and call_type<>'CLOSE');
         
       select max(tim)-min(tim) into l_file_tot_time from (
         select tim from trc_statement where trc_file_id=p_trc_file_id union all
@@ -109,10 +109,10 @@ create or replace package body trc_report as
       p(case when l_min_dep=0 then 'Top' else 'The highest dep='||l_min_dep end ||' level calls:');p(HTF.BR);
       p('Elapsed, us: '||trim(to_char(l_ela,'999g999g999g999g999g999')));p(HTF.BR);
       p('CPU time, us: '||trim(to_char(l_cpu,'999g999g999g999g999g999')));p(HTF.BR);
-      p('Idle wait time, us: '||trim(to_char(l_idle,'999g999g999g999g999g999')));p(HTF.BR);
-      p('Nonidle wait time, us: '||trim(to_char(l_nonidle,'999g999g999g999g999g999')));p(HTF.BR);
-      p('Total file time - Elapsed - Idle (% of total), us: '||trim(to_char((l_file_tot_time-l_ela-l_idle),'999g999g999g999g999g999'))||' ( '||round(100*(l_file_tot_time-l_ela-l_idle)/l_file_tot_time,2)||'% )');p(HTF.BR);
-      p('Elapsed - CPU - NonIdle (% of Elapsed), us: '||trim(to_char((l_ela-l_cpu-l_nonidle),'999g999g999g999g999g999'))||' ( '||round(100*(l_ela-l_cpu-l_nonidle)/l_ela,2)||'% )');p(HTF.BR);
+      p('Idle wait time, us: '||trim(to_char(nvl(l_idle,0),'999g999g999g999g999g999')));p(HTF.BR);
+      p('Nonidle wait time, us: '||trim(to_char(nvl(l_nonidle,0),'999g999g999g999g999g999')));p(HTF.BR);
+      p('Total file time - Elapsed - Idle (% of total), us: '||trim(to_char((l_file_tot_time-l_ela-nvl(l_idle,0)),'999g999g999g999g999g999'))||' ( '||round(100*(l_file_tot_time-l_ela-nvl(l_idle,0))/l_file_tot_time,2)||'% )');p(HTF.BR);
+      p('Elapsed - CPU - NonIdle (% of Elapsed), us: '||trim(to_char((l_ela-l_cpu-nvl(l_nonidle,0)),'999g999g999g999g999g999'))||' ( '||round(100*(l_ela-l_cpu-nvl(l_nonidle,0))/l_ela,2)||'% )');p(HTF.BR);
 
     p(HTF.BR);
     
@@ -129,7 +129,7 @@ union all
 select 
   'Total:' "Call", count(1) "Count", sum(c)/1e6 "CPU", sum(e)/1e6 "Elapsed", sum(p) "Disk", 
   sum(cr) "Query", sum(cu) "Current", sum(r) "Rows", sum(mis) "Mis", 1  noprn_lastrow
-from trc_call, call_list where call_type=call_list.nm and trc_file_id=<P_TRC_FILE_ID> and dep=<MIN_DEP>)
+from trc_call where trc_file_id=<P_TRC_FILE_ID> and dep=<MIN_DEP>)
 order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';    
     l_sql:=replace(replace(l_sql,'<P_TRC_FILE_ID>',p_trc_file_id),'<MIN_DEP>',l_min_dep);
     COREMOD_REPORT_UTILS.print_table_html_new

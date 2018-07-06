@@ -59,7 +59,7 @@ show errors
 create or replace PACKAGE BODY COREMOD_REPORT_UTILS AS
 
   --long ops for reports
-  
+/*  
     g_rindex    BINARY_INTEGER;
     g_slno      BINARY_INTEGER;
     g_totalwork number;
@@ -68,7 +68,7 @@ create or replace PACKAGE BODY COREMOD_REPORT_UTILS AS
     g_op_name   varchar2(100);
     g_target_desc varchar2(100);
     g_units     varchar2(100);   
-    
+*/    
     g_timing    boolean := false;
     g_time number; g_tot_tim number;
     g_cpu_tim number; g_tot_cpu_tim number;
@@ -106,14 +106,7 @@ create or replace PACKAGE BODY COREMOD_REPORT_UTILS AS
   procedure init_lo_report(p_op_name varchar2, p_target_desc varchar2, p_units varchar2, p_totalwork number)
   is
   begin
-    g_op_name     := p_op_name;
-    g_target_desc := p_target_desc;
-    g_units       := p_units;  
-    
-    g_rindex      := dbms_application_info.set_session_longops_nohint;
-    g_sofar       := 0;
-    g_totalwork   := p_totalwork;
-    dbms_application_info.set_session_longops(g_rindex, g_slno, g_op_name, g_obj, 0, g_sofar, g_totalwork, g_target_desc, g_units); 
+    COREMOD_API.init_longops(p_op_name,p_target_desc,p_units,p_totalwork);
     
     g_tot_tim := 0;
     g_tot_cpu_tim := 0;
@@ -122,14 +115,13 @@ create or replace PACKAGE BODY COREMOD_REPORT_UTILS AS
   procedure start_lo_section(p_module_name varchar2, p_action_name varchar2)
   is
   begin
-    DBMS_APPLICATION_INFO.SET_MODULE ( module_name => p_module_name, action_name => p_action_name);
+    COREMOD_API.start_longops_section ( p_module_name, p_action_name);
     start_tim();  
   end;
   function end_lo_section(p_is_finished boolean default false) return varchar2
   is
   begin
-    g_sofar := g_sofar + 1;
-    dbms_application_info.set_session_longops(g_rindex, g_slno, g_op_name, g_obj, 0, g_sofar, g_totalwork, g_target_desc, g_units);
+    COREMOD_API.end_longops_section;
     return end_tim(p_is_finished);
   end;
 

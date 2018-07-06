@@ -68,18 +68,46 @@ created     timestamp default systimestamp,
 status      varchar2(32) default 'NEW',
 task_body   clob,
 max_thread  number default 1,
-async       varchar2(1) default 'Y' not null
+async       varchar2(1) default 'Y' not null,
+schedule    varchar2(256)
 );
 
 create index idx_opas_task_mod on opas_task(modname);
 
+create table opas_task_exec (
+texec_id    NUMBER GENERATED ALWAYS AS IDENTITY primary key,
+taskname    varchar2(128) references opas_task(taskname) on delete cascade,
+started     timestamp,
+finished    timestamp,
+cpu_time    number, --seconds
+elapsed_time number,
+status      varchar2(32) default 'NEW',
+owner       varchar2(128),
+sid         number,
+serial#     number
+);
+
+create index idx_opas_task_exec_tsk on opas_task_exec(taskname);
+
+create table opas_task_pars (
+texec_id    number references opas_task_exec(texec_id) on delete cascade,
+PAR_NAME    varchar2(100),
+num_par     number,
+varchar_par varchar2(4000),
+date_par    date
+);
+
+create index idx_opas_task_parstske on opas_task_pars(texec_id);
+
 create table opas_task_log (
 taskname    varchar2(128) references opas_task(taskname) on delete cascade,
+texec_id    number references opas_task_exec(texec_id) on delete cascade,
 created     timestamp default systimestamp,
 msg         varchar2(4000)
 );
 
-create index idx_opas_task_logsk on opas_task_log(taskname);
+create index idx_opas_task_logtsk on opas_task_log(taskname);
+create index idx_opas_task_logtske on opas_task_log(texec_id);
 
 --File storage
 create table opas_files (

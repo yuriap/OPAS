@@ -17,3 +17,4 @@ grant create database link to &localscheme.;
 
 --APEX 18.1 uploading files
 grant update on apex_180100.WWV_FLOW_TEMP_FILES to &localscheme.;
+grant select on v_$session to &localscheme.;

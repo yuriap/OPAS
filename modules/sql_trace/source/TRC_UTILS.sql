@@ -200,7 +200,11 @@ create or replace PACKAGE BODY TRC_UTILS AS
       raise_application_error(-20000,'Invalid input for delete_file.');
     end if;
     
-    select file_content into l_file_id from trc_file_source where trc_file_id=p_trc_file_id;
+    begin
+      select file_content into l_file_id from trc_file_source where trc_file_id=p_trc_file_id;
+    exception
+      when no_data_found then l_file_id:= null;
+    end;
     select status into l_file_status from trc_file where trc_file_id=p_trc_file_id;
 
     if not p_keep_file and l_file_id is not null then
