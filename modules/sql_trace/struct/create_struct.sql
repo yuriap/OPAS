@@ -5,7 +5,7 @@ owner       varchar2(128),
 created     timestamp default systimestamp,
 status      varchar2(10) default 'NEW',
 description varchar2(4000),
-retention   varchar2(20) default 'DEFAULT'
+retention   varchar2(20) default 'DEFAULT',
 is_public   varchar2(1) default 'Y'
 );
 

@@ -139,10 +139,11 @@ create or replace type clob_page as table of clob_line
 /
 
 --Authorisation 
+-- 0 - admin; 1 - rw; 2 - RO; 3 - noaccess;
 create table opas_groups (
 group_id      NUMBER GENERATED ALWAYS AS IDENTITY primary key,
 group_name    varchar2(100) not null,
-access_level  number not null check (access_level in (0,1,2,3)), -- 0 - admin; 1 - rw; 2 - RO; 3 - noaccess;
+access_level  number not null check (access_level in (0,1,2,3)), 
 modname       varchar2(128) references opas_modules(modname) on delete cascade,
 group_descr   varchar2(1000));
 

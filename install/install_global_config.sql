@@ -8,7 +8,7 @@ define localscheme=opas40
 define tblspc_name=opas40tbs
 
 -- Local database connection string host:port/service_name
-define localdb=localhost:1521/db12c21m.localdomain
+define localdb=localhost:1521/orcl.localdomain
 
 -- Local SYS password (can be empty)
 define localsys=qazwsx
