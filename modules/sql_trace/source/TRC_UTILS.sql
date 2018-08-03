@@ -8,11 +8,11 @@ create or replace PACKAGE TRC_UTILS AS
                          p_description trc_projects.description%type,
                          p_trcproj_id  trc_projects.trcproj_id%type);
   procedure drop_project(p_trcproj_id  trc_projects.trcproj_id%type);
-  
+
   procedure set_project_visibility (p_trcproj_id  trc_projects.trcproj_id%type, p_is_public boolean);
   procedure set_project_retention  (p_trcproj_id  trc_projects.trcproj_id%type, p_retention trc_projects.retention%type);
-  procedure set_project_owner      (p_trcproj_id  trc_projects.trcproj_id%type, p_owner     trc_projects.owner%type);  
-                                  
+  procedure set_project_owner      (p_trcproj_id  trc_projects.trcproj_id%type, p_owner     trc_projects.owner%type);
+
   procedure register_trace_file(p_trcproj_id TRC_FILE.trcproj_id%type,
                                 p_owner TRC_FILE.owner%type,
                                 p_filename TRC_FILE.filename%type,
@@ -30,7 +30,7 @@ create or replace PACKAGE TRC_UTILS AS
 
   procedure purge_trc_projects;
 
-  procedure get_file(p_trc_file_id TRC_FILE.trc_file_id%type,p_trc_file out TRC_FILE%rowtype,p_trc_file_source out TRC_FILE_SOURCE%rowtype);
+  procedure get_file(p_trc_file_id TRC_FILE.trc_file_id%type,p_trc_file out TRC_FILE%rowtype,p_trc_file_source out TRC_FILE_SOURCE%rowtype, p_lock boolean default false);
 
 END TRC_UTILS;
 /
@@ -41,11 +41,16 @@ show errors
 
 create or replace PACKAGE BODY TRC_UTILS AS
 
-  procedure get_file(p_trc_file_id TRC_FILE.trc_file_id%type,p_trc_file out TRC_FILE%rowtype,p_trc_file_source out TRC_FILE_SOURCE%rowtype)
+  procedure get_file(p_trc_file_id TRC_FILE.trc_file_id%type,p_trc_file out TRC_FILE%rowtype,p_trc_file_source out TRC_FILE_SOURCE%rowtype, p_lock boolean default false)
   is
   begin
-    select * into p_trc_file from TRC_FILE where trc_file_id = p_trc_file_id;
-    select * into p_trc_file_source from TRC_FILE_SOURCE where trc_file_id = p_trc_file_id;
+    if p_lock then
+      select * into p_trc_file from TRC_FILE where trc_file_id = p_trc_file_id for update nowait;
+      select * into p_trc_file_source from TRC_FILE_SOURCE where trc_file_id = p_trc_file_id for update nowait;
+    else
+      select * into p_trc_file from TRC_FILE where trc_file_id = p_trc_file_id;
+      select * into p_trc_file_source from TRC_FILE_SOURCE where trc_file_id = p_trc_file_id;
+    end if;
   exception
     when no_data_found then raise_application_error(-20000, 'File ID:'||p_trc_file_id||' not found');
   end;
@@ -60,11 +65,11 @@ create or replace PACKAGE BODY TRC_UTILS AS
 
     crsr sys_refcursor;
     l_line varchar2(4000);
-    
+
     l_doff number := 1;
     l_soff number := 1;
     l_cont integer := DBMS_LOB.DEFAULT_LANG_CTX;
-    l_warn integer;    
+    l_warn integer;
   begin
     get_file(p_trc_file_id,l_trc_file,l_trc_file_source);
     if l_trc_file.filename is not null then
@@ -96,13 +101,13 @@ create or replace PACKAGE BODY TRC_UTILS AS
           src_offset     => l_soff,
           blob_csid      => DBMS_LOB.DEFAULT_CSID,
           lang_context   => l_cont,
-          warning        => l_warn);      
+          warning        => l_warn);
       end if;
       COREFILE_API.store_content(l_file,l_file_content);
       UPDATE trc_file_source
          SET file_content = l_file
        WHERE trc_file_id = p_trc_file_id
-         AND trcproj_id = l_trc_file.trcproj_id; 
+         AND trcproj_id = l_trc_file.trcproj_id;
     end if;
   end;
 
@@ -136,9 +141,9 @@ create or replace PACKAGE BODY TRC_UTILS AS
     l_is_public:=case when p_is_public then 'Y' else 'N' end;
     update trc_projects set
       is_public=l_is_public
-    where trcproj_id = p_trcproj_id and owner<>'PUBLIC';    
-  end;  
-  
+    where trcproj_id = p_trcproj_id and owner<>'PUBLIC';
+  end;
+
   procedure set_project_owner      (p_trcproj_id  trc_projects.trcproj_id%type, p_owner     trc_projects.owner%type)
   is
   begin
@@ -172,7 +177,7 @@ create or replace PACKAGE BODY TRC_UTILS AS
       raise_application_error(-20000,'A user '||V('APP_USER')||'can not delete this project owned by '||l_proj.owner);
     end if;
   end;
-  
+
   procedure register_trace_file(p_trcproj_id TRC_FILE.trcproj_id%type,
                                 p_owner TRC_FILE.owner%type,
                                 p_filename TRC_FILE.filename%type,
@@ -199,7 +204,7 @@ create or replace PACKAGE BODY TRC_UTILS AS
     if p_keep_file and p_keep_parsed then
       raise_application_error(-20000,'Invalid input for delete_file.');
     end if;
-    
+
     begin
       select file_content into l_file_id from trc_file_source where trc_file_id=p_trc_file_id;
     exception
@@ -218,9 +223,9 @@ create or replace PACKAGE BODY TRC_UTILS AS
        (not p_keep_parsed and l_file_id is null)
     then
       delete trc_file_source where trc_file_id=p_trc_file_id;
-      delete from trc_file where trc_file_id=p_trc_file_id;    
+      delete from trc_file where trc_file_id=p_trc_file_id;
     end if;
-    
+
     if not p_keep_parsed then
       update trc_file set status='NEW' where trc_file_id=p_trc_file_id;
       delete from trc_stat where trc_file_id=p_trc_file_id;

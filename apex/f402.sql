@@ -15,7 +15,7 @@ begin
 wwv_flow_api.import_begin (
  p_version_yyyy_mm_dd=>'2018.04.04'
 ,p_release=>'18.1.0.00.45'
-,p_default_workspace_id=>1460345121535146
+,p_default_workspace_id=>1453166597270623
 ,p_default_application_id=>402
 ,p_default_owner=>'OPAS40'
 );
@@ -27,20 +27,20 @@ prompt APPLICATION 402 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     402
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   17:40 Friday July 27, 2018
+--   Date and Time:   14:56 Friday August 3, 2018
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
 --   Version:         18.1.0.00.45
---   Instance ID:     227312016421909
+--   Instance ID:     227306178967532
 --
 
 -- Application Statistics:
 --   Pages:                     18
---     Items:                   45
+--     Items:                   51
 --     Processes:               17
---     Regions:                 45
---     Buttons:                 26
+--     Regions:                 46
+--     Buttons:                 27
 --     Dynamic Actions:          4
 --   Shared Components:
 --     Logic:
@@ -123,7 +123,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20180727131327'
+,p_last_upd_yyyymmddhh24miss=>'20180803122935'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -10443,6 +10443,7 @@ wwv_flow_api.create_page_button(
 ,p_button_image_alt=>'Create project'
 ,p_button_position=>'TOP'
 ,p_button_redirect_url=>'f?p=&APP_ID.:103:&SESSION.::&DEBUG.:RP,103::'
+,p_grid_new_grid=>false
 ,p_security_scheme=>wwv_flow_api.id(2340680290646902)
 );
 end;
@@ -10460,7 +10461,7 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(2290179326470913)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20180727131022'
+,p_last_upd_yyyymmddhh24miss=>'20180802070511'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(2500521202694435)
@@ -10817,20 +10818,20 @@ wwv_flow_api.create_page_button(
 ,p_security_scheme=>wwv_flow_api.id(2340680290646902)
 );
 wwv_flow_api.create_page_branch(
- p_id=>wwv_flow_api.id(9089575905656244)
-,p_branch_name=>'Go To Page 102'
-,p_branch_action=>'f?p=&APP_ID.:102:&SESSION.::&DEBUG.:RP::&success_msg=#SUCCESS_MSG#'
-,p_branch_point=>'AFTER_PROCESSING'
-,p_branch_type=>'REDIRECT_URL'
-,p_branch_sequence=>10
-);
-wwv_flow_api.create_page_branch(
  p_id=>wwv_flow_api.id(9161142250213802)
 ,p_branch_action=>'f?p=&APP_ID.:101:&SESSION.::&DEBUG.:RP::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'
 ,p_branch_when_button_id=>wwv_flow_api.id(9161009820213801)
 ,p_branch_sequence=>20
+);
+wwv_flow_api.create_page_branch(
+ p_id=>wwv_flow_api.id(9089575905656244)
+,p_branch_name=>'Go To Page 102'
+,p_branch_action=>'f?p=&APP_ID.:102:&SESSION.::&DEBUG.:RP::&success_msg=#SUCCESS_MSG#'
+,p_branch_point=>'AFTER_PROCESSING'
+,p_branch_type=>'REDIRECT_URL'
+,p_branch_sequence=>100
 );
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(7236940986341938)
@@ -11049,52 +11050,6 @@ wwv_flow_api.create_page_process(
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(7464260151005834)
-);
-wwv_flow_api.create_page_process(
- p_id=>wwv_flow_api.id(7464601518005838)
-,p_process_sequence=>40
-,p_process_point=>'AFTER_SUBMIT'
-,p_process_type=>'NATIVE_PLSQL'
-,p_process_name=>'SaveUploadedFile'
-,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'declare',
-'  l_select_count number;',
-'  L_TRC_FILE_ID  TRC_FILE.TRC_FILE_ID%type;',
-'begin',
-'  if :P102_FILE_UPLOAD is not null then',
-'					',
-'    select count(ID) into l_select_count',
-'      from apex_application_temp_files',
-'	 where name = :P102_FILE_UPLOAD;',
-'					',
-'	if l_select_count = 1 then',
-'      ',
-'      TRC_UTILS.register_trace_file (  ',
-'          P_TRCPROJ_ID => :P102_TRCPROJ_ID,',
-'          P_OWNER => V(''APP_USER''),',
-'          P_FILENAME => substr(replace(:P102_FILE_UPLOAD,''\'',''/''),instr(:P102_FILE_UPLOAD,''/'')+1),',
-'          P_DB_SOURCE => null,',
-'          P_FILE_CONTENT => null,',
-'          P_TRC_FILE_ID => L_TRC_FILE_ID) ;',
-'          ',
-'  	  for i in (select id, filename, blob_content',
-'	              from apex_application_temp_files ',
-'                 where name = :P102_FILE_UPLOAD) ',
-'      loop',
-'        TRC_UTILS.store_file (  P_TRC_FILE_ID => L_TRC_FILE_ID,  P_FILE => i.blob_content) ;',
-'      end loop; ',
-'      TRC_UTILS.set_note (  ',
-'          P_TRCPROJ_ID => :P102_TRCPROJ_ID,',
-'          P_TRC_FILE_ID => L_TRC_FILE_ID,',
-'          P_NOTE => :P102_FILE_NOTE) ;  ',
-'      :P102_FILE_NOTE:=null;',
-'    end if;',
-'  else',
-'    raise_application_error(-20000,''File name is empty'');',
-'  end if; ',
-'end;'))
-,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_api.id(9612638740427222)
 );
 wwv_flow_api.create_page_process(
  p_id=>wwv_flow_api.id(9161278483213803)
@@ -11465,7 +11420,7 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(2290179326470913)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20180702103830'
+,p_last_upd_yyyymmddhh24miss=>'20180802070435'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(9610725568427203)
@@ -11660,12 +11615,21 @@ wwv_flow_api.create_page_branch(
 );
 wwv_flow_api.create_page_branch(
  p_id=>wwv_flow_api.id(9610696990427202)
-,p_branch_action=>'f?p=&APP_ID.:102:&SESSION.::&DEBUG.:RP::&success_msg=#SUCCESS_MSG#'
+,p_branch_name=>'Go To Page 106'
+,p_branch_action=>'f?p=&APP_ID.:106:&SESSION.::&DEBUG.:RP:P106_TRC_FILE_ID,P106_TRCPROJ_ID:&P105_TRC_FILE_ID.,&P105_TRCPROJ_ID.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'
 ,p_branch_when_button_id=>wwv_flow_api.id(9590346083380631)
 ,p_branch_sequence=>20
 ,p_security_scheme=>wwv_flow_api.id(2340680290646902)
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(1477276951257803)
+,p_name=>'P105_TRC_FILE_ID'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_api.id(9610725568427203)
+,p_display_as=>'NATIVE_HIDDEN'
+,p_attribute_01=>'Y'
 );
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(9090158798656250)
@@ -11865,6 +11829,7 @@ wwv_flow_api.create_page_process(
 '          P_TRC_FILE_ID => L_TRC_FILE_ID,',
 '          P_NOTE => :P105_FILE_NOTE) ;  ',
 '      :P105_FILE_NOTE:=null;',
+'      :P105_TRC_FILE_ID:=L_TRC_FILE_ID;',
 '    end if;',
 '  else',
 '    raise_application_error(-20000,''File name is empty'');',
@@ -11887,7 +11852,21 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(2290179326470913)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20180706121239'
+,p_last_upd_yyyymmddhh24miss=>'20180803122935'
+);
+wwv_flow_api.create_page_plug(
+ p_id=>wwv_flow_api.id(1477507887257806)
+,p_plug_name=>'Task: &P106_TASK_HEADER.'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_plug_template=>wwv_flow_api.id(2090820181170203)
+,p_plug_display_sequence=>20
+,p_include_in_reg_disp_sel_yn=>'Y'
+,p_plug_display_point=>'REGION_POSITION_01'
+,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
+,p_plug_display_condition_type=>'ITEM_IS_NOT_NULL'
+,p_plug_display_when_condition=>'P106_PARSE_EXEC_ID'
+,p_attribute_01=>'N'
+,p_attribute_02=>'HTML'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(9161344029213804)
@@ -12000,6 +11979,79 @@ wwv_flow_api.create_page_button(
 ,p_button_condition2=>'PARSED'
 ,p_button_condition_type=>'VAL_OF_ITEM_IN_COND_EQ_COND2'
 ,p_grid_new_grid=>false
+);
+wwv_flow_api.create_page_button(
+ p_id=>wwv_flow_api.id(1477312920257804)
+,p_button_sequence=>60
+,p_button_plug_id=>wwv_flow_api.id(9161344029213804)
+,p_button_name=>'Close'
+,p_button_action=>'REDIRECT_PAGE'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>wwv_flow_api.id(2142965284170345)
+,p_button_image_alt=>'Close'
+,p_button_position=>'BELOW_BOX'
+,p_button_alignment=>'LEFT'
+,p_button_redirect_url=>'f?p=&APP_ID.:102:&SESSION.::&DEBUG.:RP:P102_TRCPROJ_ID:&P106_TRCPROJ_ID.'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(1477481243257805)
+,p_name=>'P106_PARSE_EXEC_ID'
+,p_item_sequence=>100
+,p_item_plug_id=>wwv_flow_api.id(9161344029213804)
+,p_display_as=>'NATIVE_HIDDEN'
+,p_attribute_01=>'Y'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(1477646004257807)
+,p_name=>'P106_MAIN_PROGRESS'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_api.id(1477507887257806)
+,p_item_default=>'0'
+,p_prompt=>'Main Progress'
+,p_display_as=>'NATIVE_PCT_GRAPH'
+,p_field_template=>wwv_flow_api.id(2142465552170326)
+,p_item_template_options=>'#DEFAULT#'
+,p_attribute_01=>'Y'
+,p_attribute_04=>'#FFFF00'
+,p_attribute_05=>'999'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(1477714866257808)
+,p_name=>'P106_PARSE_PROGRESS'
+,p_item_sequence=>20
+,p_item_plug_id=>wwv_flow_api.id(1477507887257806)
+,p_item_default=>'0'
+,p_prompt=>'Parse Progress'
+,p_display_as=>'NATIVE_PCT_GRAPH'
+,p_field_template=>wwv_flow_api.id(2142465552170326)
+,p_item_template_options=>'#DEFAULT#'
+,p_attribute_01=>'Y'
+,p_attribute_04=>'#FFFF00'
+,p_attribute_05=>'999'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(1477955461257810)
+,p_name=>'P106_MESSAGE_PROGRESS'
+,p_item_sequence=>30
+,p_item_plug_id=>wwv_flow_api.id(1477507887257806)
+,p_prompt=>'Message'
+,p_display_as=>'NATIVE_TEXTAREA'
+,p_cSize=>150
+,p_cHeight=>3
+,p_field_template=>wwv_flow_api.id(2142344699170326)
+,p_item_template_options=>'#DEFAULT#'
+,p_attribute_01=>'N'
+,p_attribute_02=>'Y'
+,p_attribute_03=>'N'
+,p_attribute_04=>'BOTH'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(1478216124257813)
+,p_name=>'P106_TASK_HEADER'
+,p_item_sequence=>40
+,p_item_plug_id=>wwv_flow_api.id(1477507887257806)
+,p_display_as=>'NATIVE_HIDDEN'
+,p_attribute_01=>'Y'
 );
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(9161499713213805)
@@ -12121,6 +12173,73 @@ wwv_flow_api.create_page_process(
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 );
 wwv_flow_api.create_page_process(
+ p_id=>wwv_flow_api.id(1477868600257809)
+,p_process_sequence=>20
+,p_process_point=>'AFTER_HEADER'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'LongopsInit'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare',
+'  l_exec  opas_task_exec%rowtype;',
+'  l_task_log varchar2(32765);',
+'begin',
+'  :P106_MAIN_PROGRESS:=0;',
+'  :P106_PARSE_PROGRESS:=0;',
+'  if :P106_PARSE_EXEC_ID is null then',
+'    begin',
+'      select max(texec_id) into :P106_PARSE_EXEC_ID from opas_task_exec where taskname=''TRC_PARSEFILE'' and status=''STARTED'';',
+'    exception',
+'      when no_data_found then :P106_PARSE_EXEC_ID:=null;',
+'    end;',
+'  end if;',
+'  if :P106_PARSE_EXEC_ID is not null then',
+'    select * into l_exec from opas_task_exec where texec_id=:P106_PARSE_EXEC_ID;',
+'    if systimestamp>l_exec.finished+15/24/60 then',
+'      :P106_PARSE_EXEC_ID:=null;',
+'    else  ',
+'      select ''Name: ''||taskname||',
+'             ''; Started: ''||to_char(started)||',
+'             ''; Finished: ''||nvl(to_char(finished,''YYYY-MON-DD HH24:MI:SS''),''N/A'')||',
+'             ''; CPU: ''||cpu_time||',
+'             ''; Elapsed: ''||elapsed_time||',
+'             ''; Status: ''||status into :P106_TASK_HEADER',
+'      from opas_task_exec where texec_id=:P106_PARSE_EXEC_ID order by 1 desc;      ',
+'      :P106_MESSAGE_PROGRESS:=null;',
+'      for i in (select te.texec_id, case when message is null then ''N/A'' else',
+'                       opname || '':'' || message || ''; elapsed: '' || elapsed_seconds ||',
+'                       ''; remaining: '' || nvl(to_char(time_remaining), ''N/A'') end msg,',
+'                       round(100 * (sofar / totalwork)) pct_done,',
+'                       units',
+'                  from opas_task_exec              te,',
+'                       user_scheduler_running_jobs jr,',
+'                       v$session_longops           lo,',
+'                       v$session                   s',
+'                 where te.sid = jr.session_id(+)',
+'                   and te.sid = lo.sid(+)',
+'                   and te.serial# = lo.serial#(+)',
+'                   and te.sid = s.sid(+)',
+'                   and te.serial# = s.serial#(+)',
+'                   and te.texec_id = :P106_PARSE_EXEC_ID',
+'                 order by te.texec_id desc)',
+'      loop',
+'        if i.units=''steps'' then :P106_MAIN_PROGRESS:=i.pct_done;  end if;',
+'        if i.units=''rows''  then :P106_PARSE_PROGRESS:=i.pct_done; end if;',
+'        :P106_MESSAGE_PROGRESS:=:P106_MESSAGE_PROGRESS||i.msg||chr(10);',
+'      end loop;',
+'      for i in (select * from opas_task_log where texec_id=:P106_PARSE_EXEC_ID order by 1)',
+'      loop',
+'        l_task_log:=l_task_log||i.msg||chr(10);',
+'      end loop;',
+'      if l_task_log is not null then',
+'        :P106_MESSAGE_PROGRESS:=:P106_MESSAGE_PROGRESS||''Task log:''||chr(10);',
+'        :P106_MESSAGE_PROGRESS:=:P106_MESSAGE_PROGRESS||l_task_log;',
+'      end if;',
+'    end if;',
+'  end if;',
+'end;'))
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+);
+wwv_flow_api.create_page_process(
  p_id=>wwv_flow_api.id(9165138461213842)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
@@ -12144,8 +12263,10 @@ wwv_flow_api.create_page_process(
 ,p_process_name=>'ParseFile'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
-' TRC_PROCESSFILE.parse_file (  P_TRC_FILE_ID => :P106_TRC_FILE_ID) ;  ',
-'end;'))
+'-- TRC_PROCESSFILE.parse_file (  P_TRC_FILE_ID => :P106_TRC_FILE_ID) ;',
+'  TRC_PROCESSFILE.parse_file_async(P_TRC_FILE_ID => :P106_TRC_FILE_ID, P_EXEC_ID => :P106_PARSE_EXEC_ID);',
+'end;',
+''))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(9165479179213845)
 );

@@ -28,3 +28,15 @@ begin
   COREMOD_TASKS.set_task_body( P_TASKNAME => L_TASKNAME, p_task_body => 'begin TRC_UTILS.purge_trc_projects; end;');
 end;
 /
+
+DECLARE
+  L_TASKNAME VARCHAR2(128) := 'TRC_PARSEFILE';
+begin
+  COREMOD_TASKS.create_task (  P_TASKNAME => L_TASKNAME,
+                               P_MODNAME => 'SQL_TRACE',
+                               P_TASK_TYPE => COREMOD_TASKS.cttPERM,
+                               P_MAX_THREAD => 1,
+                               P_ASYNC => 'Y') ;  
+  COREMOD_TASKS.set_task_body( P_TASKNAME => L_TASKNAME, p_task_body => 'begin TRC_PROCESSFILE.parse_file (  P_TRC_FILE_ID => <B1>) ; end;');
+end;
+/

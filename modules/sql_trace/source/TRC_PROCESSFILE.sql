@@ -1,6 +1,7 @@
 create or replace PACKAGE TRC_PROCESSFILE AS
 
   procedure parse_file(p_trc_file_id TRC_FILE.trc_file_id%type);
+  procedure parse_file_async(p_trc_file_id TRC_FILE.trc_file_id%type, p_exec_id out opas_task_exec.texec_id%type);
 
 END TRC_PROCESSFILE;
 /
@@ -13,10 +14,10 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
 
   cursor g_file_crsr(p_fname TRC_FILE.filename%type) is
     select line_number rn, payload frow from trc$tmp_file_content order by line_number;
-    
+
   subtype t_row_type is varchar2(100);
   type t_trc_row_type is table of number index by t_row_type;
-  
+
   subtype t_token_type is varchar2(100);
   type t_token_type_indx is table of number index by t_token_type;
   type t_token_type_indx_v is table of t_token_type_indx index by t_token_type;
@@ -43,7 +44,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
   g_release number;
 
   g_delim   varchar2(1):=',';
-  
+
   g_longops_step number := 100;
 
   procedure init
@@ -97,7 +98,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
       if cParse=l_idx then
         if p_row like l_idx||' #%' then
           return l_idx;
-        end if;      
+        end if;
       else
         if p_row like l_idx||'%'  then
           return l_idx;
@@ -333,7 +334,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     g_stat_token_indx('tim')('12.2'):=12;
     g_stat_token_indx('cost')('12.2'):=13;
     g_stat_token_indx('sz')('12.2'):=14;
-    g_stat_token_indx('card')('12.2'):=15;  
+    g_stat_token_indx('card')('12.2'):=15;
 
     g_stat_token_indx('trc_slot')('12.1'):=1;
     g_stat_token_indx('id')('12.1'):=2;
@@ -348,9 +349,9 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     g_stat_token_indx('tim')('12.1'):=11;
     g_stat_token_indx('cost')('12.1'):=12;
     g_stat_token_indx('sz')('12.1'):=13;
-    g_stat_token_indx('card')('12.1'):=14;   
+    g_stat_token_indx('card')('12.1'):=14;
   end;
-  
+
   procedure parse_stat_row(p_row varchar2, p_stat out trc_stat%rowtype)
   is
     l_row varchar2(32765);
@@ -393,8 +394,8 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
             p_stat.sz:=getntoken(l_row,13);
             p_stat.card:=getntoken(l_row,14);
           end if;
-*/          
-      if g_stat_token_indx.exists('trc_slot') and g_stat_token_indx('trc_slot').exists(g_version||'.'||g_release) then p_stat.trc_slot:=getntoken(l_row,g_stat_token_indx('trc_slot')(g_version||'.'||g_release)); end if;   
+*/
+      if g_stat_token_indx.exists('trc_slot') and g_stat_token_indx('trc_slot').exists(g_version||'.'||g_release) then p_stat.trc_slot:=getntoken(l_row,g_stat_token_indx('trc_slot')(g_version||'.'||g_release)); end if;
       if g_stat_token_indx.exists('id') and g_stat_token_indx('id').exists(g_version||'.'||g_release) then p_stat.id:=getntoken(l_row,g_stat_token_indx('id')(g_version||'.'||g_release)); end if;
       if g_stat_token_indx.exists('cnt') and g_stat_token_indx('cnt').exists(g_version||'.'||g_release) then p_stat.cnt:=getntoken(l_row,g_stat_token_indx('cnt')(g_version||'.'||g_release)); end if;
       if g_stat_token_indx.exists('pid') and g_stat_token_indx('pid').exists(g_version||'.'||g_release) then p_stat.pid:=getntoken(l_row,g_stat_token_indx('pid')(g_version||'.'||g_release)); end if;
@@ -409,7 +410,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
       if g_stat_token_indx.exists('cost') and g_stat_token_indx('cost').exists(g_version||'.'||g_release) then p_stat.cost:=getntoken(l_row,g_stat_token_indx('cost')(g_version||'.'||g_release)); end if;
       if g_stat_token_indx.exists('sz') and g_stat_token_indx('sz').exists(g_version||'.'||g_release) then p_stat.sz:=getntoken(l_row,g_stat_token_indx('sz')(g_version||'.'||g_release)); end if;
       if g_stat_token_indx.exists('card') and g_stat_token_indx('card').exists(g_version||'.'||g_release) then p_stat.card:=getntoken(l_row,g_stat_token_indx('card')(g_version||'.'||g_release)); end if;
-      
+
 --    end if;
     exception
       when others then
@@ -449,7 +450,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
         raise_application_error(-20000, 'parse_trans_row: '||sqlerrm);
   end;
 
-  procedure parse_file_i(p_trc_file_id TRC_FILE.trc_file_id%type, p_file sys_refcursor)
+  procedure parse_file_i(p_trc_file_id TRC_FILE.trc_file_id%type, p_file sys_refcursor, p_num_rows varchar2, p_filename trc_file.filename%type)
   is
     l_file_rec g_file_crsr%rowtype;
 
@@ -468,7 +469,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     l_stat       trc_stat%rowtype;
     l_trans      trc_trans%rowtype;
     l_row_num    number;
-    
+
     l_curr_XCTEND_stmt_id    TRC_STATEMENT.stmt_id%type;
 
     l_str     varchar2(4000);
@@ -486,18 +487,27 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     l_new_loop_wo_fetch boolean := false;
     l_sess2slot t_trc_row_type;
     l_sess_not_found boolean := false;
+
+    l_lops_idx_global pls_integer;
+    l_lops_idx_rows pls_integer;
+
+    l_modnm varchar2(64):='SQL_TRACE: File processing';
   begin
     COREMOD_LOG.log('Start parsing: p_trc_file_id='||p_trc_file_id);
-    
+
+    COREMOD_API.init_longops(p_op_name=>'Processing: '||p_filename,p_target_desc=>'step',p_units=>'steps',p_totalwork=>5,p_lops_ind=>l_lops_idx_global);
+    COREMOD_API.init_longops(p_op_name=>'Step: Parsing: '||p_filename,p_target_desc=>'row',p_units=>'rows',p_totalwork=>p_num_rows,p_lops_ind=>l_lops_idx_rows);
+    COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Step: Parsing');
+
     set_version(null,g_version,g_release); --default trace file version
     l_curr_XCTEND_stmt_id:=null;
-    
+
     INSERT INTO trc_session (trc_file_id,row_num,sid,serial#,start_ts,end_ts) VALUES (l_file_id,0,null,null,null,null) returning session_id into l_session_id;
     --open p_file;
     loop
       --if mod(l_file_rec.rn,g_longops_step)=0 then
-        COREMOD_API.end_longops_section(l_file_rec.rn-1);
-        COREMOD_API.start_longops_section(p_module_name => 'TRC:Parse', p_action_name => 'Rows processed: '||l_file_rec.rn);
+        COREMOD_API.end_longops_section(p_sofar=>l_file_rec.rn-1, p_lops_ind=>l_lops_idx_rows);
+        COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Rows processed: '||l_file_rec.rn);
       --end if;
       if not l_new_loop_wo_fetch then
         fetch p_file into l_file_rec;
@@ -505,9 +515,9 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
       end if;
       l_new_loop_wo_fetch:=false;
 
-      
+
       l_curr_row_type:=get_rowtype(l_file_rec.frow);
-      
+
       --=============================
       if l_curr_row_type=cHeader then
         l_header:=l_file_rec.frow;
@@ -518,7 +528,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
           exit when is_row_empty(l_file_rec.frow);
           if l_db_ver is null and instr(l_file_rec.frow,'Release ')>0 then
             l_db_ver:=substr(l_file_rec.frow,instr(l_file_rec.frow,'Release')+8,instr(l_file_rec.frow,' ',instr(l_file_rec.frow,'Release')+8)-instr(l_file_rec.frow,'Release')-8);
---raise_application_error(-20000,l_file_rec.frow||':'||l_db_ver);            
+--raise_application_error(-20000,l_file_rec.frow||':'||l_db_ver);
             set_version(l_db_ver,g_version,g_release);
           end if;
           l_header:=l_header||l_file_rec.frow||chr(10);
@@ -607,9 +617,9 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
           exit when trimrow(l_file_rec.frow) like 'CLOSE #'||l_stmt.trc_slot||'%';
           l_sql_text:=l_sql_text||l_file_rec.frow;
         end loop;
-        
+
         if trimrow(l_file_rec.frow) like 'CLOSE #'||l_stmt.trc_slot||'%' then l_new_loop_wo_fetch:=true; end if;
-        
+
         INSERT INTO trc_statement
                    (cli_ident,session_id,row_num,trc_slot,trc_file_id,
                     len,dep,uid#,oct,lid,tim,hv,ad,sqlid,sql_text,err)
@@ -620,7 +630,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
         if l_stmt.oct=44 then l_curr_XCTEND_stmt_id:=l_stmt_id; end if;
       end if;
       if l_new_loop_wo_fetch then continue; end if;
-      
+
       --=============================
       if l_curr_row_type = cBinds then
         if l_stmt_id is not null then
@@ -645,10 +655,10 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
 --      l_curr_row_type:=get_rowtype(l_file_rec.frow);
 
       if l_curr_row_type in (cParse,cExec,cFetch,cClose) then
-      
+
 --COREMOD_LOG.log(l_file_rec.frow);
 --COREMOD_LOG.log(l_curr_row_type);
-      
+
         parse_call_row(l_file_rec.frow,l_curr_row_type,l_call);
         --l_trc_slot:=get_trc_slot(l_file_rec.frow, l_curr_row_type);
         l_trc_slot:=l_call.trc_slot;
@@ -677,7 +687,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
          if l_rowid is not null and l_curr_row_type = cExec then
            update trc_binds set call_id=l_call_id where rowid=l_rowid;
          end if;
-         
+
          --if l_curr_row_type=cClose then
          --  l_sess2slot.delete(l_trc_slot);
          --end if;
@@ -724,73 +734,121 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     end loop;
 
     COREMOD_LOG.log('Finished "Rows processing"');
-    COREMOD_API.start_longops_section(p_module_name => 'TRC:Parse', p_action_name => 'Delete empty CALLs');
+    COREMOD_API.end_longops_section(p_sofar => 1, p_lops_ind => l_lops_idx_global);
+
+    COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Delete empty CALLs');
 
     --remove CLOSE calls with empty statements
-    delete from trc_statement o where o.trc_file_id=p_trc_file_id and o.err is null and trc_slot<>0
-       and not exists(select 1 from trc_call c where c.trc_file_id=p_trc_file_id and o.stmt_id=c.stmt_id and c.call_type<>'CLOSE');  
+    delete /*+ qb_name(main) USE_HASH(C@S1)*/ from trc_statement o where o.trc_file_id=p_trc_file_id and o.err is null and trc_slot<>0
+       and not exists(select /*+ qb_name(s1)*/ 1 from trc_call c where c.trc_file_id=p_trc_file_id and o.stmt_id=c.stmt_id and c.call_type<>'CLOSE');
 
     COREMOD_LOG.log('Finished "Delete empty CALLs"');
-    COREMOD_API.end_longops_section;
-    COREMOD_API.start_longops_section(p_module_name => 'TRC:Parse', p_action_name => 'Create CALLs tree');
+    COREMOD_API.end_longops_section(p_sofar => 1, p_lops_ind => l_lops_idx_global);
+
+    COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Create CALLs tree');
     --create call tree
     declare
-      type t_call_tree is table of number index by pls_integer;
+      type t_call_tree is table of number index by pls_integer; --!
+      type t_arrayofnumbers is table of number;
       l_call_tree t_call_tree;
-      l_idx varchar2(100);
+      l_call_prnt t_call_tree;
+      l_idx_main pls_integer;
+      l_idx      pls_integer;
+      l_idx_prev pls_integer;
+  
+      l_call_ids   t_arrayofnumbers := t_arrayofnumbers();
+      l_call_prnts t_arrayofnumbers := t_arrayofnumbers();
     begin
-      for i in (select call_id, dep from trc_call where trc_file_id=l_file_id order by 1)
+
+      COREMOD_LOG.log('Create CALLs tree: 1','DEBUG');
+
+      for i in (select call_id, dep from trc_call where trc_file_id=l_file_id and call_type<>'CLOSE' order by call_id)
       loop
         l_call_tree(i.call_id):=i.dep;
       end loop;
-
-      for i in (select * from trc_call where trc_file_id=l_file_id order by call_id)
+COREMOD_LOG.log('Create CALLs tree: 2','DEBUG');
+      --for i in (select call_id, dep from trc_call where trc_file_id=l_file_id and call_type<>'CLOSE' order by call_id)
+      l_idx_main:=l_call_tree.first;
+      l_idx_prev:=null;
       loop
-        l_idx:=l_call_tree.next(i.call_id);
-        if l_idx is not null then
-          loop
-            if l_call_tree(l_idx)<i.dep then
-              update trc_call set parent_id=l_idx where call_id=i.call_id;
-              exit;
+        if l_call_tree(l_idx_main)>0 then --searching for parent call only for non top level calls
+          l_idx:=l_call_tree.next(l_idx_main); --i.call_id
+          if l_idx is not null then
+            if l_idx_prev is not null and l_call_tree(l_idx_main)=l_call_tree(l_idx_prev) and l_call_prnt.exists(l_idx_prev) then -- consecutive calls on the same level have the same parent call
+              l_call_prnt(l_idx_main):=l_call_prnt(l_idx_prev);
+            else
+              loop
+                if l_call_tree(l_idx)<l_call_tree(l_idx_main) then -- i.dep
+                  l_call_prnt(l_idx_main):=l_idx; --i.call_id
+--                  update trc_call set parent_id=l_idx where call_id=i.call_id;
+                  exit;
+                end if;
+                l_idx:=l_call_tree.next(l_idx);
+                exit when l_idx is null;
+              end loop;
             end if;
-            l_idx:=l_call_tree.next(l_idx);
-            exit when l_idx is null;
-          end loop;
+          end if;
         end if;
+        l_idx_prev:=l_idx_main;
+        l_idx_main:=l_call_tree.next(l_idx_main);
+        exit when l_idx_main is null;
       end loop;
+      
+      COREMOD_LOG.log('Create CALLs tree: 3','DEBUG');
+      
+      l_idx := l_call_prnt.first;
+      loop
+        l_call_ids.extend; l_call_ids(l_call_ids.last):=l_idx;
+        l_call_prnts.extend; l_call_prnts(l_call_prnts.last):=l_call_prnt(l_idx);
+        l_idx:=l_call_prnt.next(l_idx);
+        exit when l_idx is null;
+      end loop;
+
+      COREMOD_LOG.log('Create CALLs tree: 4;'||l_call_ids.first||';'||l_call_ids.last||';'||l_call_prnts.first||';'||l_call_prnts.last,'DEBUG');
+
+      forall i in l_call_ids.first..l_call_ids.last
+        update trc_call set parent_id=l_call_prnts(i) where call_id=l_call_ids(i);
+
+      COREMOD_LOG.log('Create CALLs tree: 5','DEBUG');
+    exception
+      when others then raise_application_error(-20000,l_idx_main||':'||l_idx_prev||': '||sqlerrm);
     end;
 
     COREMOD_LOG.log('Finished "Create CALLs tree"');
-    COREMOD_API.end_longops_section;
-    COREMOD_API.start_longops_section(p_module_name => 'TRC:Parse', p_action_name => 'Create dictionary');
+    COREMOD_API.end_longops_section(p_sofar => 1, p_lops_ind => l_lops_idx_global);
+
+    COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Create dictionary');
 
     --load object dictionary
     insert into trc_obj_dic (trc_file_id,object_id, object_name)
       select unique l_file_id, obj, substr(op,instr(op,' ',-1)+1) from trc_stat where trc_file_id=l_file_id and obj<>0;
- 
+
     COREMOD_LOG.log('Finished "Create dictionary"');
-    COREMOD_API.end_longops_section;
-    COREMOD_API.start_longops_section(p_module_name => 'TRC:Parse', p_action_name => 'Calc SELF statistics');
-      
+    COREMOD_API.end_longops_section(p_sofar => 1, p_lops_ind => l_lops_idx_global);
+
+    COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Calc SELF statistics');
+
     -- self statistics calculation
     for i in (select * from trc_call where trc_file_id = p_trc_file_id) loop
-      INSERT INTO trc_call_self (call_id, c, e, p, cr, cu) 
+      INSERT INTO trc_call_self (call_id, c, e, p, cr, cu)
           select * from (
              select i.call_id, i.c - sum(c) cs, i.e - sum(e) es, i.p - sum(p) ps, i.cr - sum(cr) crs, i.cu - sum(cu) cus
                from trc_call where trc_file_id = p_trc_file_id and parent_id=i.call_id)
                where cs is not null or es is not null or ps is not null or crs is not null or cus is not null;
-    end loop;    
+    end loop;
 
     COREMOD_LOG.log('Finished "Calc SELF statistics"');
-    COREMOD_API.end_longops_section;
-    COREMOD_LOG.log('Finished file provrssing');
+    COREMOD_API.end_longops_section(p_sofar => 1, p_lops_ind => l_lops_idx_global);
+    COREMOD_LOG.log('Finished file processing');
   exception
     when others then
-      COREMOD_LOG.log(l_file_rec.frow);
-      raise;
+      COREMOD_LOG.log('row: '||l_file_rec.frow);
+      COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
+      COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+      raise_application_error(-20000, 'Parsing file error: '||sqlerrm);
   end;
 
-  procedure parse_file(p_trc_file_id TRC_FILE.trc_file_id%type)
+  procedure parse_file_i(p_trc_file_id TRC_FILE.trc_file_id%type)
   is
     l_trc_file         TRC_FILE%rowtype;
     l_trc_file_source  TRC_FILE_SOURCE%rowtype;
@@ -798,13 +856,13 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     l_file_crsr        sys_refcursor;
     l_total_rows       number;
   begin
-    TRC_UTILS.get_file(p_trc_file_id,l_trc_file,l_trc_file_source);
+    TRC_UTILS.get_file(p_trc_file_id,l_trc_file,l_trc_file_source, true); --with locking
 
     if l_trc_file.status<>'NEW' then
       raise_application_error(-20000, 'File ID:'||p_trc_file_id||' already parsed ('||l_trc_file.status||')');
     end if;
 
-    delete from trc$tmp_file_content;
+    --delete from trc$tmp_file_content;
 
     if l_trc_file_source.file_content is not null then
       insert into trc$tmp_file_content select line_number, payload from table(page_clob(l_trc_file_source.file_content));
@@ -815,19 +873,17 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     elsif l_trc_file.filename is not null and l_trc_file_source.file_db_source != '$LOCAL$' then
       if nvl(l_trc_file_source.file_db_source,'$LOCAL$') <> '$LOCAL$' then
         select ora_db_link into l_dblink from v$opas_db_links where db_link_name=l_trc_file_source.file_db_source;
-      end if;    
+      end if;
       execute immediate 'insert into trc$tmp_file_content select rownum, payload from V$DIAG_TRACE_FILE_CONTENTS@'||l_dblink||' where trace_filename=:p1 order by line_number' using l_trc_file.filename;
-      l_total_rows:=sql%rowcount;      
+      l_total_rows:=sql%rowcount;
     else
       raise_application_error(-20000, 'File ID: '||p_trc_file_id||' can not be processed: unknown source ('||l_trc_file.filename||':'||nvl(l_trc_file_source.file_db_source,'N/A')||')');
     end if;
 
-    COREMOD_API.init_longops(p_op_name=>'Parsing '||l_trc_file.filename,p_target_desc=>'row',p_units=>'rows',p_totalwork=>l_total_rows);
-    
     open l_file_crsr for select * from trc$tmp_file_content;
-    parse_file_i(p_trc_file_id,l_file_crsr);
+    parse_file_i(p_trc_file_id,l_file_crsr, l_total_rows,l_trc_file.filename);
     close l_file_crsr;
-    
+
     update TRC_FILE set status = 'PARSED' where trc_file_id = p_trc_file_id;
   exception
     when others then
@@ -835,6 +891,23 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
       raise;
   end;
 
+  procedure parse_file(p_trc_file_id TRC_FILE.trc_file_id%type)
+  is
+  begin
+    parse_file_i(p_trc_file_id);
+  end;
+
+  procedure parse_file_async(p_trc_file_id TRC_FILE.trc_file_id%type, p_exec_id out opas_task_exec.texec_id%type)
+  is
+    L_TASKNAME VARCHAR2(128) := 'TRC_PARSEFILE';
+  begin
+    --TRC_UTILS.delete_file(p_trc_file_id => P_TRC_FILE_ID, p_keep_file => true, p_keep_parsed => false);
+    p_exec_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME) ;  
+    COREMOD_TASKS.set_task_param( p_texec_id => p_exec_id, p_name => 'B1', p_num_par => p_trc_file_id);
+    commit;
+    COREMOD_TASKS.execute_task (  P_TASKNAME => L_TASKNAME, p_texec_id => p_exec_id ) ; 
+  end;
+  
 begin
   init();
   init_version_dependencies();

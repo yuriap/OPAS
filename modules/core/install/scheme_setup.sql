@@ -1,4 +1,4 @@
-create tablespace &tblspc_name.;
+create bigfile tablespace &tblspc_name. datafile size 100m autoextend on next 100m maxsize 1000m;
 
 create user &localscheme. identified by &localscheme.
 default tablespace &tblspc_name.

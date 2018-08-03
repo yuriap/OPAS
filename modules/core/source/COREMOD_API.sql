@@ -9,10 +9,10 @@ create or replace package COREMOD_API as
    procedure create_dblink(p_db_link_name varchar2, p_owner varchar2);
    function get_def_source return varchar2;
    function get_def_owner return varchar2;
-   
-   procedure init_longops(p_op_name varchar2, p_target_desc varchar2, p_units varchar2, p_totalwork number);
+
+   procedure init_longops(p_op_name varchar2, p_target_desc varchar2, p_units varchar2, p_totalwork number, p_lops_ind out pls_integer);
    procedure start_longops_section(p_module_name varchar2, p_action_name varchar2);
-   procedure end_longops_section(p_sofar number default 1);
+   procedure end_longops_section(p_sofar number default 1, p_lops_ind pls_integer);
 
 end COREMOD_API;
 /
@@ -22,45 +22,71 @@ show errors
 
 create or replace package body COREMOD_API as
 
-  g_rindex    BINARY_INTEGER;
-  g_slno      BINARY_INTEGER;
-  g_totalwork number;
-  g_sofar     number;
-  g_obj       BINARY_INTEGER;
-  g_op_name   varchar2(100);
-  g_target_desc varchar2(100);
-  g_units     varchar2(100);   
+  type t_lops_rec is record(
+  g_rindex    BINARY_INTEGER,
+  g_slno      BINARY_INTEGER,
+  g_totalwork number,
+  g_sofar     number,
+  g_obj       BINARY_INTEGER,
+  g_op_name   varchar2(100),
+  g_target_desc varchar2(100),
+  g_units     varchar2(100));
+  
+  type t_lops_tab is table of t_lops_rec index by pls_integer;
+  
+  g_lops_tab t_lops_tab;
+  g_lops_idx number := 0;
 
-  procedure init_longops(p_op_name varchar2, p_target_desc varchar2, p_units varchar2, p_totalwork number) 
+  procedure init_longops(p_op_name varchar2, p_target_desc varchar2, p_units varchar2, p_totalwork number, p_lops_ind out pls_integer)
   is
   begin
-    g_op_name     := p_op_name;
-    g_target_desc := p_target_desc;
-    g_units       := p_units;  
+    g_lops_idx:=g_lops_idx+1;
     
-    g_rindex      := dbms_application_info.set_session_longops_nohint;
-    g_sofar       := 0;
-    g_totalwork   := p_totalwork;
-    dbms_application_info.set_session_longops(g_rindex, g_slno, g_op_name, g_obj, 0, g_sofar, g_totalwork, g_target_desc, g_units);   
+    g_lops_tab(g_lops_idx).g_op_name     := p_op_name;
+    g_lops_tab(g_lops_idx).g_target_desc := p_target_desc;
+    g_lops_tab(g_lops_idx).g_units       := p_units;
+
+    g_lops_tab(g_lops_idx).g_rindex      := dbms_application_info.set_session_longops_nohint;
+    g_lops_tab(g_lops_idx).g_sofar       := 0;
+    g_lops_tab(g_lops_idx).g_totalwork   := p_totalwork;
+    dbms_application_info.set_session_longops(g_lops_tab(g_lops_idx).g_rindex, 
+                                              g_lops_tab(g_lops_idx).g_slno, 
+                                              g_lops_tab(g_lops_idx).g_op_name, 
+                                              g_lops_tab(g_lops_idx).g_obj, 
+                                              0, 
+                                              g_lops_tab(g_lops_idx).g_sofar, 
+                                              g_lops_tab(g_lops_idx).g_totalwork, 
+                                              g_lops_tab(g_lops_idx).g_target_desc, 
+                                              g_lops_tab(g_lops_idx).g_units);
+    
+    p_lops_ind:=g_lops_idx;
   end;
-  
+
   procedure start_longops_section(p_module_name varchar2, p_action_name varchar2)
   is
   begin
     DBMS_APPLICATION_INFO.SET_MODULE ( module_name => p_module_name, action_name => p_action_name);
   end;
-  
-  procedure end_longops_section(p_sofar number default 1)
+
+  procedure end_longops_section(p_sofar number default 1, p_lops_ind pls_integer)
   is
   begin
     if p_sofar = 1 then
-      g_sofar := g_sofar + p_sofar;
+      g_lops_tab(p_lops_ind).g_sofar := g_lops_tab(p_lops_ind).g_sofar + p_sofar;
     else
-      g_sofar := p_sofar;
+      g_lops_tab(p_lops_ind).g_sofar := p_sofar;
     end if;
-    dbms_application_info.set_session_longops(g_rindex, g_slno, g_op_name, g_obj, 0, g_sofar, g_totalwork, g_target_desc, g_units);
+    dbms_application_info.set_session_longops(g_lops_tab(p_lops_ind).g_rindex, 
+                                              g_lops_tab(p_lops_ind).g_slno, 
+                                              g_lops_tab(p_lops_ind).g_op_name, 
+                                              g_lops_tab(p_lops_ind).g_obj, 
+                                              0, 
+                                              g_lops_tab(p_lops_ind).g_sofar, 
+                                              g_lops_tab(p_lops_ind).g_totalwork, 
+                                              g_lops_tab(p_lops_ind).g_target_desc, 
+                                              g_lops_tab(p_lops_ind).g_units);
   end;
-  
+
   function getconf(p_key varchar2) return varchar2 RESULT_CACHE
   is
     l_res opas_config.cvalue%type;

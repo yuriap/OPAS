@@ -59,7 +59,7 @@ show errors
 create or replace PACKAGE BODY COREMOD_REPORT_UTILS AS
 
   --long ops for reports
-/*  
+/*
     g_rindex    BINARY_INTEGER;
     g_slno      BINARY_INTEGER;
     g_totalwork number;
@@ -67,14 +67,15 @@ create or replace PACKAGE BODY COREMOD_REPORT_UTILS AS
     g_obj       BINARY_INTEGER;
     g_op_name   varchar2(100);
     g_target_desc varchar2(100);
-    g_units     varchar2(100);   
-*/    
+    g_units     varchar2(100);
+*/
     g_timing    boolean := false;
     g_time number; g_tot_tim number;
     g_cpu_tim number; g_tot_cpu_tim number;
-    
+    g_lops_ind number;
+
     procedure set_report_timing(p_timing boolean) is begin g_timing:=p_timing; end;
-    
+
     procedure start_tim is
     begin
       if g_timing then
@@ -82,7 +83,7 @@ create or replace PACKAGE BODY COREMOD_REPORT_UTILS AS
         g_cpu_tim:=DBMS_UTILITY.GET_CPU_TIME;
       end if;
     end;
-    
+
     function end_tim(p_is_finished boolean default false) return varchar2 is
       l_delta_t number;
       l_delta_c number;
@@ -102,26 +103,26 @@ create or replace PACKAGE BODY COREMOD_REPORT_UTILS AS
       end if;
     end;
 
-    
+
   procedure init_lo_report(p_op_name varchar2, p_target_desc varchar2, p_units varchar2, p_totalwork number)
   is
   begin
-    COREMOD_API.init_longops(p_op_name,p_target_desc,p_units,p_totalwork);
-    
+    COREMOD_API.init_longops(p_op_name,p_target_desc,p_units,p_totalwork,g_lops_ind);
+
     g_tot_tim := 0;
     g_tot_cpu_tim := 0;
   end;
-  
+
   procedure start_lo_section(p_module_name varchar2, p_action_name varchar2)
   is
   begin
     COREMOD_API.start_longops_section ( p_module_name, p_action_name);
-    start_tim();  
+    start_tim();
   end;
   function end_lo_section(p_is_finished boolean default false) return varchar2
   is
   begin
-    COREMOD_API.end_longops_section;
+    COREMOD_API.end_longops_section(1,g_lops_ind);
     return end_tim(p_is_finished);
   end;
 
@@ -362,12 +363,12 @@ end;]';
     l_break_value varchar2(4000) := null;
     l_break_cnt   number := 1;
     l_indx   number := p_output.count + 1;
-    
+
     procedure p(p_line varchar2) is
     begin
       p_output(l_indx):=p_line;
       l_indx := l_indx + 1;
-    end;    
+    end;
   begin
     p(HTF.TABLEOPEN(cborder=>0,cattributes=>'width="'||p_width||'" class="tdiff" summary="'||p_summary||'"'));
 
@@ -517,14 +518,14 @@ end;]';
     l_break_value varchar2(4000) := null;
     l_break_cnt   number := 1;
     l_indx   number := p_output.count + 1;
-    
+
     l_final_row_col number;
-    
+
     procedure p(p_line varchar2) is
     begin
       p_output(l_indx):=p_line;
       l_indx := l_indx + 1;
-    end;    
+    end;
   begin
     p(HTF.TABLEOPEN(cborder=>0,cattributes=>'width="'||p_width||'" class="'||p_style_tab||'" summary="'||p_summary||'"'));
 
@@ -577,7 +578,7 @@ end;]';
       if p_style_finrow is not null then
         dbms_sql.column_value(l_theCursor, l_final_row_col, l_columnValue);
         if l_columnValue = 1 then l_style:=p_style_finrow; end if;
-      end if;      
+      end if;
       -----------------------------------------------------------------------------
       for i in 1 .. l_colCnt loop
         if instr(upper(l_descTbl(i).col_name),'NOPRN')=0 then
