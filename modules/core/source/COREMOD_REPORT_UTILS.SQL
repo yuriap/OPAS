@@ -1,7 +1,7 @@
 create or replace PACKAGE COREMOD_REPORT_UTILS AS
 
   type t_output_lines is table of varchar2(32767) index by pls_integer;
-  
+
   procedure execute_plsql_remotelly(p_sql varchar2, p_dblink varchar2, p_output out clob, p_is_output boolean default true);
   procedure execute_plsql_remotelly(p_sql varchar2, p_dblink varchar2, p_output out t_output_lines);
   procedure print_table_html_remotelly(p_query in varchar2,
@@ -25,7 +25,7 @@ create or replace PACKAGE COREMOD_REPORT_UTILS AS
                              p_header number default 0,
                              p_break_col varchar2 default null,
                              p_output in out t_output_lines);
-                             
+
   procedure print_table_html_new
                             (p_query in varchar2,
                              p_width number,
@@ -39,9 +39,22 @@ create or replace PACKAGE COREMOD_REPORT_UTILS AS
                              p_replacement varchar2 default null,
                              p_header number default 0,
                              p_break_col varchar2 default null,
-                             p_output in out t_output_lines);                             
+                             p_output in out t_output_lines);
 
   procedure print_text_as_table(p_text clob, p_t_header varchar2, p_width number, p_search varchar2 default null, p_replacement varchar2 default null, p_comparison boolean default false, p_output out t_output_lines);
+  
+  procedure print_text_as_table_new(p_text clob, 
+                                    p_t_header varchar2, 
+                                    p_width number, 
+                                    p_search varchar2 default null,                                     
+                                    p_replacement varchar2 default null, 
+                                    p_comparison boolean default false, 
+                                    p_style_tab varchar2,
+                                    p_style_head varchar2, --head
+                                    p_style_r1 varchar2,   --odd rows
+                                    p_style_r2  varchar2, --even rows                                    
+                                    p_output in out t_output_lines);
+                                    
   procedure save_report_for_download(p_filename varchar2, p_report t_output_lines, p_id in number, p_parent_id number default null);
 
   --long ops for reports
@@ -619,8 +632,96 @@ end;]';
     when others then
       if DBMS_SQL.IS_OPEN(l_theCursor) then dbms_sql.close_cursor(l_theCursor);end if;
       p(p_query);
-      raise_application_error(-20000, 'print_table_html'||chr(10)||sqlerrm||chr(10));
-  end;
+      raise_application_error(-20000, 'print_table_html'||chr(10)||sqlerrm||chr(10)||chr(10)||DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+  end print_table_html_new;
+
+
+  procedure print_text_as_table_new(p_text clob, 
+                                    p_t_header varchar2, 
+                                    p_width number, 
+                                    p_search varchar2 default null, 
+                                    p_replacement varchar2 default null, 
+                                    p_comparison boolean default false, 
+                                    p_style_tab varchar2,
+                                    p_style_head varchar2, --head
+                                    p_style_r1 varchar2,   --odd rows
+                                    p_style_r2  varchar2, --even rows                                    
+                                    p_output in out t_output_lines) is
+    l_line varchar2(32765);  l_eof number;  l_iter number; l_length number;
+    l_text clob;
+    --l_style1 varchar2(10) := 'awrc1';
+    --l_style2 varchar2(10) := 'awrnc1';
+
+    --l_style_comp1 varchar2(10) := 'awrcc1';
+    --l_style_comp2 varchar2(10) := 'awrncc1';
+
+    l_pref varchar2(10) := 'z';
+
+    l_indx   number := p_output.count + 1;
+    procedure p(p_line varchar2) is
+    begin
+      p_output(l_indx):=p_line;
+      l_indx := l_indx + 1;
+    end;
+  begin
+
+    p(HTF.TABLEOPEN(cborder=>0,cattributes=>'width="'||p_width||'" class="'||p_style_tab||'" summary="'||p_t_header||'"'));
+    if p_t_header<>'#FIRST_LINE#' then
+      p(HTF.TABLEROWOPEN);
+      p(HTF.TABLEHEADER(cvalue=>replace(p_t_header,' ','&nbsp;'),calign=>'left',cattributes=>'class="'||p_style_head||'" scope="col"'));
+      p(HTF.TABLEROWCLOSE);
+    end if;
+
+    if instr(p_text,chr(10))=0 then
+      l_iter := 1;
+      l_length:=dbms_lob.getlength(p_text);
+      loop
+        l_text := l_text||substr(p_text,l_iter,200)||chr(10);
+        l_iter:=l_iter+200;
+        exit when l_iter>=l_length;
+      end loop;
+    else
+      l_text := p_text||chr(10);
+    end if;
+
+    l_iter := 1;
+    loop
+      l_eof:=instr(l_text,chr(10));
+      l_line:=substr(l_text,1,l_eof);
+
+      if p_t_header='#FIRST_LINE#' and l_iter = 1 then
+        p(HTF.TABLEROWOPEN);
+        p(HTF.TABLEHEADER(cvalue=>replace(l_line,' ','&nbsp;'),calign=>'left',cattributes=>'class="awrbg" scope="col"'));
+        p(HTF.TABLEROWCLOSE);
+      else
+        p(HTF.TABLEROWOPEN);
+
+        if p_comparison and substr(l_line,1,3)='~~*' then
+          l_pref:=substr(l_line,1,7);
+          l_line:=substr(l_line,8);
+          l_pref:=substr(l_pref,4,1);
+        end if;
+
+        if p_search is not null and regexp_instr(l_line,p_search)>0 then
+          l_line:=REGEXP_REPLACE(l_line,p_search,p_replacement);
+        else
+          l_line:=replace(l_line,' ','&nbsp;');
+        end if;
+	    l_line:=replace(l_line,'`',' ');
+        if p_comparison and l_pref in ('-') then
+          p(HTF.TABLEDATA(cvalue=>l_line,calign=>'left',cattributes=>'class="'|| case when mod(l_iter,2)=0 then p_style_r1 else p_style_r2 end ||'"'));
+        else
+          p(HTF.TABLEDATA(cvalue=>l_line,calign=>'left',cattributes=>'class="'|| case when mod(l_iter,2)=0 then p_style_r1 else p_style_r2 end ||'"'));
+        end if;
+
+        p(HTF.TABLEROWCLOSE);
+      end if;
+      l_text:=substr(l_text,l_eof+1);  l_iter:=l_iter+1;
+      exit when l_iter>10000 or dbms_lob.getlength(l_text)=0;
+    end loop;
+
+    p(HTF.TABLECLOSE);
+  end print_text_as_table_new;
 
 end;
 /

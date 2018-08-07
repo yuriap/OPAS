@@ -615,7 +615,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
           exit when p_file%notfound;
           exit when trimrow(l_file_rec.frow)='END OF STMT';
           exit when trimrow(l_file_rec.frow) like 'CLOSE #'||l_stmt.trc_slot||'%';
-          l_sql_text:=l_sql_text||l_file_rec.frow;
+          l_sql_text:=l_sql_text|| case when l_sql_text is not null then chr(10) else null end ||l_file_rec.frow;
         end loop;
 
         if trimrow(l_file_rec.frow) like 'CLOSE #'||l_stmt.trc_slot||'%' then l_new_loop_wo_fetch:=true; end if;
@@ -848,6 +848,23 @@ COREMOD_LOG.log('Create CALLs tree: 2','DEBUG');
       raise_application_error(-20000, 'Parsing file error: '||sqlerrm);
   end;
 
+  procedure set_file_parsing_state(p_trc_file_id TRC_FILE.trc_file_id%type)
+  is
+    pragma autonomous_transaction;
+    l_trc_file         TRC_FILE%rowtype;
+    l_trc_file_source  TRC_FILE_SOURCE%rowtype;    
+  begin
+    TRC_UTILS.get_file(p_trc_file_id,l_trc_file,l_trc_file_source, true); --with locking
+
+    if l_trc_file.status<>TRC_UTILS.fsNew then
+      rollback;
+      raise_application_error(-20000, 'File ID:'||p_trc_file_id||' already parsed or is being parsed ('||l_trc_file.status||')');
+    end if;
+    
+    update TRC_FILE set status = TRC_UTILS.fsBeingParsed where trc_file_id = p_trc_file_id;
+    commit;
+  end;
+
   procedure parse_file_i(p_trc_file_id TRC_FILE.trc_file_id%type)
   is
     l_trc_file         TRC_FILE%rowtype;
@@ -856,9 +873,11 @@ COREMOD_LOG.log('Create CALLs tree: 2','DEBUG');
     l_file_crsr        sys_refcursor;
     l_total_rows       number;
   begin
+    set_file_parsing_state(p_trc_file_id);
+    
     TRC_UTILS.get_file(p_trc_file_id,l_trc_file,l_trc_file_source, true); --with locking
 
-    if l_trc_file.status<>'NEW' then
+    if l_trc_file.status<>TRC_UTILS.fsBeingParsed then
       raise_application_error(-20000, 'File ID:'||p_trc_file_id||' already parsed ('||l_trc_file.status||')');
     end if;
 
@@ -884,7 +903,7 @@ COREMOD_LOG.log('Create CALLs tree: 2','DEBUG');
     parse_file_i(p_trc_file_id,l_file_crsr, l_total_rows,l_trc_file.filename);
     close l_file_crsr;
 
-    update TRC_FILE set status = 'PARSED' where trc_file_id = p_trc_file_id;
+    update TRC_FILE set status = TRC_UTILS.fsParsed where trc_file_id = p_trc_file_id;
   exception
     when others then
       if l_file_crsr%isopen then close l_file_crsr; end if;

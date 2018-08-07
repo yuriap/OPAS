@@ -1,5 +1,10 @@
 create or replace PACKAGE TRC_UTILS AS
 
+  --Files statuses
+  fsNew         constant varchar2(10) := 'NEW';
+  fsBeingParsed constant varchar2(10) := 'PARSING';
+  fsParsed      constant varchar2(10) := 'PARSED';
+
   procedure create_project(p_proj_name   trc_projects.proj_name%type,
                            p_owner       trc_projects.owner%type,
                            p_description trc_projects.description%type,
@@ -31,6 +36,7 @@ create or replace PACKAGE TRC_UTILS AS
   procedure purge_trc_projects;
 
   procedure get_file(p_trc_file_id TRC_FILE.trc_file_id%type,p_trc_file out TRC_FILE%rowtype,p_trc_file_source out TRC_FILE_SOURCE%rowtype, p_lock boolean default false);
+  procedure get_file(p_trc_file_id TRC_FILE.trc_file_id%type,p_trc_file out TRC_FILE%rowtype, p_lock boolean default false);
 
 END TRC_UTILS;
 /
@@ -43,6 +49,8 @@ create or replace PACKAGE BODY TRC_UTILS AS
 
   procedure get_file(p_trc_file_id TRC_FILE.trc_file_id%type,p_trc_file out TRC_FILE%rowtype,p_trc_file_source out TRC_FILE_SOURCE%rowtype, p_lock boolean default false)
   is
+    exResourceBusy exception;
+    pragma exception_init(exResourceBusy,-54);
   begin
     if p_lock then
       select * into p_trc_file from TRC_FILE where trc_file_id = p_trc_file_id for update nowait;
@@ -53,8 +61,16 @@ create or replace PACKAGE BODY TRC_UTILS AS
     end if;
   exception
     when no_data_found then raise_application_error(-20000, 'File ID:'||p_trc_file_id||' not found');
+    when exResourceBusy then raise_application_error(-20000, 'File ID:'||p_trc_file_id||' is being processed now.');
   end;
 
+  procedure get_file(p_trc_file_id TRC_FILE.trc_file_id%type,p_trc_file out TRC_FILE%rowtype, p_lock boolean default false)
+  is
+    l_trc_file_source  TRC_FILE_SOURCE%rowtype;  
+  begin
+    get_file(p_trc_file_id,p_trc_file,l_trc_file_source,p_lock);
+  end;
+  
   procedure store_file(p_trc_file_id TRC_FILE.trc_file_id%type, p_file blob default null)
   is
     l_trc_file TRC_FILE%rowtype;
@@ -71,7 +87,7 @@ create or replace PACKAGE BODY TRC_UTILS AS
     l_cont integer := DBMS_LOB.DEFAULT_LANG_CTX;
     l_warn integer;
   begin
-    get_file(p_trc_file_id,l_trc_file,l_trc_file_source);
+    get_file(p_trc_file_id,l_trc_file,l_trc_file_source,true);
     if l_trc_file.filename is not null then
       l_file := COREFILE_API.create_file(P_MODNAME => 'SQL_TRACE',
                                          P_FILE_TYPE => 'Extended SQL Trace',
@@ -187,7 +203,7 @@ create or replace PACKAGE BODY TRC_UTILS AS
   is
     l_db_source TRC_FILE_SOURCE.file_db_source%type;
   begin
-    INSERT INTO trc_file (trcproj_id, filename, owner, created) VALUES (p_trcproj_id,p_filename, nvl(p_owner,COREMOD_API.gDefaultOwner), default ) returning trc_file_id into p_trc_file_id;
+    INSERT INTO trc_file (trcproj_id, filename, owner, created, status) VALUES (p_trcproj_id,p_filename, nvl(p_owner,COREMOD_API.gDefaultOwner), default, fsNew) returning trc_file_id into p_trc_file_id;
     if nvl(p_db_source,'$LOCAL$') = '$LOCAL$' then
       l_db_source := p_db_source;
     else
@@ -198,36 +214,40 @@ create or replace PACKAGE BODY TRC_UTILS AS
 
   procedure delete_file(p_trc_file_id TRC_FILE.trc_file_id%type, p_keep_file boolean default false, p_keep_parsed boolean default false)
   is
-    l_file_id trc_file_source.file_content%type;
-    l_file_status TRC_FILE.status%type;
+--    l_file_id trc_file_source.file_content%type;
+--    l_file_status TRC_FILE.status%type;
+    
+    l_trc_file         TRC_FILE%rowtype;
+    l_trc_file_source  TRC_FILE_SOURCE%rowtype;    
   begin
     if p_keep_file and p_keep_parsed then
       raise_application_error(-20000,'Invalid input for delete_file.');
     end if;
 
-    begin
-      select file_content into l_file_id from trc_file_source where trc_file_id=p_trc_file_id;
-    exception
-      when no_data_found then l_file_id:= null;
-    end;
-    select status into l_file_status from trc_file where trc_file_id=p_trc_file_id;
+    get_file(p_trc_file_id,l_trc_file,l_trc_file_source,true);
+--    begin
+--      select file_content into l_file_id from trc_file_source where trc_file_id=p_trc_file_id;
+--    exception
+--      when no_data_found then l_file_id:= null;
+--    end;
+--    select status into l_file_status from trc_file where trc_file_id=p_trc_file_id;
 
-    if not p_keep_file and l_file_id is not null then
+    if not p_keep_file and l_trc_file_source.file_content is not null then
       update trc_file_source set file_content=null where trc_file_id=p_trc_file_id;
-      COREFILE_API.delete_file(l_file_id);
+      COREFILE_API.delete_file(l_trc_file_source.file_content);
     end if;
 
     --delete file anyway
-    if (l_file_status='NEW' and not p_keep_file) or
+    if (l_trc_file.status=fsNew and not p_keep_file) or
        (not p_keep_parsed and not p_keep_file) or
-       (not p_keep_parsed and l_file_id is null)
+       (not p_keep_parsed and l_trc_file_source.file_content is null)
     then
       delete trc_file_source where trc_file_id=p_trc_file_id;
       delete from trc_file where trc_file_id=p_trc_file_id;
     end if;
 
     if not p_keep_parsed then
-      update trc_file set status='NEW' where trc_file_id=p_trc_file_id;
+      update trc_file set status=fsNew where trc_file_id=p_trc_file_id;
       delete from trc_stat where trc_file_id=p_trc_file_id;
       delete from trc_wait where trc_file_id=p_trc_file_id;
       delete from trc_binds where trc_file_id=p_trc_file_id;

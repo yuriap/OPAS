@@ -15,6 +15,8 @@ cvalue  varchar2(4000),
 descr   varchar2(200)
 );
 
+alter table opas_config add constraint opas_config_pk primary key (ckey);
+
 create table opas_scripts (
 script_id      varchar(100) primary key,
 modname        varchar2(128) references opas_modules(modname) on delete cascade,

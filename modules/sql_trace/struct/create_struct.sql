@@ -204,6 +204,8 @@ card       number);
 
 create index idx_trc_stat_stmt on trc_stat(stmt_id);
 create index idx_trc_stat_file on trc_stat(trc_file_id);
+--create index idx_trc_stat_id on trc_stat(id);
+--create index idx_trc_stat_pid on trc_stat(pid);
 
 create table trc_obj_dic (
 trc_file_id NUMBER NOT NULL REFERENCES trc_file ( trc_file_id ) on delete cascade,
