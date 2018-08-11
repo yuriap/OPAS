@@ -15,5 +15,4 @@ insert into trc_dic_retention (ret_code, ret_display_name) values ('KEEPFILESONL
 insert into trc_dic_retention (ret_code, ret_display_name) values ('KEEPPARSEDONLY', 'Keep parsed only');
 insert into trc_dic_retention (ret_code, ret_display_name) values ('CLEANUPOLD', 'Cleanup old parsed/files');
 
-insert into opas_db_links (DB_LINK_NAME,DISPLAY_NAME,OWNER,DDL_TEXT,STATUS,is_public) values ('NEIGHBOR', 'NEIGHBOR', 'PUBLIC', q'[CREATE DATABASE LINK NEIGHBOR CONNECT TO AWRTOOLS30 IDENTIFIED BY awrtools30 USING 'localhost:1521/pdb2.localdomain']', 'NEW', 'Y');
 commit;
