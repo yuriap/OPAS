@@ -3,6 +3,13 @@ create or replace package COREMOD_LOG is
   -- DEBUG
   procedure log(p_msg clob, p_loglevel varchar2 default 'INFO');
   procedure cleanup;
+  
+  procedure Start_SQL_GATHER_STAT(p_name varchar2);
+  procedure Stop_SQL_GATHER_STAT(p_name varchar2);
+  
+  procedure Start_SQL_TRACE(p_name varchar2);
+  procedure Stop_SQL_TRACE(p_name varchar2);
+  
 end;
 /
 
@@ -11,7 +18,7 @@ show errors
 --------------------------------------------------------
 
 create or replace package body COREMOD_LOG is
-  
+
   procedure log(p_msg clob, p_loglevel varchar2 default 'INFO')
   is
     PRAGMA AUTONOMOUS_TRANSACTION;
@@ -24,7 +31,7 @@ create or replace package body COREMOD_LOG is
       commit;
     end if;
   end;
-  
+
   procedure cleanup
   is
   begin
@@ -34,6 +41,37 @@ create or replace package body COREMOD_LOG is
   exception
     when others then rollback;dbms_output.put_line(sqlerrm);
   end;
+  
+  procedure Start_SQL_GATHER_STAT(p_name varchar2)
+  is
+  begin
+    if nvl(coremod_api.getconf('INSTR_SQL_GATHER_STAT'),'~^') = p_name then
+      execute immediate 'alter session set statistics_level=all';
+    end if;
+  end;
+  
+  procedure Stop_SQL_GATHER_STAT(p_name varchar2)
+  is
+  begin
+    if nvl(coremod_api.getconf('INSTR_SQL_GATHER_STAT'),'~^') = p_name then
+      execute immediate 'alter session set statistics_level=TYPICAL';
+    end if;
+  end;  
+  
+  procedure Start_SQL_TRACE(p_name varchar2)
+  is
+  begin
+    if nvl(coremod_api.getconf('INSTR_SQL_TRACE'),'~^') = p_name then
+      execute immediate q'[alter session set events '10046 trace name context forever, level ]'||nvl(coremod_api.getconf('INSTR_SQL_TRACE'),12)||q'[']';
+    end if;
+  end;  
+  procedure Stop_SQL_TRACE(p_name varchar2)
+  is
+  begin
+    if nvl(coremod_api.getconf('INSTR_SQL_TRACE'),'~^') = p_name then
+      execute immediate q'[alter session set events '10046 trace name context off']';
+    end if;
+  end;    
 end;
 /
 

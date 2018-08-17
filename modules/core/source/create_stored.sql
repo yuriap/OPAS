@@ -11,3 +11,6 @@ set define off
 set define on
 
 @@filebyrow
+
+@@COREPROJ_LCC
+@@COREPROJ_API

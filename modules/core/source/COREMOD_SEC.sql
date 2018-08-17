@@ -68,7 +68,7 @@ create or replace package body COREMOD_SEC as
       COREMOD_API.release_resource(l_handle);
     end if;
   end;
-end COREMOD_SEC;
+
 end COREMOD_SEC;
 /
 --------------------------------------------------------

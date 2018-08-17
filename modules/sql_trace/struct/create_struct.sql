@@ -96,7 +96,7 @@ err        number
 );
 
 create index idx_trc_statement_sess on trc_statement(session_id);
-create index idx_trc_statement_file on trc_statement(trc_file_id);
+create index idx_trc_statement_file on trc_statement(trc_file_id,sqlid);
 
 create table trc_trans (
 trans_id   NUMBER GENERATED ALWAYS AS IDENTITY primary key,
@@ -134,7 +134,7 @@ tim        number,
 typ        number --CLOSE call type field
 );
 
-create index idx_trc_call_sess on trc_call(stmt_id);
+create index idx_trc_call_sess on trc_call(stmt_id,trc_file_id);
 create index idx_trc_call_prnt on trc_call(parent_id);
 create index idx_trc_call_file on trc_call(trc_file_id,parent_id);
 
@@ -179,7 +179,7 @@ obj#       number,
 tim        number
 );
 
-create index idx_trc_wait_stmt on trc_wait(stmt_id);
+create index idx_trc_wait_stmt on trc_wait(stmt_id,trc_file_id);
 create index idx_trc_wait_file on trc_wait(trc_file_id);
 
 create table trc_stat (
@@ -240,3 +240,65 @@ end factual_retention
 from trc_projects x
 where owner=decode(owner,'PUBLIC',owner,decode(is_public,'Y',owner,nvl(V('APP_USER'),'~^')))
 ;
+
+
+  CREATE GLOBAL TEMPORARY TABLE TRC$TMP_CALL_STATS
+   (	SQLID VARCHAR2(100 BYTE), 
+	CALL_TYPE VARCHAR2(100 BYTE), 
+	CNT NUMBER, 
+	C NUMBER, 
+	E NUMBER, 
+	P NUMBER, 
+	CR NUMBER, 
+	CU NUMBER, 
+	R NUMBER, 
+	MIS NUMBER
+   ) ON COMMIT DELETE ROWS ;
+   
+create index TRC$TMP_CALL_STATS_SQLID on TRC$TMP_CALL_STATS(SQLID);
+
+  CREATE GLOBAL TEMPORARY TABLE TRC$TMP_CALL_SELF_STATS
+   (	SQLID VARCHAR2(100 BYTE), 
+	CALL_TYPE VARCHAR2(100 BYTE), 
+	CNT NUMBER, 
+	C NUMBER, 
+	E NUMBER, 
+	P NUMBER, 
+	CR NUMBER, 
+	CU NUMBER
+   ) ON COMMIT DELETE ROWS ;
+
+create index TRC$TMP_CALL_SELF_STATS_SQLID on TRC$TMP_CALL_SELF_STATS(SQLID);
+   
+  CREATE GLOBAL TEMPORARY TABLE TRC$TMP_WAIT_STATS
+   (	SQLID VARCHAR2(100 BYTE), 
+	WAIT_CLASS VARCHAR2(64 BYTE), 
+	NAM VARCHAR2(100 BYTE), 
+	CNT NUMBER, 
+	ELA NUMBER, 
+	AVG_ELA NUMBER, 
+	MAX_ELA NUMBER, 
+	ELA_95 NUMBER
+   ) ON COMMIT DELETE ROWS ;
+   
+create index TRC$TMP_WAIT_STATS_SQLID on TRC$TMP_WAIT_STATS(SQLID);
+   
+  CREATE GLOBAL TEMPORARY TABLE TRC$TMP_PLAN_STATS
+   (	SQLID VARCHAR2(100 BYTE), 
+	PLH NUMBER, 
+	ID NUMBER, 
+	CNT NUMBER, 
+	PID NUMBER, 
+	POS NUMBER, 
+	OBJ NUMBER, 
+	OP VARCHAR2(1000 BYTE), 
+	CR NUMBER, 
+	PR NUMBER, 
+	PW NUMBER, 
+	TIM NUMBER, 
+	COST NUMBER, 
+	SZ NUMBER, 
+	CARD NUMBER
+   ) ON COMMIT DELETE ROWS ;
+   
+create index TRC$TMP_PLAN_STATS_SQLID on TRC$TMP_PLAN_STATS(SQLID);

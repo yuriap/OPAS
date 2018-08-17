@@ -15,7 +15,9 @@ cvalue  varchar2(4000),
 descr   varchar2(200)
 );
 
-alter table opas_config add constraint opas_config_pk primary key (ckey);
+--alter table opas_config add constraint opas_config_pk primary key (ckey);
+create unique index idx_opas_config_key on opas_config(decode(cgroup,'PRJRETENTION',null,ckey));
+
 
 create table opas_scripts (
 script_id      varchar(100) primary key,
@@ -161,3 +163,74 @@ apex_user      varchar2(100));
 create index opas_groups2apexusr_gr on opas_groups2apexusr(group_id);
 create index opas_groups2apexusr_usr on opas_groups2apexusr(apex_user);
 
+--OPAS Projects infrastrucutre
+create table opas_project_types (
+proj_type   varchar2(100) primary key,
+modname     varchar2(128) not null references opas_modules(modname) on delete cascade,
+page_title  varchar2(1000),
+region_title  varchar2(1000));
+
+create index idx_opas_projects_tp_mod on opas_project_types(modname);
+
+create table opas_projects (
+proj_id     NUMBER GENERATED ALWAYS AS IDENTITY primary key,
+modname     varchar2(128) not null references opas_modules(modname) on delete cascade,
+proj_name   VARCHAR2(256) not null references opas_project_types(proj_type),
+proj_type   varchar2(100) not null,
+owner       varchar2(128) not null,
+created     timestamp default systimestamp not null,
+status      varchar2(10) default 'NEW' not null,
+description varchar2(4000),
+retention   varchar2(20) default 'DEFAULT' not null check (retention in ('DEFAULT','KEEPSOURCEDATAONLY','KEEPPARSEDDATAONLY','KEEPALLFOREVER')),
+is_public   varchar2(1) default 'Y' not null
+);
+create index idx_opas_projects_mod on opas_projects(modname);
+create index idx_opas_projects_tpmod on opas_projects(proj_type,modname);
+
+create table opas_notes (
+note_id      NUMBER GENERATED ALWAYS AS IDENTITY primary key,
+proj_id      NUMBER NOT NULL REFERENCES opas_projects ( proj_id ) on delete cascade,
+is_proj_note varchar2(1) default 'Y' not null,
+note         clob)
+lob (note) store as (enable storage in row)
+;
+
+create index idx_opas_notes_proj on opas_notes(proj_id);
+--only a single note can exist for a given project all other can be non-project notes
+create unique index idx_opas_notes_projnt on opas_notes(decode(is_proj_note,'Y',proj_id,null));
+
+create table opas_project_cleanup (
+modname       varchar2(128) not null references opas_modules(modname) on delete cascade,
+cleanup_mode  varchar2(10)  not null check (cleanup_mode in ('SOURCEDATA','PARSEDDATA')), 
+cleanup_prc   varchar2(512) not null,
+ordr          number not null
+);
+
+create index idx_opas_project_cleanup_mod on opas_project_cleanup(modname);
+
+--Dictionaries
+create table opas_dic_retention (
+ret_code varchar2(32) primary key,
+ret_display_name varchar2(100),
+ret_display_descr varchar2(1000)
+);
+
+alter table opas_projects add constraint fk_opasproj_retention foreign key (retention) references opas_dic_retention;
+
+CREATE OR REPLACE VIEW V$OPAS_PROJECTS (PROJ_ID, MODNAME, PROJ_NAME, proj_type, OWNER, CREATED, STATUS, DESCRIPTION, RETENTION, IS_PUBLIC, FACTUAL_RETENTION) AS 
+  select x.PROJ_ID, x.MODNAME, x.PROJ_NAME, x.proj_type, x.OWNER, x.CREATED, x.STATUS, x.DESCRIPTION, x.RETENTION, x.IS_PUBLIC,
+case
+  when RETENTION = 'KEEPALLFOREVER' then d.ret_display_descr
+  else
+    case
+      when RETENTION = 'DEFAULT' then replace(d.ret_display_descr,'<%p1>',to_char(created + TO_DSINTERVAL(COREMOD_API.getconf('PROJECTRETENTION',x.MODNAME)||' 00:00:00'),'YYYY-MON-DD HH24:MI' ))
+      else
+        case when RETENTION in ('KEEPFILESONLY', 'KEEPPARSEDONLY')
+             then replace(d.ret_display_descr,'<%p1>',COREMOD_API.getconf('PROJECTRETENTION',x.MODNAME))
+        end
+    end
+end factual_retention
+from opas_projects x, opas_dic_retention d
+where owner=decode(owner,'PUBLIC',owner,decode(is_public,'Y',owner,nvl(V('APP_USER'),'~^')))
+and x.RETENTION=d.ret_code
+;

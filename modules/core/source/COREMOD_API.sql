@@ -3,7 +3,7 @@ create or replace package COREMOD_API as
    gDefaultSource constant varchar2(32) := 'LOCAL';
    gDefaultOwner  constant varchar2(32) := 'PUBLIC';
 
-   function getconf(p_key varchar2) return varchar2 RESULT_CACHE;
+   function getconf(p_key varchar2, p_module opas_projects.modname%type default null) return varchar2 RESULT_CACHE;
    function getscript(p_script_id varchar2) return clob;
 
    procedure register_dblink(p_db_link_name varchar2, 
@@ -111,11 +111,15 @@ create or replace package body COREMOD_API as
                                               g_lops_tab(p_lops_ind).g_units);
   end;
 
-  function getconf(p_key varchar2) return varchar2 RESULT_CACHE
+  function getconf(p_key varchar2, p_module opas_projects.modname%type default null) return varchar2 RESULT_CACHE
   is
     l_res opas_config.cvalue%type;
   begin
-    select cvalue into l_res from opas_config where ckey=p_key;
+    if p_module is null then
+      select cvalue into l_res from opas_config where ckey=p_key;
+    else
+      select cvalue into l_res from opas_config where ckey=p_key and modname=p_module;
+    end if;
     return l_res;
   end;
 
