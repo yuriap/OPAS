@@ -8,9 +8,10 @@ INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','IN
 
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','LOGGING','LOGGING_LEVEL','INFO','Current logging level. INFO|DEBUG');
 
-insert into opas_groups (group_name,modname,group_descr,access_level) values ('Administrators','&MODNM.','Full set of rights',0);
-insert into opas_groups (group_name,modname,group_descr,access_level) values ('Reas-write users','&MODNM.','All application functions',1);
-insert into opas_groups (group_name,modname,group_descr,access_level) values ('Read-only users','&MODNM.','Read-only functions',2);
+insert into opas_groups (group_id,group_name,group_descr) values (0, 'Administrators','Full set of rights');
+insert into opas_groups (group_id,group_name,group_descr) values (1, 'Reas-write users','All application functions');
+insert into opas_groups (group_id,group_name,group_descr) values (2, 'Read-only users','Read-only functions');
+insert into opas_groups (group_id,group_name,group_descr) values (3, 'No access users','No access to any functionality');
 
 declare
   l_script clob;
@@ -27,7 +28,7 @@ end;
 insert into opas_project_cleanup (modname,cleanup_mode,cleanup_prc,ordr) values ('&MODNM.','SOURCEDATA','COREPROJ_API.cleanup_project_source_data',1);
 insert into opas_project_cleanup (modname,cleanup_mode,cleanup_prc,ordr) values ('&MODNM.','PARSEDDATA','COREPROJ_API.cleanup_project_parsed_data',1);
 
-insert into opas_project_types (proj_type, modname, page_title, region_title) values ('DEFAULT','&MODNM.','Default projects','Default projects');
+insert into opas_project_types (proj_type, modname, page_title, startpage) values ('DEFAULT','&MODNM.','Default projects', null);
 
 --Dictionatiries
 insert into opas_dic_retention (ret_code, ret_display_name, ret_display_descr) values ('DEFAULT', 'Default retention applied', 'Project will be removed after <%p1>');

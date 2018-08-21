@@ -118,7 +118,7 @@ create or replace package body COREMOD_API as
     if p_module is null then
       select cvalue into l_res from opas_config where ckey=p_key;
     else
-      select cvalue into l_res from opas_config where ckey=p_key and modname=p_module;
+      select cvalue into l_res from opas_config where ckey=p_key and modname=p_module and case when ckey='PROJECTRETENTION' then 'PRJRETENTION' else cgroup end = cgroup;
     end if;
     return l_res;
   end;

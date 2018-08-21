@@ -227,7 +227,7 @@ case
   when RETENTION = 'KEEPFOREVER' then 'Will be kept forever' 
   else
     case
-      when RETENTION = 'DEFAULT' then 'Project will be removed after '|| to_char(created + TO_DSINTERVAL(COREMOD_API.getconf('TRACEPROJRETENTION')||' 00:00:00'),'YYYY-MON-DD HH24:MI' )
+      when RETENTION = 'DEFAULT' then 'Project will be removed after '|| to_char(created + TO_DSINTERVAL(COREMOD_API.getconf('PROJECTRETENTION','SQL_TRACE')||' 00:00:00'),'YYYY-MON-DD HH24:MI' )
       else
         case
           when RETENTION = 'KEEPFILESONLY' then 'Parsed data will be removed in '

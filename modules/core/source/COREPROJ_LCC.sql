@@ -80,7 +80,7 @@ create or replace package body COREPROJ_LCC as
     if project_check_action(p_proj,p_action) then
     case
       when p_action = c_project_create     then project_set_status(p_proj.proj_id,c_projstate_new);
-      when p_action = c_project_edit       then case when p_proj.status = c_projstate_new then project_set_status(p_proj.proj_id,c_projstate_active); else null; end case;
+      when p_action = c_project_edit       then /*case when p_proj.status = c_projstate_new then project_set_status(p_proj.proj_id,c_projstate_active); else*/ null; --end case;
       when p_action = c_project_drop       then project_set_status(p_proj.proj_id,c_projstate_closed);
       when p_action = c_project_load       then case when p_proj.status = c_projstate_new then project_set_status(p_proj.proj_id,c_projstate_active); else null; end case;
       when p_action = c_project_parse      then null;

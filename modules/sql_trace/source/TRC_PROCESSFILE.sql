@@ -47,6 +47,38 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
 
   g_longops_step number := 100;
 
+  procedure unset_file_parsing_state(p_trc_file_id TRC_FILE.trc_file_id%type)
+  is
+    pragma autonomous_transaction;
+    l_trc_file         TRC_FILE%rowtype;
+    l_trc_file_source  TRC_FILE_SOURCE%rowtype;    
+  begin
+    TRC_UTILS.get_file(p_trc_file_id,l_trc_file,l_trc_file_source, true); --with locking
+
+    if l_trc_file.status<>TRC_UTILS.fsBeingParsed then
+      update TRC_FILE set status = TRC_UTILS.fsNew where trc_file_id = p_trc_file_id;
+      commit;
+    end if;
+    
+  end;
+  
+  procedure set_file_parsing_state(p_trc_file_id TRC_FILE.trc_file_id%type)
+  is
+    pragma autonomous_transaction;
+    l_trc_file         TRC_FILE%rowtype;
+    l_trc_file_source  TRC_FILE_SOURCE%rowtype;    
+  begin
+    TRC_UTILS.get_file(p_trc_file_id,l_trc_file,l_trc_file_source, true); --with locking
+
+    if l_trc_file.status<>TRC_UTILS.fsNew then
+      rollback;
+      raise_application_error(-20000, 'File ID:'||p_trc_file_id||' already parsed or is being parsed ('||l_trc_file.status||')');
+    end if;
+    
+    update TRC_FILE set status = TRC_UTILS.fsBeingParsed where trc_file_id = p_trc_file_id;
+    commit;
+  end;
+
   procedure init
   is
   begin
@@ -577,6 +609,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
       if l_curr_row_type = cWait then
         --l_trc_slot:=get_trc_slot(l_file_rec.frow, l_curr_row_type);
         parse_wait_row(l_file_rec.frow,l_wait);
+        --if l_wait.tim=23660153676903 then raise_application_error(-20000,l_file_rec.frow); end if;
         l_trc_slot:=l_wait.trc_slot;
         if l_trc_slot = 0 then
           INSERT INTO trc_wait
@@ -639,9 +672,12 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
           loop
             fetch p_file into l_file_rec;
             exit when p_file%notfound;
+            l_curr_row_type:=get_rowtype(l_file_rec.frow);
             if l_file_rec.frow like '==========%' or
-               l_file_rec.frow like 'PARSING IN CURSOR%' or
-               l_file_rec.frow like 'EXEC%' then
+               /*l_file_rec.frow like 'PARSING IN CURSOR%' or
+               l_file_rec.frow like 'EXEC%'*/
+               g_trc_row_type.exists(l_curr_row_type)
+            then
               l_new_loop_wo_fetch:=true;
               exit;
             end if;
@@ -766,7 +802,9 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
       loop
         l_call_tree(i.call_id):=i.dep;
       end loop;
-COREMOD_LOG.log('Create CALLs tree: 2','DEBUG');
+      
+      COREMOD_LOG.log('Create CALLs tree: 2','DEBUG');
+      
       --for i in (select call_id, dep from trc_call where trc_file_id=l_file_id and call_type<>'CLOSE' order by call_id)
       l_idx_main:=l_call_tree.first;
       l_idx_prev:=null;
@@ -842,27 +880,12 @@ COREMOD_LOG.log('Create CALLs tree: 2','DEBUG');
     COREMOD_LOG.log('Finished file processing');
   exception
     when others then
+      rollback;
+      unset_file_parsing_state(p_trc_file_id);
       COREMOD_LOG.log('row: '||l_file_rec.frow);
       COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
       COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
       raise_application_error(-20000, 'Parsing file error: '||sqlerrm);
-  end;
-
-  procedure set_file_parsing_state(p_trc_file_id TRC_FILE.trc_file_id%type)
-  is
-    pragma autonomous_transaction;
-    l_trc_file         TRC_FILE%rowtype;
-    l_trc_file_source  TRC_FILE_SOURCE%rowtype;    
-  begin
-    TRC_UTILS.get_file(p_trc_file_id,l_trc_file,l_trc_file_source, true); --with locking
-
-    if l_trc_file.status<>TRC_UTILS.fsNew then
-      rollback;
-      raise_application_error(-20000, 'File ID:'||p_trc_file_id||' already parsed or is being parsed ('||l_trc_file.status||')');
-    end if;
-    
-    update TRC_FILE set status = TRC_UTILS.fsBeingParsed where trc_file_id = p_trc_file_id;
-    commit;
   end;
 
   procedure parse_file_i(p_trc_file_id TRC_FILE.trc_file_id%type)

@@ -25,13 +25,18 @@ create or replace package COREPROJ_API as
                              p_created   opas_projects.created%type);
   procedure drop_project(p_proj_id opas_projects.PROJ_ID%type);
   procedure load_project(p_proj_id opas_projects.PROJ_ID%type);
-
+  procedure parse_project(p_proj_id opas_projects.PROJ_ID%type);
+  procedure report_cr(p_proj_id opas_projects.PROJ_ID%type);
+  procedure report_vw(p_proj_id opas_projects.PROJ_ID%type);
+  
   procedure lock_project(p_proj_id opas_projects.PROJ_ID%type);
   procedure unlock_project(p_proj_id opas_projects.PROJ_ID%type);
 
   procedure compress_project(p_proj_id opas_projects.proj_id%type);  --remove source data
   procedure archive_project(p_proj_id opas_projects.PROJ_ID%type);   --remove source and parsed data
   procedure close_project(p_proj_id opas_projects.PROJ_ID%type);     --eligible for cleaning up whatever keep policy
+  
+       
   -----------------------------------------------------------------
   procedure cleanup_project(p_proj_id opas_projects.proj_id%type, p_mode varchar2, p_is_purge boolean default false);
   procedure purge_projects;
@@ -41,6 +46,11 @@ create or replace package COREPROJ_API as
                                         p_is_purge    varchar2 default 'N');
   -----------------------------------------------------------------
   function getproject(p_proj_id opas_projects.PROJ_ID%type, p_for_update boolean default false) return opas_projects%rowtype;
+  
+  procedure set_note(p_note_id      in out opas_notes.note_id%type,
+                     p_proj_id      opas_notes.proj_id%type,
+                     p_is_proj_note opas_notes.is_proj_note%type,
+                     p_note         opas_notes.note%type);
 
 end COREPROJ_API;
 /
@@ -184,6 +194,27 @@ create or replace package body COREPROJ_API as
     COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_load);
   end;
 
+  procedure parse_project(p_proj_id opas_projects.PROJ_ID%type)is
+    l_curproj opas_projects%rowtype;
+  begin
+    l_curproj:=getproject(p_proj_id, false);
+    COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_parse);
+  end;
+  
+  procedure report_cr(p_proj_id opas_projects.PROJ_ID%type)is
+    l_curproj opas_projects%rowtype;
+  begin
+    l_curproj:=getproject(p_proj_id, false);
+    COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_report_cr);
+  end;
+  
+  procedure report_vw(p_proj_id opas_projects.PROJ_ID%type)is
+    l_curproj opas_projects%rowtype;
+  begin
+    l_curproj:=getproject(p_proj_id, false);
+    COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_report_vw);
+  end;
+  
   procedure lock_project(p_proj_id opas_projects.PROJ_ID%type)is
     l_curproj opas_projects%rowtype;
   begin
@@ -260,6 +291,30 @@ create or replace package body COREPROJ_API as
     end loop;
     commit;
   end;
+  
+  procedure set_note(p_note_id      in out opas_notes.note_id%type,
+                     p_proj_id      opas_notes.proj_id%type,
+                     p_is_proj_note opas_notes.is_proj_note%type,
+                     p_note         opas_notes.note%type)
+  is
+    l_curproj opas_projects%rowtype;
+  begin
+    l_curproj:=getproject(p_proj_id, true);
+    COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_edit);
+    
+    if p_note_id is null and p_is_proj_note = 'Y' then
+      begin
+        select note_id into p_note_id from opas_notes where proj_id = p_proj_id and is_proj_note = 'Y';
+      exception
+        when no_data_found then 
+          insert into opas_notes (proj_id,is_proj_note,note) values (p_proj_id,p_is_proj_note,empty_clob()) returning note_id into p_note_id;
+      end;
+    elsif p_note_id is null and p_is_proj_note != 'Y' then
+      raise_application_error(-20000, 'NOTE_ID has not been specified');
+    end if;
+    
+    update opas_notes set note = p_note where note_id = p_note_id;
+  end;  
 
 end COREPROJ_API;
 /

@@ -145,30 +145,27 @@ create or replace type clob_line as object (
 create or replace type clob_page as table of clob_line
 /
 
---Authorisation 
+--Authorisation group_id - is an access level
 -- 0 - admin; 1 - rw; 2 - RO; 3 - noaccess;
 create table opas_groups (
-group_id      NUMBER GENERATED ALWAYS AS IDENTITY primary key,
+group_id      number primary key check (group_id in (0,1,2,3)),
 group_name    varchar2(100) not null,
-access_level  number not null check (access_level in (0,1,2,3)), 
-modname       varchar2(128) references opas_modules(modname) on delete cascade,
 group_descr   varchar2(1000));
 
-create unique index idx_opas_groups_modgr on opas_groups(modname,group_name);
-
 create table opas_groups2apexusr (
-group_id       number not null references opas_groups(group_id) on delete cascade,
+group_id       number not null references opas_groups(group_id),
+modname        varchar2(128) references opas_modules(modname) on delete cascade,
 apex_user      varchar2(100));
 
-create index opas_groups2apexusr_gr on opas_groups2apexusr(group_id);
 create index opas_groups2apexusr_usr on opas_groups2apexusr(apex_user);
+create unique index opas_groups2apexusr_usr2grp on opas_groups2apexusr(modname,apex_user,group_id);
 
 --OPAS Projects infrastrucutre
 create table opas_project_types (
 proj_type   varchar2(100) primary key,
 modname     varchar2(128) not null references opas_modules(modname) on delete cascade,
 page_title  varchar2(1000),
-region_title  varchar2(1000));
+startpage     number);
 
 create index idx_opas_projects_tp_mod on opas_project_types(modname);
 
