@@ -1,14 +1,3 @@
-create table trc_projects (
-trcproj_id  NUMBER GENERATED ALWAYS AS IDENTITY primary key,
-proj_name   VARCHAR2(256),
-owner       varchar2(128),
-created     timestamp default systimestamp,
-status      varchar2(10) default 'NEW',
-description varchar2(4000),
-retention   varchar2(20) default 'DEFAULT',
-is_public   varchar2(1) default 'Y'
-);
-
 create global temporary table trc$tmp_file_content (
 line_number number,
 payload     varchar2(4000))
@@ -17,38 +6,32 @@ on commit delete rows;
 
 create table trc_file (
 trc_file_id NUMBER GENERATED ALWAYS AS IDENTITY primary key,
-trcproj_id  NUMBER NOT NULL REFERENCES trc_projects ( trcproj_id ) on delete cascade,
+proj_id     NUMBER NOT NULL REFERENCES opas_projects ( proj_id ) on delete cascade,
 filename    varchar2(4000),
 file_header varchar2(4000),
 owner       varchar2(128),
 db_version  varchar2(32),
 created     timestamp default systimestamp,
-status      varchar2(10) default 'NEW'
+status      varchar2(10) default 'NEW',
+note_id     number references opas_notes(note_id) on delete cascade,
+file_db_source varchar2(128) REFERENCES opas_db_links ( DB_LINK_NAME ),
+file_content   number REFERENCES opas_files ( file_id )
 );
 
-create index idx_trc_file_proj on trc_file(trcproj_id);
+create index idx_trc_file_proj on trc_file(proj_id);
+create index idx_trc_file_note on trc_file(note_id);
+create index idx_trc_file_dbfsrc on trc_file(file_db_source);
+create index idx_trc_file_fcntn on trc_file(file_content);
 
-create table trc_file_source (
-trc_file_id    NUMBER REFERENCES trc_file ( trc_file_id ),
-file_db_source varchar2(128) REFERENCES opas_db_links ( DB_LINK_NAME ),
-trcproj_id     NUMBER REFERENCES trc_projects ( trcproj_id ) on delete cascade,
-file_content   number REFERENCES opas_files ( file_id ));
+create table trc_reports (
+trc_file_id    NUMBER REFERENCES trc_file ( trc_file_id )  on delete cascade,
+file_content   number REFERENCES opas_files ( file_id ),
+note_id        number references opas_notes(note_id) on delete cascade
+);
 
-create index idx_trc_file_source_dbfsrc on trc_file_source(file_db_source);
-create index idx_trc_file_source_proj on trc_file_source(trcproj_id);
-create index idx_trc_file_source_fcntn on trc_file_source(file_content);
-
-alter table trc_file_source add constraint trc_file_source_pk primary key(trc_file_id);
-
-create table trc_notes (
-trcproj_id  NUMBER NOT NULL REFERENCES trc_projects ( trcproj_id ) on delete cascade,
-trc_file_id NUMBER REFERENCES trc_file ( trc_file_id ) on delete cascade,
-note        clob)
-lob (note) store as (enable storage in row)
-;
-
-create index idx_trc_notes_fil on trc_notes(trc_file_id);
-create unique index idx_trc_notes_proj on trc_notes(trcproj_id,trc_file_id);
+create index idx_trc_reports_fileid on trc_reports(trc_file_id);
+create index idx_trc_reports_fcntn on trc_reports(file_content);
+create index idx_trc_reports_note on trc_reports(note_id);
 
 create table trc_session (
 session_id  NUMBER GENERATED ALWAYS AS IDENTITY primary key,
@@ -213,33 +196,6 @@ object_id number,
 object_name varchar2(128));
 
 create index idx_trc_obj_dic_file on trc_obj_dic(trc_file_id);
-
---Dictionaries
-create table trc_dic_retention (
-ret_code varchar2(32) primary key,
-ret_display_name varchar2(100));
-
-alter table trc_projects add constraint fk_proj_retention foreign key (retention) references trc_dic_retention;
-
-create or replace view v$trc_projects as
-select x.*,
-case 
-  when RETENTION = 'KEEPFOREVER' then 'Will be kept forever' 
-  else
-    case
-      when RETENTION = 'DEFAULT' then 'Project will be removed after '|| to_char(created + TO_DSINTERVAL(COREMOD_API.getconf('PROJECTRETENTION','SQL_TRACE')||' 00:00:00'),'YYYY-MON-DD HH24:MI' )
-      else
-        case
-          when RETENTION = 'KEEPFILESONLY' then 'Parsed data will be removed in '
-          when RETENTION = 'KEEPPARSEDONLY' then 'Trace files will be removed in '
-          when RETENTION = 'CLEANUPOLD' then 'Old data will be removed in '
-          else null
-        end || COREMOD_API.getconf('TRACEFILERETENTION')|| ' days' 
-    end
-end factual_retention
-from trc_projects x
-where owner=decode(owner,'PUBLIC',owner,decode(is_public,'Y',owner,nvl(V('APP_USER'),'~^')))
-;
 
 
   CREATE GLOBAL TEMPORARY TABLE TRC$TMP_CALL_STATS

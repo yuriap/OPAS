@@ -1,5 +1,5 @@
 define MODNM=OPASCORE
-define MODVER="1.0.0"
+define MODVER="1.1.0"
 --Core installation script
 conn sys/&localsys.@&localdb. as sysdba
 

@@ -1,5 +1,5 @@
 -- Oracle Performance Analytic Suite version
-define OPASVER=4.0.0
+define OPASVER=4.1.0
 
 -- Oracle Performance Analytic Suite scheme for local database
 define localscheme=opas40

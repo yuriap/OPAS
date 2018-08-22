@@ -43,7 +43,7 @@ connstr         varchar2(1000),
 STATUS          varchar2(32) default 'NEW',
 is_public       varchar2(1) default 'Y');
 
-CREATE OR REPLACE FORCE EDITIONABLE VIEW V$OPAS_DB_LINKS AS 
+CREATE OR REPLACE FORCE VIEW V$OPAS_DB_LINKS AS 
 with gn as (select value from v$parameter where name like '%domain%')
 select DB_LINK_NAME,
        case
@@ -172,8 +172,8 @@ create index idx_opas_projects_tp_mod on opas_project_types(modname);
 create table opas_projects (
 proj_id     NUMBER GENERATED ALWAYS AS IDENTITY primary key,
 modname     varchar2(128) not null references opas_modules(modname) on delete cascade,
-proj_name   VARCHAR2(256) not null references opas_project_types(proj_type),
-proj_type   varchar2(100) not null,
+proj_name   VARCHAR2(256) not null,
+proj_type   varchar2(100) not null references opas_project_types(proj_type),
 owner       varchar2(128) not null,
 created     timestamp default systimestamp not null,
 status      varchar2(10) default 'NEW' not null,
@@ -214,7 +214,7 @@ ret_display_descr varchar2(1000)
 
 alter table opas_projects add constraint fk_opasproj_retention foreign key (retention) references opas_dic_retention;
 
-CREATE OR REPLACE VIEW V$OPAS_PROJECTS (PROJ_ID, MODNAME, PROJ_NAME, proj_type, OWNER, CREATED, STATUS, DESCRIPTION, RETENTION, IS_PUBLIC, FACTUAL_RETENTION) AS 
+CREATE OR REPLACE FORCE VIEW V$OPAS_PROJECTS (PROJ_ID, MODNAME, PROJ_NAME, proj_type, OWNER, CREATED, STATUS, DESCRIPTION, RETENTION, IS_PUBLIC, FACTUAL_RETENTION) AS 
   select x.PROJ_ID, x.MODNAME, x.PROJ_NAME, x.proj_type, x.OWNER, x.CREATED, x.STATUS, x.DESCRIPTION, x.RETENTION, x.IS_PUBLIC,
 case
   when RETENTION = 'KEEPALLFOREVER' then d.ret_display_descr

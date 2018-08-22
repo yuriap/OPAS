@@ -87,7 +87,7 @@ create or replace package body COREPROJ_API as
                        VALUES ( p_modname, p_proj_name, p_proj_type, p_owner, p_description, p_retention, p_is_public)
     returning proj_id, status into l_curproj.proj_id, l_curproj.status;
     p_proj_id:=l_curproj.proj_id;
-    
+
     COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_create);
   end create_project;
 
@@ -118,14 +118,14 @@ create or replace package body COREPROJ_API as
     COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_edit);
 
     UPDATE opas_projects
-       SET 
+       SET
            owner = p_owner,
            retention = p_retention,
-           is_public = case when p_owner = 'PUBLIC' then 'Y' else p_is_public end 
+           is_public = case when p_owner = 'PUBLIC' then 'Y' else p_is_public end
      WHERE proj_id = p_proj_id;
 
   end set_project_security;
-  
+
   procedure set_project_crdt(p_proj_id opas_projects.proj_id%type,
                              p_created   opas_projects.created%type) as
     l_curproj opas_projects%rowtype;
@@ -200,21 +200,21 @@ create or replace package body COREPROJ_API as
     l_curproj:=getproject(p_proj_id, false);
     COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_parse);
   end;
-  
+
   procedure report_cr(p_proj_id opas_projects.PROJ_ID%type)is
     l_curproj opas_projects%rowtype;
   begin
     l_curproj:=getproject(p_proj_id, false);
     COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_report_cr);
   end;
-  
+
   procedure report_vw(p_proj_id opas_projects.PROJ_ID%type)is
     l_curproj opas_projects%rowtype;
   begin
     l_curproj:=getproject(p_proj_id, false);
     COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_report_vw);
   end;
-  
+
   procedure lock_project(p_proj_id opas_projects.PROJ_ID%type)is
     l_curproj opas_projects%rowtype;
   begin
@@ -291,7 +291,7 @@ create or replace package body COREPROJ_API as
     end loop;
     commit;
   end;
-  
+
   procedure set_note(p_note_id      in out opas_notes.note_id%type,
                      p_proj_id      opas_notes.proj_id%type,
                      p_is_proj_note opas_notes.is_proj_note%type,
@@ -299,22 +299,29 @@ create or replace package body COREPROJ_API as
   is
     l_curproj opas_projects%rowtype;
   begin
-    l_curproj:=getproject(p_proj_id, true);
-    COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_edit);
-    
-    if p_note_id is null and p_is_proj_note = 'Y' then
-      begin
-        select note_id into p_note_id from opas_notes where proj_id = p_proj_id and is_proj_note = 'Y';
-      exception
-        when no_data_found then 
-          insert into opas_notes (proj_id,is_proj_note,note) values (p_proj_id,p_is_proj_note,empty_clob()) returning note_id into p_note_id;
-      end;
-    elsif p_note_id is null and p_is_proj_note != 'Y' then
-      raise_application_error(-20000, 'NOTE_ID has not been specified');
+    --project note
+    if p_proj_id is not null and p_is_proj_note = 'Y' then
+      l_curproj:=getproject(p_proj_id, true);
+      COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_edit);
+
+      if p_note_id is null then
+        begin
+          select note_id into p_note_id from opas_notes where proj_id = p_proj_id and is_proj_note = 'Y';
+        exception
+          when no_data_found then
+            insert into opas_notes (proj_id,is_proj_note,note) values (p_proj_id,p_is_proj_note,empty_clob()) returning note_id into p_note_id;
+        end;
+      end if;
+      update opas_notes set note = p_note where note_id = p_note_id;
     end if;
     
-    update opas_notes set note = p_note where note_id = p_note_id;
-  end;  
+    if p_is_proj_note = 'N' then
+      if p_note_id is null then
+        insert into opas_notes (proj_id,is_proj_note,note) values (p_proj_id,p_is_proj_note,empty_clob()) returning note_id into p_note_id;
+      end if;
+      update opas_notes set note = p_note where note_id = p_note_id;
+    end if;
+  end;
 
 end COREPROJ_API;
 /
