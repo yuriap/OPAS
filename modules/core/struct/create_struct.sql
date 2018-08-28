@@ -66,55 +66,85 @@ select DB_LINK_NAME,
    and l.db_link(+) = upper(o.DB_LINK_NAME ||'.'|| gn.value);
 
 --Task execution infrasrtucture
+create table opas_cleanup_tasks (
+taskname    varchar2(128) primary key,
+modname     varchar2(128) references opas_modules(modname) on delete cascade,
+created     timestamp default systimestamp,
+task_body   clob
+);
+
 create table opas_task (
 taskname    varchar2(128) primary key,
 modname     varchar2(128) references opas_modules(modname) on delete cascade,
-owner       varchar2(128) default 'PUBLIC' not null,
-task_type   varchar2(32) default 'SYSTEM', --SYSTEM, USER
 created     timestamp default systimestamp,
-status      varchar2(32) default 'NEW',
-task_body   clob,
-max_thread  number default 1,
-async       varchar2(1) default 'Y' not null,
-schedule    varchar2(256)
+is_public   varchar2(1) default 'Y',
+task_body   clob
 );
 
 create index idx_opas_task_mod on opas_task(modname);
 
-create table opas_task_exec (
-texec_id    NUMBER GENERATED ALWAYS AS IDENTITY primary key,
-taskname    varchar2(128) references opas_task(taskname) on delete cascade,
-started     timestamp,
-finished    timestamp,
-cpu_time    number, --seconds
+create table opas_task_queue (
+tq_id        NUMBER GENERATED ALWAYS AS IDENTITY primary key,
+taskname     varchar2(128) references opas_task(taskname) on delete cascade,
+queued       timestamp,
+started      timestamp,
+finished     timestamp,
+cpu_time     number, --seconds
 elapsed_time number,
-status      varchar2(32) default 'NEW',
-owner       varchar2(128),
-sid         number,
-serial#     number
+status       varchar2(32) default 'NEW',
+owner        varchar2(128),
+sid          number,
+serial#      number,
+inst_id      number
 );
 
-create index idx_opas_task_exec_tsk on opas_task_exec(taskname);
+create index idx_opas_task_exec_tsk on opas_task_queue(taskname);
 
 create table opas_task_pars (
-texec_id    number references opas_task_exec(texec_id) on delete cascade,
+tq_id       number references opas_task_queue(tq_id) on delete cascade,
 PAR_NAME    varchar2(100),
 num_par     number,
 varchar_par varchar2(4000),
 date_par    date
 );
 
-create index idx_opas_task_parstske on opas_task_pars(texec_id);
+create index idx_opas_task_parstske on opas_task_pars(tq_id);
 
 create table opas_task_log (
 taskname    varchar2(128) references opas_task(taskname) on delete cascade,
-texec_id    number references opas_task_exec(texec_id) on delete cascade,
+tq_id       number references opas_task_queue(tq_id) on delete cascade,
 created     timestamp default systimestamp,
 msg         varchar2(4000)
 );
 
 create index idx_opas_task_logtsk on opas_task_log(taskname);
-create index idx_opas_task_logtske on opas_task_log(texec_id);
+create index idx_opas_task_logtske on opas_task_log(tq_id);
+
+CREATE OR REPLACE FORCE VIEW V$OPAS_TASK_QUEUE AS 
+select
+  t.taskname, t.modname, t.is_public, q.tq_id, q.queued, q.started, q.finished, q.cpu_time, q.elapsed_time, q.status, q.owner, q.sid, q.serial#, q.inst_id
+from opas_task t left outer join opas_task_queue q on (t.taskname = q.taskname and q.owner=decode(t.is_public,'Y',q.owner,nvl(V('APP_USER'),'~^')))
+where 1=decode(t.is_public,'Y',1, COREMOD_SEC.is_role_assigned_n(t.modname,'Reas-write users'))
+;
+
+CREATE OR REPLACE FORCE VIEW V$OPAS_TASK_QUEUE_LONGOPS AS
+select tq.*,
+       case 
+         when message is null then 'N/A' 
+         else opname || ':' || message || '; elapsed: ' || elapsed_seconds || '; remaining: ' || nvl(to_char(time_remaining), 'N/A') end msg,
+       round(100 * (sofar / totalwork)) pct_done,
+       units,opname,module,action
+  from V$OPAS_TASK_QUEUE           tq,
+       gv$session_longops           lo,
+       gv$session                   s
+  where tq.sid = lo.sid(+)
+    and tq.serial# = lo.serial#(+)
+    and tq.inst_id = lo.inst_id(+)
+    and tq.sid = s.sid(+)
+    and tq.serial# = s.serial#(+)
+    and tq.inst_id = s.inst_id(+)
+;
+--------------------------------
 
 --File storage
 create table opas_files (

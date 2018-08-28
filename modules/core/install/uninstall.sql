@@ -13,6 +13,6 @@ end;
 set serveroutput off
 
 drop user &localscheme. cascade;
-drop tablespace &tblspc_name. including contents and datafiles;
+rem drop tablespace &tblspc_name. including contents and datafiles;
 
 disc

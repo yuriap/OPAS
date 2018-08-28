@@ -1,7 +1,7 @@
 create or replace PACKAGE TRC_PROCESSFILE AS
 
   procedure parse_file(p_trc_file_id TRC_FILE.trc_file_id%type);
-  procedure parse_file_async(p_trc_file_id TRC_FILE.trc_file_id%type, p_exec_id out opas_task_exec.texec_id%type);
+  procedure parse_file_async(p_trc_file_id TRC_FILE.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type);
 
 END TRC_PROCESSFILE;
 /
@@ -51,30 +51,28 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
   is
     pragma autonomous_transaction;
     l_trc_file         TRC_FILE%rowtype;
-    l_trc_file_source  TRC_FILE_SOURCE%rowtype;    
   begin
-    TRC_UTILS.get_file(p_trc_file_id,l_trc_file,l_trc_file_source, true); --with locking
+    TRC_UTILS.get_file(p_trc_file_id,l_trc_file, true); --with locking
 
     if l_trc_file.status<>TRC_UTILS.fsBeingParsed then
       update TRC_FILE set status = TRC_UTILS.fsNew where trc_file_id = p_trc_file_id;
       commit;
     end if;
-    
+
   end;
-  
+
   procedure set_file_parsing_state(p_trc_file_id TRC_FILE.trc_file_id%type)
   is
     pragma autonomous_transaction;
     l_trc_file         TRC_FILE%rowtype;
-    l_trc_file_source  TRC_FILE_SOURCE%rowtype;    
   begin
-    TRC_UTILS.get_file(p_trc_file_id,l_trc_file,l_trc_file_source, true); --with locking
+    TRC_UTILS.get_file(p_trc_file_id,l_trc_file, true); --with locking
 
     if l_trc_file.status<>TRC_UTILS.fsNew then
       rollback;
       raise_application_error(-20000, 'File ID:'||p_trc_file_id||' already parsed or is being parsed ('||l_trc_file.status||')');
     end if;
-    
+
     update TRC_FILE set status = TRC_UTILS.fsBeingParsed where trc_file_id = p_trc_file_id;
     commit;
   end;
@@ -791,7 +789,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
       l_idx_main pls_integer;
       l_idx      pls_integer;
       l_idx_prev pls_integer;
-  
+
       l_call_ids   t_arrayofnumbers := t_arrayofnumbers();
       l_call_prnts t_arrayofnumbers := t_arrayofnumbers();
     begin
@@ -802,9 +800,9 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
       loop
         l_call_tree(i.call_id):=i.dep;
       end loop;
-      
+
       COREMOD_LOG.log('Create CALLs tree: 2','DEBUG');
-      
+
       --for i in (select call_id, dep from trc_call where trc_file_id=l_file_id and call_type<>'CLOSE' order by call_id)
       l_idx_main:=l_call_tree.first;
       l_idx_prev:=null;
@@ -831,9 +829,9 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
         l_idx_main:=l_call_tree.next(l_idx_main);
         exit when l_idx_main is null;
       end loop;
-      
+
       COREMOD_LOG.log('Create CALLs tree: 3','DEBUG');
-      
+
       l_idx := l_call_prnt.first;
       loop
         l_call_ids.extend; l_call_ids(l_call_ids.last):=l_idx;
@@ -891,14 +889,13 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
   procedure parse_file_i(p_trc_file_id TRC_FILE.trc_file_id%type)
   is
     l_trc_file         TRC_FILE%rowtype;
-    l_trc_file_source  TRC_FILE_SOURCE%rowtype;
     l_dblink           varchar2(100);
     l_file_crsr        sys_refcursor;
     l_total_rows       number;
   begin
     set_file_parsing_state(p_trc_file_id);
-    
-    TRC_UTILS.get_file(p_trc_file_id,l_trc_file,l_trc_file_source, true); --with locking
+
+    TRC_UTILS.get_file(p_trc_file_id,l_trc_file, true); --with locking
 
     if l_trc_file.status<>TRC_UTILS.fsBeingParsed then
       raise_application_error(-20000, 'File ID:'||p_trc_file_id||' already parsed ('||l_trc_file.status||')');
@@ -906,20 +903,20 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
 
     --delete from trc$tmp_file_content;
 
-    if l_trc_file_source.file_content is not null then
-      insert into trc$tmp_file_content select line_number, payload from table(page_clob(l_trc_file_source.file_content));
+    if l_trc_file.file_content is not null then
+      insert into trc$tmp_file_content select line_number, payload from table(page_clob(l_trc_file.file_content));
       l_total_rows:=sql%rowcount;
-    elsif l_trc_file.filename is not null and l_trc_file_source.file_db_source = '$LOCAL$' then
+    elsif l_trc_file.filename is not null and l_trc_file.file_db_source = '$LOCAL$' then
       insert into trc$tmp_file_content select rownum, payload from V$DIAG_TRACE_FILE_CONTENTS where trace_filename=l_trc_file.filename order by line_number;
       l_total_rows:=sql%rowcount;
-    elsif l_trc_file.filename is not null and l_trc_file_source.file_db_source != '$LOCAL$' then
-      if nvl(l_trc_file_source.file_db_source,'$LOCAL$') <> '$LOCAL$' then
-        select ora_db_link into l_dblink from v$opas_db_links where db_link_name=l_trc_file_source.file_db_source;
+    elsif l_trc_file.filename is not null and l_trc_file.file_db_source != '$LOCAL$' then
+      if nvl(l_trc_file.file_db_source,'$LOCAL$') <> '$LOCAL$' then
+        select ora_db_link into l_dblink from v$opas_db_links where db_link_name=l_trc_file.file_db_source;
       end if;
       execute immediate 'insert into trc$tmp_file_content select rownum, payload from V$DIAG_TRACE_FILE_CONTENTS@'||l_dblink||' where trace_filename=:p1 order by line_number' using l_trc_file.filename;
       l_total_rows:=sql%rowcount;
     else
-      raise_application_error(-20000, 'File ID: '||p_trc_file_id||' can not be processed: unknown source ('||l_trc_file.filename||':'||nvl(l_trc_file_source.file_db_source,'N/A')||')');
+      raise_application_error(-20000, 'File ID: '||p_trc_file_id||' can not be processed: unknown source ('||l_trc_file.filename||':'||nvl(l_trc_file.file_db_source,'N/A')||')');
     end if;
 
     open l_file_crsr for select * from trc$tmp_file_content;
@@ -939,17 +936,17 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     parse_file_i(p_trc_file_id);
   end;
 
-  procedure parse_file_async(p_trc_file_id TRC_FILE.trc_file_id%type, p_exec_id out opas_task_exec.texec_id%type)
+  procedure parse_file_async(p_trc_file_id TRC_FILE.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type)
   is
     L_TASKNAME VARCHAR2(128) := 'TRC_PARSEFILE';
   begin
     --TRC_UTILS.delete_file(p_trc_file_id => P_TRC_FILE_ID, p_keep_file => true, p_keep_parsed => false);
-    p_exec_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME) ;  
-    COREMOD_TASKS.set_task_param( p_texec_id => p_exec_id, p_name => 'B1', p_num_par => p_trc_file_id);
+    p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME) ;
+    COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_trc_file_id);
+    COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id ) ;
     commit;
-    COREMOD_TASKS.execute_task (  P_TASKNAME => L_TASKNAME, p_texec_id => p_exec_id ) ; 
   end;
-  
+
 begin
   init();
   init_version_dependencies();

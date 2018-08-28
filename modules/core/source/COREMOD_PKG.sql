@@ -14,14 +14,14 @@ create or replace package body COREMOD as
   is
   begin
     merge into opas_modules t using (select p_modname modname, p_moddescr moddescr, p_modver modver, p_installed installed from dual) s
-	on (t.modname = s.modname)
-	when matched then update set
-	  t.moddescr = s.moddescr, t.modver = s.modver, t.installed = s.installed
-	when not matched then insert
-	  (t.modname, t.moddescr, t.modver, t.installed)
-	values
-	  (s.modname, s.moddescr, s.modver, s.installed);
-	commit;
+    on (t.modname = s.modname)
+    when matched then update set
+      t.moddescr = s.moddescr, t.modver = s.modver, t.installed = s.installed
+    when not matched then insert
+      (t.modname, t.moddescr, t.modver, t.installed)
+    values
+      (s.modname, s.moddescr, s.modver, s.installed);
+    commit;
   end;
   
 end;

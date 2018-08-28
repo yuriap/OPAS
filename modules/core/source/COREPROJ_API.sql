@@ -39,7 +39,7 @@ create or replace package COREPROJ_API as
        
   -----------------------------------------------------------------
   procedure cleanup_project(p_proj_id opas_projects.proj_id%type, p_mode varchar2, p_is_purge boolean default false);
-  procedure purge_projects;
+  procedure cleanup_projects;
   procedure cleanup_project_source_data(p_proj_id     opas_projects.proj_id%type,
                                         p_is_purge    varchar2 default 'N');
   procedure cleanup_project_parsed_data(p_proj_id     opas_projects.proj_id%type,
@@ -65,10 +65,10 @@ create or replace package body COREPROJ_API as
     l_curproj opas_projects%rowtype;
   begin
     if nvl(p_for_update,false) then
-	  select * into l_curproj from opas_projects where proj_id=p_proj_id for update nowait;
-	else
+      select * into l_curproj from opas_projects where proj_id=p_proj_id for update nowait;
+    else
       select * into l_curproj from opas_projects where proj_id=p_proj_id;
-	end if;
+    end if;
     return l_curproj;
   end;
 
@@ -139,24 +139,24 @@ create or replace package body COREPROJ_API as
 
   procedure cleanup_project(p_proj_id opas_projects.proj_id%type, p_mode varchar2, p_is_purge boolean default false) as
     l_curproj opas_projects%rowtype;
-	l_errmsg  varchar2(1000);
-	l_cmd     varchar2(1000);
+    l_errmsg  varchar2(1000);
+    l_cmd     varchar2(1000);
   begin
     l_curproj:=getproject(p_proj_id, true);
 
     for i in (select * from opas_project_cleanup where cleanup_mode = upper(p_mode) and  modname=l_curproj.modname order by ordr) loop
-	  begin
-	    l_cmd:='begin '||i.cleanup_prc||'('||p_proj_id||case when p_is_purge then q'[,'Y']' else null end||'); end;';
-	    execute immediate l_cmd using p_proj_id;
-	  exception
-	    when others then
-		  l_errmsg := 'The cleanup procedure "'||i.cleanup_prc||'" of module "'||l_curproj.modname||'" for mode "'||p_mode||'" failed for proj_id='||p_proj_id||', see log for details.';
-		  coremod_log.log(l_errmsg);
-		  coremod_log.log(l_cmd);
-		  coremod_log.log(sqlerrm);
-		  raise_application_error(-20000,l_errmsg);
-	  end;
-	end loop;
+      begin
+        l_cmd:='begin '||i.cleanup_prc||'('||p_proj_id||case when p_is_purge then q'[,'Y']' else null end||'); end;';
+        execute immediate l_cmd using p_proj_id;
+      exception
+        when others then
+          l_errmsg := 'The cleanup procedure "'||i.cleanup_prc||'" of module "'||l_curproj.modname||'" for mode "'||p_mode||'" failed for proj_id='||p_proj_id||', see log for details.';
+          coremod_log.log(l_errmsg);
+          coremod_log.log(l_cmd);
+          coremod_log.log(sqlerrm);
+          raise_application_error(-20000,l_errmsg);
+      end;
+    end loop;
   end cleanup_project;
 
   procedure cleanup_project_source_data(p_proj_id     opas_projects.proj_id%type,
@@ -240,7 +240,7 @@ create or replace package body COREPROJ_API as
     l_curproj opas_projects%rowtype;
   begin
     l_curproj:=getproject(p_proj_id, true);
-	COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_compress);
+    COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_compress);
     cleanup_project(p_proj_id,c_SOURCEDATA);
   end;
 
@@ -248,46 +248,46 @@ create or replace package body COREPROJ_API as
     l_curproj opas_projects%rowtype;
   begin
     l_curproj:=getproject(p_proj_id, true);
-	COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_archive);
+    COREPROJ_LCC.project_exec_action(l_curproj,COREPROJ_LCC.c_project_archive);
     cleanup_project(p_proj_id,c_SOURCEDATA);
     cleanup_project(p_proj_id,c_PARSEDDATA);
   end;
 
-  procedure purge_projects is
+  procedure cleanup_projects is
     l_curproj opas_projects%rowtype; --getproject
   begin
     for p in (select * from opas_projects where retention = 'DEFAULT' and systimestamp - created > TO_DSINTERVAL(COREMOD_API.getconf('PROJECTRETENTION',modname)||' 00:00:00'))
     loop
-	  begin
+      begin
         drop_project(p.proj_id);
-	  exception
-	    when others then
-		  coremod_log.log('Purge project error (DEFAULT policy): '||sqlerrm);
+      exception
+        when others then
+          coremod_log.log('Cleanup project error (DEFAULT policy): '||sqlerrm);
           coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
           coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
-	  end;
+      end;
     end loop;
     for p in (select * from opas_projects where retention = 'KEEPSOURCEDATAONLY')
     loop
-	  begin
+      begin
         cleanup_project(p_proj_id=>p.proj_id, p_mode=>c_PARSEDDATA, p_is_purge=>true);
-	  exception
-	    when others then
-		  coremod_log.log('Purge project error (KEEPSOURCEDATAONLY policy): '||sqlerrm);
+      exception
+        when others then
+          coremod_log.log('Cleanup project error (KEEPSOURCEDATAONLY policy): '||sqlerrm);
           coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
           coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
-	  end;
+      end;
     end loop;
     for p in (select * from opas_projects where retention = 'KEEPPARSEDDATAONLY')
     loop
-	  begin
+      begin
         cleanup_project(p_proj_id=>p.proj_id, p_mode=>c_SOURCEDATA, p_is_purge=>true);
-	  exception
-	    when others then
-		  coremod_log.log('Purge project error (KEEPPARSEDDATAONLY policy): '||sqlerrm);
+      exception
+        when others then
+          coremod_log.log('Cleanup project error (KEEPPARSEDDATAONLY policy): '||sqlerrm);
           coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
           coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
-	  end;
+      end;
     end loop;
     commit;
   end;

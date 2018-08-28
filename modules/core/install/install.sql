@@ -16,30 +16,19 @@ exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Oracle Performance 
 
 @..\modules\core\data\load.sql
 
-exec coremod_purge.create_purge_job;
+exec coremod_tasks.create_task_job;
+exec coremod_cleanup.create_cleanup_job;
 
 
-DECLARE
-  L_TASKNAME VARCHAR2(128) := 'CLEANUPLOGS';
 begin
-  COREMOD_TASKS.create_task (  P_TASKNAME => L_TASKNAME,
-                               P_MODNAME => '&MODNM.',
-                               P_TASK_TYPE => COREMOD_TASKS.cttPURGE,
-                               P_MAX_THREAD => 1,
-                               P_ASYNC => 'N') ;  
-  COREMOD_TASKS.set_task_body( P_TASKNAME => L_TASKNAME, p_task_body => 'begin COREMOD_LOG.cleanup; end;');
+  coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUPLOGS',
+                                            P_MODNAME => '&MODNM.',
+                                            p_task_body => 'begin COREMOD_LOG.cleanup_logs; end;');
+  coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUPTASKSDATA',
+                                            P_MODNAME => '&MODNM.',
+                                            p_task_body => 'begin coremod_tasks.cleanup_tasks; end;');
+  coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUPPROJSDATA',
+                                            P_MODNAME => '&MODNM.',
+                                            p_task_body => 'begin COREPROJ_API.cleanup_projects; end;');
 end;
 /
-
-DECLARE
-  L_TASKNAME VARCHAR2(128) := 'CLEANUPTASKSDATA';
-begin
-  COREMOD_TASKS.create_task (  P_TASKNAME => L_TASKNAME,
-                               P_MODNAME => '&MODNM.',
-                               P_TASK_TYPE => COREMOD_TASKS.cttPURGE,
-                               P_MAX_THREAD => 1,
-                               P_ASYNC => 'N') ;  
-  COREMOD_TASKS.set_task_body( P_TASKNAME => L_TASKNAME, p_task_body => 'begin coremod_tasks.purge_old_tasks; end;');
-end;
-/
-

@@ -17,26 +17,10 @@ exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Oracle Performance 
 
 @..\modules\sql_trace\data\load.sql
 
-DECLARE
-  L_TASKNAME VARCHAR2(128) := 'CLEANUPSQL_TRACE';
 begin
-  COREMOD_TASKS.create_task (  P_TASKNAME => L_TASKNAME,
-                               P_MODNAME => '&MODNM.',
-                               P_TASK_TYPE => COREMOD_TASKS.cttPURGE,
-                               P_MAX_THREAD => 1,
-                               P_ASYNC => 'N') ;  
-  COREMOD_TASKS.set_task_body( P_TASKNAME => L_TASKNAME, p_task_body => 'begin TRC_UTILS.purge_trc_projects; end;');
-end;
-/
-
-DECLARE
-  L_TASKNAME VARCHAR2(128) := 'TRC_PARSEFILE';
-begin
-  COREMOD_TASKS.create_task (  P_TASKNAME => L_TASKNAME,
-                               P_MODNAME => 'SQL_TRACE',
-                               P_TASK_TYPE => COREMOD_TASKS.cttPERM,
-                               P_MAX_THREAD => 1,
-                               P_ASYNC => 'Y') ;  
-  COREMOD_TASKS.set_task_body( P_TASKNAME => L_TASKNAME, p_task_body => 'begin TRC_PROCESSFILE.parse_file (  P_TRC_FILE_ID => <B1>) ; end;');
+  COREMOD_TASKS.create_task (  p_taskname  => 'TRC_PARSEFILE',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin TRC_PROCESSFILE.parse_file (  P_TRC_FILE_ID => <B1>) ; end;');
 end;
 /

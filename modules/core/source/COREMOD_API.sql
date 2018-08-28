@@ -185,8 +185,8 @@ create or replace package body COREMOD_API as
     l_dblink opas_db_links%rowtype;
   begin
     if p_db_link_name=gDefaultSource then
-	  raise_application_error(-20000, gDefaultSource||' db link is not supposed to be created.');
-	else
+      raise_application_error(-20000, gDefaultSource||' db link is not supposed to be created.');
+    else
       select * into l_dblink from opas_db_links where DB_LINK_NAME = upper(p_db_link_name) for update nowait;
       if p_recreate then
         declare 
@@ -201,10 +201,10 @@ create or replace package body COREMOD_API as
             COREMOD_LOG.log(sqlerrm);              
         end;
       end if;
-  	  execute immediate q'[CREATE DATABASE LINK ]'||l_dblink.db_link_name||q'[ CONNECT TO ]'||l_dblink.username||q'[ IDENTIFIED BY ]'||l_dblink.password||q'[ USING ']'||l_dblink.connstr||q'[']';
-	  update opas_db_links set STATUS='CREATED' where DB_LINK_NAME=upper(p_db_link_name);
-	  commit;
-	end if;
+        execute immediate q'[CREATE DATABASE LINK ]'||l_dblink.db_link_name||q'[ CONNECT TO ]'||l_dblink.username||q'[ IDENTIFIED BY ]'||l_dblink.password||q'[ USING ']'||l_dblink.connstr||q'[']';
+      update opas_db_links set STATUS='CREATED' where DB_LINK_NAME=upper(p_db_link_name);
+      commit;
+    end if;
   end;
   
   procedure drop_dblink(p_db_link_name varchar2)
@@ -214,8 +214,8 @@ create or replace package body COREMOD_API as
     --l_dblink opas_db_links%rowtype;
   begin
     if p_db_link_name=gDefaultSource then
-	  raise_application_error(-20000, gDefaultSource||' db link is not supposed to be created.');
-	else
+      raise_application_error(-20000, gDefaultSource||' db link is not supposed to be created.');
+    else
       --select * into l_dblink from opas_db_links where DB_LINK_NAME = upper(p_db_link_name) for update nowait;
       select value into l_domain from v$parameter where name like '%domain%';
       select count(1) into l_cnt from user_db_links where db_link=upper(p_db_link_name)||'.'||l_domain;
@@ -231,9 +231,9 @@ create or replace package body COREMOD_API as
             raise;
         end;
       end if;
-	  delete from opas_db_links where DB_LINK_NAME=upper(p_db_link_name);
-	  commit;
-	end if;
+      delete from opas_db_links where DB_LINK_NAME=upper(p_db_link_name);
+      commit;
+    end if;
   end;  
 
   procedure test_dblink(p_db_link_name varchar2)

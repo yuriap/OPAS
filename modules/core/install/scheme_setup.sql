@@ -1,4 +1,4 @@
-create bigfile tablespace &tblspc_name. datafile size 100m autoextend on next 100m maxsize 1000m;
+rem create bigfile tablespace &tblspc_name. datafile size 100m autoextend on next 100m maxsize 1000m;
 
 create user &localscheme. identified by &localscheme.
 default tablespace &tblspc_name.
@@ -19,4 +19,17 @@ grant alter session to &localscheme.;
 --APEX 18.1 uploading files
 grant update on apex_180100.WWV_FLOW_TEMP_FILES to &localscheme.;
 grant select on v_$session to &localscheme.;
+grant select on gv_$session to &localscheme.;
 grant select on v_$parameter to &localscheme.;
+
+
+begin
+DBMS_SCHEDULER.CREATE_JOB_CLASS (
+   job_class_name            => 'OPASLIGHTJOBS',
+   logging_level             => DBMS_SCHEDULER.LOGGING_FAILED_RUNS,
+   log_history               => 1,
+   comments                  => 'Low logging level for coordinator jobs');
+end;
+/
+
+grant execute on OPASLIGHTJOBS to &localscheme.;

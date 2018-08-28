@@ -2,7 +2,7 @@ create or replace package COREMOD_LOG is
   -- INFO
   -- DEBUG
   procedure log(p_msg clob, p_loglevel varchar2 default 'INFO');
-  procedure cleanup;
+  procedure cleanup_logs;
   
   procedure Start_SQL_GATHER_STAT(p_name varchar2);
   procedure Stop_SQL_GATHER_STAT(p_name varchar2);
@@ -32,7 +32,7 @@ create or replace package body COREMOD_LOG is
     end if;
   end;
 
-  procedure cleanup
+  procedure cleanup_logs
   is
   begin
     delete from opas_log where ts < sysdate-to_number(COREMOD_API.getconf('LOGS_EXPIRE_TIME'));

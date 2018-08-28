@@ -205,7 +205,7 @@ else q'[end;]' end;
   exception
     when others then
        execute immediate 'begin :p_open:=dbms_sql.IS_OPEN@'||p_dblink||'(:p_theCursor); end;' using out l_open, in l_theCursor;
-	  if l_open then
+      if l_open then
         execute immediate 'begin dbms_sql.close_cursor@'||p_dblink||'(:p_theCursor); end;' using in out l_theCursor;
       end if;
       coremod_log.log(sqlerrm);
@@ -340,7 +340,7 @@ end;]';
         else
           l_line:=replace(l_line,' ','&nbsp;');
         end if;
-	    l_line:=replace(l_line,'`',' ');
+        l_line:=replace(l_line,'`',' ');
         if p_comparison and l_pref in ('-') then
           p(HTF.TABLEDATA(cvalue=>l_line,calign=>'left',cattributes=>'class="'|| case when mod(l_iter,2)=0 then l_style_comp1 else l_style_comp2 end ||'"'));
         else
@@ -707,7 +707,7 @@ end;]';
         else
           l_line:=replace(l_line,' ','&nbsp;');
         end if;
-	    l_line:=replace(l_line,'`',' ');
+        l_line:=replace(l_line,'`',' ');
         if p_comparison and l_pref in ('-') then
           p(HTF.TABLEDATA(cvalue=>l_line,calign=>'left',cattributes=>'class="'|| case when mod(l_iter,2)=0 then p_style_r1 else p_style_r2 end ||'"'));
         else

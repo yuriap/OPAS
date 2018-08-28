@@ -47,14 +47,14 @@ create or replace package body COREPROJ_LCC as
         when p_action = c_project_edit      and l_status in (c_projstate_new,c_projstate_active,c_projstate_compressed,c_projstate_archived) then true
         when p_action = c_project_drop      and l_status in (c_projstate_new,c_projstate_compressed,c_projstate_archived,c_projstate_closed) then true
         when p_action = c_project_load      and l_status in (c_projstate_new,c_projstate_active)                                             then true
-		when p_action = c_project_parse     and l_status in (c_projstate_active)                                                             then true
-		when p_action = c_project_report_cr and l_status in (c_projstate_new,c_projstate_active,c_projstate_compressed)                      then true
-		when p_action = c_project_report_vw and l_status in (c_projstate_new,c_projstate_active,c_projstate_compressed,c_projstate_archived) then true
+        when p_action = c_project_parse     and l_status in (c_projstate_active)                                                             then true
+        when p_action = c_project_report_cr and l_status in (c_projstate_new,c_projstate_active,c_projstate_compressed)                      then true
+        when p_action = c_project_report_vw and l_status in (c_projstate_new,c_projstate_active,c_projstate_compressed,c_projstate_archived) then true
         when p_action = c_project_lock      and l_status in (c_projstate_active)                                                             then true
         when p_action = c_project_unlock    and l_status in (c_projstate_locked)                                                             then true
-		when p_action = c_project_close     and l_status in (c_projstate_active,c_projstate_compressed,c_projstate_archived)                 then true
-		when p_action = c_project_compress  and l_status in (c_projstate_active)                                                             then true
-		when p_action = c_project_archive   and l_status in (c_projstate_active,c_projstate_compressed)                                      then true
+        when p_action = c_project_close     and l_status in (c_projstate_active,c_projstate_compressed,c_projstate_archived)                 then true
+        when p_action = c_project_compress  and l_status in (c_projstate_active)                                                             then true
+        when p_action = c_project_archive   and l_status in (c_projstate_active,c_projstate_compressed)                                      then true
       else
         false
       end;
@@ -85,7 +85,7 @@ create or replace package body COREPROJ_LCC as
       when p_action = c_project_load       then case when p_proj.status = c_projstate_new then project_set_status(p_proj.proj_id,c_projstate_active); else null; end case;
       when p_action = c_project_parse      then null;
       when p_action = c_project_report_cr  then null;
-	  when p_action = c_project_report_vw  then null;
+      when p_action = c_project_report_vw  then null;
       when p_action = c_project_lock       then project_set_status(p_proj.proj_id,c_projstate_locked);
       when p_action = c_project_unlock     then project_set_status(p_proj.proj_id,c_projstate_active);
       when p_action = c_project_close      then project_set_status(p_proj.proj_id,c_projstate_closed);
@@ -94,8 +94,8 @@ create or replace package body COREPROJ_LCC as
       else
         raise_application_error(-20000,'Unimplemented project action: '||p_action);
       end case;
-	else
-	  raise_application_error(-20000,'Action '||p_action||' is not allowed for the project '||p_proj.proj_id||' with status '||p_proj.status);
+    else
+      raise_application_error(-20000,'Action '||p_action||' is not allowed for the project '||p_proj.proj_id||' with status '||p_proj.status);
     end if;
   end;
 
