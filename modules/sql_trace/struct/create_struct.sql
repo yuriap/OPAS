@@ -3,7 +3,6 @@ line_number number,
 payload     varchar2(4000))
 on commit delete rows;
 
-
 create table trc_file (
 trc_file_id NUMBER GENERATED ALWAYS AS IDENTITY primary key,
 proj_id     NUMBER NOT NULL REFERENCES opas_projects ( proj_id ) on delete cascade,
@@ -14,14 +13,18 @@ db_version  varchar2(32),
 created     timestamp default systimestamp,
 status      varchar2(10) default 'NEW',
 note_id     number references opas_notes(note_id) on delete cascade,
-file_db_source varchar2(128) REFERENCES opas_db_links ( DB_LINK_NAME ),
-file_content   number REFERENCES opas_files ( file_id )
+file_db_source   varchar2(128) REFERENCES opas_db_links ( DB_LINK_NAME ),
+file_content     number REFERENCES opas_files ( file_id ),
+report_content   number REFERENCES opas_files ( file_id ),
+source_keep_forever varchar2(1) not null default 'N',
+parsed_keep_forever varchar2(1) not null default 'N'
 );
 
 create index idx_trc_file_proj on trc_file(proj_id);
 create index idx_trc_file_note on trc_file(note_id);
 create index idx_trc_file_dbfsrc on trc_file(file_db_source);
 create index idx_trc_file_fcntn on trc_file(file_content);
+create index idx_trc_file_rcntn on trc_file(report_content);
 
 create table trc_reports (
 trc_file_id    NUMBER REFERENCES trc_file ( trc_file_id )  on delete cascade,

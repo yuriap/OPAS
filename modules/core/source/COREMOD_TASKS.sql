@@ -5,7 +5,7 @@ create or replace package coremod_tasks as
   procedure create_task(p_taskname   opas_task.taskname%type,
                         p_modname    opas_task.modname%type,
                         p_is_public  opas_task.is_public%type default 'Y',
-						p_task_body  opas_task.task_body%type);  
+                        p_task_body  opas_task.task_body%type);  
   procedure drop_task(p_taskname opas_task.taskname%type);
   
   function prep_execute_task(p_taskname opas_task.taskname%type) return opas_task_queue.tq_id%type;
@@ -40,27 +40,28 @@ create or replace package body coremod_tasks as
 
   gJOBNMPREF   constant varchar2(10):='OPASTASK';
 
-  procedure log(p_taskname opas_task.taskname%type, p_msg opas_task_log.msg%type, p_tq_id opas_task_queue.tq_id%type default null)
+  procedure log(p_msg opas_log.msg%type, p_tq_id opas_task_queue.tq_id%type default null)
   is
     PRAGMA AUTONOMOUS_TRANSACTION;
   begin
-    insert into opas_task_log (taskname, created, msg, tq_id) values (p_taskname, default, p_msg, p_tq_id);
+    insert into opas_log (created, msg, tq_id) values (default, p_msg, p_tq_id);
     commit;
   end;
 
   procedure cleanup_tasks is
+    l_rows_processed number;  
   begin
-    delete from opas_task_log where systimestamp - created > TO_DSINTERVAL(COREMOD_API.getconf('LOGS_EXPIRE_TIME')||' 00:00:00');
-    delete from opas_task_queue where systimestamp - finished > TO_DSINTERVAL(COREMOD_API.getconf('TASKRETENTION')||' 00:00:00');
-    --delete from opas_task where task_type in (cttSINGLE) and systimestamp - created > TO_DSINTERVAL(COREMOD_API.getconf('TASKRETENTION')||' 00:00:00');
+    delete from opas_task_queue where systimestamp - finished > TO_DSINTERVAL(COREMOD_API.getconf('TASKRETENTION',COREMOD_API.gCOREMOD)||' 00:00:00');
+    l_rows_processed:=sql%rowcount;
     commit;
+    coremod_log.log('Cleanup task queue: deleted '||l_rows_processed||' row(s).');
   end;
 
 
   procedure create_task(p_taskname   opas_task.taskname%type,
                         p_modname    opas_task.modname%type,
                         p_is_public  opas_task.is_public%type default 'Y',
-						p_task_body  opas_task.task_body%type)
+                        p_task_body  opas_task.task_body%type)
   is
   begin
     INSERT INTO opas_task (taskname, modname, is_public, created, task_body)
@@ -140,7 +141,7 @@ create or replace package body coremod_tasks as
              finished=systimestamp,
              cpu_time=g_cpu_tim/100,
              elapsed_time=g_time/100,
-			 status=p_status
+             status=p_status
        where tq_id=p_tq_id;
     commit;
   end;
@@ -149,12 +150,12 @@ create or replace package body coremod_tasks as
     l_running_jobs number;
     l_freeslots    number;
     type t_task_tbl is table of opas_task_queue%rowtype;
-	l_tasks   t_task_tbl;
+    l_tasks   t_task_tbl;
     l_2run    t_task_tbl := t_task_tbl();
   begin
     select count(1) into l_running_jobs from USER_SCHEDULER_RUNNING_JOBS where job_name like gJOBNMPREF||'%';
-    if l_running_jobs < to_number(COREMOD_API.getconf('MAXTHREADS','OPASCORE')) then
-      l_freeslots:= to_number(COREMOD_API.getconf('MAXTHREADS','OPASCORE')) - l_running_jobs;
+    if l_running_jobs < to_number(COREMOD_API.getconf('MAXTHREADS',COREMOD_API.gCOREMOD)) then
+      l_freeslots:= to_number(COREMOD_API.getconf('MAXTHREADS',COREMOD_API.gCOREMOD)) - l_running_jobs;
       select * bulk collect into l_tasks from opas_task_queue where status=gtqQUEUED for update skip locked order by queued;
       for i in 1..least(l_freeslots,l_tasks.count) loop
         l_2run.extend;
@@ -166,7 +167,7 @@ create or replace package body coremod_tasks as
     commit;
     
     for i in 1..l_2run.count 
-	loop
+    loop
       begin
         dbms_scheduler.create_job(job_name => gJOBNMPREF||'_'||upper(l_2run(i).taskname)||'_'||to_char(systimestamp,'FF6'),
                                   job_type => 'PLSQL_BLOCK',
@@ -176,9 +177,9 @@ create or replace package body coremod_tasks as
                                   auto_drop=> true);
       exception
         when others then
-          log(l_2run(i).taskname,'Execute task error: '||sqlerrm,l_2run(i).tq_id);
-          log(l_2run(i).taskname,DBMS_UTILITY.FORMAT_ERROR_STACK,l_2run(i).tq_id);
-          log(l_2run(i).taskname,DBMS_UTILITY.FORMAT_ERROR_BACKTRACE,l_2run(i).tq_id);
+          log('Execute task error: '||sqlerrm,l_2run(i).tq_id);
+          log(DBMS_UTILITY.FORMAT_ERROR_STACK,l_2run(i).tq_id);
+          log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE,l_2run(i).tq_id);
       end;
     end loop;
   end;
@@ -205,15 +206,15 @@ create or replace package body coremod_tasks as
     l_task opas_task%rowtype;
     l_task_body clob;
   begin
-	set_task_running(p_tq_id);
+    set_task_running(p_tq_id);
     select * into l_task from opas_task where taskname=(select taskname from opas_task_queue where tq_id = p_tq_id);
     l_task_body:=l_task.task_body;
     for i in (select * from opas_task_pars where tq_id = p_tq_id) loop
       case
         when i.num_par is not null then
           l_task_body:=replace(l_task_body,'<'||i.par_name||'>',i.num_par);
-		when i.varchar_par is not null then
-		  l_task_body:=replace(l_task_body,'<'||i.par_name||'>',q'[']'||i.varchar_par||q'[']');
+        when i.varchar_par is not null then
+          l_task_body:=replace(l_task_body,'<'||i.par_name||'>',q'[']'||i.varchar_par||q'[']');
         when i.date_par is not null then
           raise_application_error(-20000,'Not implemented parameter type: DATE');
       end case;
@@ -223,9 +224,9 @@ create or replace package body coremod_tasks as
   exception
     when others then
       set_task_finished(p_tq_id,gtqFAILED);
-      log(l_task.taskname,'Execute task error: '||sqlerrm,p_tq_id);
-      log(l_task.taskname,DBMS_UTILITY.FORMAT_ERROR_STACK,p_tq_id);
-      log(l_task.taskname,DBMS_UTILITY.FORMAT_ERROR_BACKTRACE,p_tq_id);
+      log('Execute task error: '||sqlerrm,p_tq_id);
+      log(DBMS_UTILITY.FORMAT_ERROR_STACK,p_tq_id);
+      log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE,p_tq_id);
       raise_application_error(-20000, 'Execute task error: '||sqlerrm);
   end;
 

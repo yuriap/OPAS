@@ -40,9 +40,11 @@ create or replace package body coremod_cleanup as
     for i in (select * from opas_cleanup_tasks)
     loop
       begin
+        coremod_log.log('Executing cleanup task: '||i.modname||'.'||i.taskname);
         execute immediate i.task_body;
       exception
         when others then
+          rollback;
           coremod_log.log('Cleanup job error ('||i.modname||'.'||i.taskname||'): '||sqlerrm);
           coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
           coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);      

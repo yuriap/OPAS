@@ -12,7 +12,7 @@ create or replace package COREMOD_SEC as
   
   --common UI rights
   --Projects 
-  function proj_is_role_assigned(p_proj_type opas_project_types.proj_type%type, p_group_name opas_groups.group_name%type) return boolean;
+  --function proj_is_role_assigned(p_proj_type opas_project_types.proj_type%type, p_group_name opas_groups.group_name%type) return boolean;
 
 end COREMOD_SEC;
 /
@@ -72,6 +72,7 @@ create or replace package body COREMOD_SEC as
     end if;
   end;
   
+/*
   function proj_is_role_assigned(p_proj_type opas_project_types.proj_type%type, p_group_name opas_groups.group_name%type) return boolean
   is
     l_modname opas_project_types.modname%type;
@@ -85,6 +86,7 @@ create or replace package body COREMOD_SEC as
     when no_data_found then
       return false;
   end;
+*/  
 end COREMOD_SEC;
 /
 --------------------------------------------------------

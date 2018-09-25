@@ -2,6 +2,7 @@ create or replace PACKAGE TRC_PROCESSFILE AS
 
   procedure parse_file(p_trc_file_id TRC_FILE.trc_file_id%type);
   procedure parse_file_async(p_trc_file_id TRC_FILE.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type);
+  procedure reparse_file_async(p_trc_file_id TRC_FILE.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type);
 
 END TRC_PROCESSFILE;
 /
@@ -879,7 +880,7 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
   exception
     when others then
       rollback;
-      unset_file_parsing_state(p_trc_file_id);
+      --unset_file_parsing_state(p_trc_file_id);
       COREMOD_LOG.log('row: '||l_file_rec.frow);
       COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
       COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
@@ -893,7 +894,8 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     l_file_crsr        sys_refcursor;
     l_total_rows       number;
   begin
-    set_file_parsing_state(p_trc_file_id);
+    --set_file_parsing_state(p_trc_file_id);
+	TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_startparse);	 --autonomous  
 
     TRC_UTILS.get_file(p_trc_file_id,l_trc_file, true); --with locking
 
@@ -923,9 +925,11 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     parse_file_i(p_trc_file_id,l_file_crsr, l_total_rows,l_trc_file.filename);
     close l_file_crsr;
 
-    update TRC_FILE set status = TRC_UTILS.fsParsed where trc_file_id = p_trc_file_id;
+    --update TRC_FILE set status = TRC_UTILS.fsParsed where trc_file_id = p_trc_file_id;
+	TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_finishparse);
   exception
     when others then
+	  TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_failparse);
       if l_file_crsr%isopen then close l_file_crsr; end if;
       raise;
   end;
@@ -940,13 +944,20 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
   is
     L_TASKNAME VARCHAR2(128) := 'TRC_PARSEFILE';
   begin
-    --TRC_UTILS.delete_file(p_trc_file_id => P_TRC_FILE_ID, p_keep_file => true, p_keep_parsed => false);
     p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME) ;
     COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_trc_file_id);
     COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id ) ;
     commit;
   end;
 
+  procedure reparse_file_async(p_trc_file_id TRC_FILE.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type)
+  is
+  begin
+    TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_reparse);
+	TRC_FILE_API.remove_parsed_data_i(i.trc_file_id);
+    TRC_FILE_API.remove_report_i(i.trc_file_id);	
+	parse_file_async(p_trc_file_id,p_tq_id);
+  end;  
 begin
   init();
   init_version_dependencies();

@@ -27,8 +27,5 @@ begin
   coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUPTASKSDATA',
                                             P_MODNAME => '&MODNM.',
                                             p_task_body => 'begin coremod_tasks.cleanup_tasks; end;');
-  coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUPPROJSDATA',
-                                            P_MODNAME => '&MODNM.',
-                                            p_task_body => 'begin COREPROJ_API.cleanup_projects; end;');
 end;
 /
