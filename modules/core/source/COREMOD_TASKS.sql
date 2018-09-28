@@ -5,19 +5,21 @@ create or replace package coremod_tasks as
   procedure create_task(p_taskname   opas_task.taskname%type,
                         p_modname    opas_task.modname%type,
                         p_is_public  opas_task.is_public%type default 'Y',
-                        p_task_body  opas_task.task_body%type);  
+                        p_task_body  opas_task.task_body%type);
   procedure drop_task(p_taskname opas_task.taskname%type);
-  
+
   function prep_execute_task(p_taskname opas_task.taskname%type) return opas_task_queue.tq_id%type;
   procedure queue_task(p_tq_id opas_task_queue.tq_id%type);
 
   procedure set_task_param(p_tq_id opas_task_queue.tq_id%type, p_name opas_task_pars.par_name%type, p_num_par number);
   procedure set_task_param(p_tq_id opas_task_queue.tq_id%type, p_name opas_task_pars.par_name%type, p_varchar_par varchar2);
   procedure set_task_param(p_tq_id opas_task_queue.tq_id%type, p_name opas_task_pars.par_name%type, p_date_par date);
-  
+
   procedure create_task_job;
   procedure execute_task_proc; --job coord proc
   procedure execute_task(p_tq_id opas_task_queue.tq_id%type);
+  
+  procedure log(p_msg opas_log.msg%type, p_tq_id opas_task_queue.tq_id%type default null);
 
 end;
 /
@@ -49,9 +51,9 @@ create or replace package body coremod_tasks as
   end;
 
   procedure cleanup_tasks is
-    l_rows_processed number;  
+    l_rows_processed number;
   begin
-    delete from opas_task_queue where systimestamp - finished > TO_DSINTERVAL(COREMOD_API.getconf('TASKRETENTION',COREMOD_API.gCOREMOD)||' 00:00:00');
+    delete from opas_task_queue where systimestamp - finished > TO_DSINTERVAL(COREMOD_API.getconf('TASKRETENTION',COREMOD_API.gMODNAME)||' 00:00:00');
     l_rows_processed:=sql%rowcount;
     commit;
     coremod_log.log('Cleanup task queue: deleted '||l_rows_processed||' row(s).');
@@ -154,8 +156,8 @@ create or replace package body coremod_tasks as
     l_2run    t_task_tbl := t_task_tbl();
   begin
     select count(1) into l_running_jobs from USER_SCHEDULER_RUNNING_JOBS where job_name like gJOBNMPREF||'%';
-    if l_running_jobs < to_number(COREMOD_API.getconf('MAXTHREADS',COREMOD_API.gCOREMOD)) then
-      l_freeslots:= to_number(COREMOD_API.getconf('MAXTHREADS',COREMOD_API.gCOREMOD)) - l_running_jobs;
+    if l_running_jobs < to_number(COREMOD_API.getconf('MAXTHREADS',COREMOD_API.gMODNAME)) then
+      l_freeslots:= to_number(COREMOD_API.getconf('MAXTHREADS',COREMOD_API.gMODNAME)) - l_running_jobs;
       select * bulk collect into l_tasks from opas_task_queue where status=gtqQUEUED for update skip locked order by queued;
       for i in 1..least(l_freeslots,l_tasks.count) loop
         l_2run.extend;
@@ -163,10 +165,10 @@ create or replace package body coremod_tasks as
         set_task_started(l_tasks(i).tq_id);
       end loop;
     end if;
-    
+
     commit;
-    
-    for i in 1..l_2run.count 
+
+    for i in 1..l_2run.count
     loop
       begin
         dbms_scheduler.create_job(job_name => gJOBNMPREF||'_'||upper(l_2run(i).taskname)||'_'||to_char(systimestamp,'FF6'),
@@ -191,7 +193,7 @@ create or replace package body coremod_tasks as
                               program_type             => 'PLSQL_BLOCK',
                               program_action           => 'begin coremod_tasks.execute_task_proc; end;',
                               enabled                  => true,
-                              comments                 => 'OPAS Task job coordinator program');  
+                              comments                 => 'OPAS Task job coordinator program');
     dbms_scheduler.create_job(job_name                 => 'OPAS_TASK_COORD',
                               program_name             => 'OPAS_TASK_COORD_PRG',
                               start_date               => trunc(systimestamp,'mi'),
@@ -225,6 +227,7 @@ create or replace package body coremod_tasks as
     when others then
       set_task_finished(p_tq_id,gtqFAILED);
       log('Execute task error: '||sqlerrm,p_tq_id);
+      log(l_task_body,p_tq_id);
       log(DBMS_UTILITY.FORMAT_ERROR_STACK,p_tq_id);
       log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE,p_tq_id);
       raise_application_error(-20000, 'Execute task error: '||sqlerrm);

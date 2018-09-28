@@ -21,6 +21,17 @@ begin
   COREMOD_TASKS.create_task (  p_taskname  => 'TRC_PARSEFILE',
                                p_modname   => '&MODNM.',
                                p_is_public => 'Y', 
-                               p_task_body => 'begin TRC_PROCESSFILE.parse_file (  P_TRC_FILE_ID => <B1>) ; end;');
+                               p_task_body => 'begin TRC_PROCESSFILE.parse_file (P_TRC_FILE_ID => <B1>) ; end;');
+  COREMOD_TASKS.create_task (  p_taskname  => 'TRC_CREATEREPORT',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin trc_report.getreport (P_TRC_FILE_ID => <B1>) ; end;');							   
+end;
+/
+
+begin
+  coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUP_SQL_TRACE',
+                                            P_MODNAME => '&MODNM.',
+                                            p_task_body => 'begin TRC_PROJ_API.cleanup_projects; end;');
 end;
 /

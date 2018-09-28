@@ -1,7 +1,8 @@
 create or replace package trc_report as
 
-  procedure getreport_i(p_trc_file_id TRC_FILE.trc_file_id%type, p_report out coremod_report_utils.t_output_lines, p_topsql number default 0);
-
+  procedure getreport(p_trc_file_id trc_files.trc_file_id%type);
+  procedure get_sql_trace_report_async(p_trc_file_id trc_files.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type);
+  
 end;
 /
 
@@ -11,22 +12,22 @@ show errors
 
 create or replace package body trc_report as
 
-  procedure getreport_i(p_trc_file_id TRC_FILE.trc_file_id%type, p_report out coremod_report_utils.t_output_lines, p_topsql number default 0)
+  procedure getreport_i(p_trc_file_id trc_files.trc_file_id%type, p_report out coremod_report_utils.t_output_lines, p_topsql number default 0)
   is
     --l_report coremod_report_utils.t_output_lines;
     l_indx   number := 1;
     l_sql    varchar2(32765);
     l_sql_text clob;
-    l_topsql   number := case when p_topsql = 0 then coremod_api.getconf('TOPSQL') else p_topsql end;
+    l_topsql   number := case when p_topsql = 0 then coremod_api.getconf('TOPSQL',TRC_FILE_API.gMODNAME) else p_topsql end;
 
     l_report_name varchar2(100):='Extended SQL Trace report';
     l_module_name varchar2(100):='SQL Trace Report';
 
 
     l_default_width number := 800;
-    
+
     l_cnt number;
-    
+
     l_file_tot_time number;
     l_cpu           number;
     l_ela           number;
@@ -34,7 +35,7 @@ create or replace package body trc_report as
     l_nonidle       number;
     l_min_dep       number;
     l_very_first_we trc_wait.row_num%type;
-      
+
     procedure p(p_line varchar2) is
     begin
       --l_report(l_indx):=p_line;
@@ -44,7 +45,7 @@ create or replace package body trc_report as
   begin
     COREMOD_LOG.Start_SQL_GATHER_STAT('TRC_REPORT.GETREPORT_I');
     COREMOD_LOG.Start_SQL_TRACE('TRC_REPORT.GETREPORT_I');
-  
+
     execute immediate q'[alter session set nls_numeric_characters='. ']';
 
     COREMOD_REPORT_UTILS.set_report_timing(true);
@@ -76,13 +77,13 @@ create or replace package body trc_report as
 
 --  =============================================================================================================================================
     COREMOD_REPORT_UTILS.start_lo_section(p_module_name => l_module_name, p_action_name => 'Calculating data');
-    
+
     insert /*+ qb_name(TRC_REP1) */ into trc$tmp_call_stats
-     select st.sqlid, c.call_type, count(c.call_type) cnt, sum(c) c, sum(e) e, sum(p) p, sum(cr) cr, sum(cu) cu, sum(r) r, sum(mis) mis 
+     select st.sqlid, c.call_type, count(c.call_type) cnt, sum(c) c, sum(e) e, sum(p) p, sum(cr) cr, sum(cu) cu, sum(r) r, sum(mis) mis
        from trc_call c, trc_statement st
       where c.trc_file_id=p_trc_file_id and c.trc_file_id=st.trc_file_id and c.stmt_id=st.stmt_id
       group by c.call_type,st.sqlid;
-      
+
     insert /*+ qb_name(TRC_REP1) */ into trc$tmp_call_self_stats
     select st.sqlid, c.call_type, count(c.call_type) cnt, sum(cs.c) c, sum(cs.e) e, sum(cs.p) p, sum(cs.cr) cr, sum(cs.cu) cu
       from trc_call c, trc_call_self cs, trc_statement st
@@ -92,18 +93,18 @@ create or replace package body trc_report as
     insert /*+ qb_name(TRC_REP1) */ into trc$tmp_wait_stats
     select st.sqlid, ev.wait_class, nam, count(1) cnt, sum(ela) ela, avg(ela) avg_ela, max(ela) max_ela, PERCENTILE_CONT(0.95) within group (order by ela) ela_95
       from trc_wait w, trc_statement st, V$EVENT_NAME ev
-     where w.trc_file_id=p_trc_file_id and w.trc_file_id=st.trc_file_id and nam = ev.name 
+     where w.trc_file_id=p_trc_file_id and w.trc_file_id=st.trc_file_id and nam = ev.name
        and w.stmt_id=st.stmt_id  group by nam, st.sqlid, ev.wait_class;
-       
+
     insert /*+ qb_name(TRC_REP1) */ into trc$tmp_plan_stats
     select st.sqlid, p.plh, p.id, sum(cnt) cnt, p.pid, p.pos, p.obj, p.op, sum(cr)cr, sum(pr) pr, sum(pw) pw, sum(p.tim) tim, p.cost, p.sz, p.card
-      from (select x.*, (select plh from trc_call y where trc_file_id=p_trc_file_id and x.stmt_id=y.stmt_id and nvl(plh,0)>0 and rownum=1) plh from trc_stat x) p, 
+      from (select x.*, (select plh from trc_call y where trc_file_id=p_trc_file_id and x.stmt_id=y.stmt_id and nvl(plh,0)>0 and rownum=1) plh from trc_stat x) p,
            trc_statement st
      where p.trc_file_id=p_trc_file_id and p.trc_file_id=st.trc_file_id and p.stmt_id=st.stmt_id
      group by st.sqlid, p.plh, p.id, p.pid, p.pos, p.obj, p.op, p.cost,p.cost, p.sz, p.card;
 
     COREMOD_REPORT_UTILS.start_lo_section(p_module_name => l_module_name, p_action_name => 'Calculating main stats');
-     
+
     select /*+ qb_name(TRC_REP1) */ min(dep) into l_min_dep from (
         select min(dep) dep from trc_statement where trc_file_id=p_trc_file_id union all
         select min(dep) from trc_call where trc_file_id=p_trc_file_id and call_type<>'CLOSE');
@@ -136,7 +137,7 @@ create or replace package body trc_report as
        and row_num != l_very_first_we;
 
     select /*+ qb_name(TRC_REP1) */ sum(ela) into l_nonidle from trc_wait where trc_file_id=p_trc_file_id and nam not in (select name from V$EVENT_NAME where wait_class='Idle');
-      
+
 --  =============================================================================================================================================
 
     --Summary
@@ -165,9 +166,9 @@ create or replace package body trc_report as
       p('Nonidle wait time, us: '||trim(to_char(nvl(l_nonidle,0),'999g999g999g999g999g999')));p(HTF.BR);
       p('Total file time - Elapsed - Idle (% of total), us: '||trim(to_char((l_file_tot_time-l_ela-nvl(l_idle,0)),'999g999g999g999g999g999'))||' ( '||round(100*(l_file_tot_time-l_ela-nvl(l_idle,0))/l_file_tot_time,2)||'% )');p(HTF.BR);
       p('Elapsed - CPU - NonIdle (% of Elapsed), us: '||trim(to_char((l_ela-l_cpu-nvl(l_nonidle,0)),'999g999g999g999g999g999'))||' ( '||round(100*(l_ela-l_cpu-nvl(l_nonidle,0))/l_ela,2)||'% )');p(HTF.BR);
-      
+
       p(COREMOD_REPORT_UTILS.end_lo_section);
-      
+
       p(HTF.BR);
 
       p(HTF.BIG('Top level calls, time in seconds.'));
@@ -271,13 +272,13 @@ order by 1,4 desc]';
 
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'Top '||l_topsql||' SQLs',cname=>'topsqls',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
-    
+
 
     l_sql := q'[select /*+ qb_name(TRC_REP1) */ x.*,
 (select substr(sql_text,1,100)||case when length(sql_text)>100 then '...' else null end from trc_statement s where x.SQL_ID=s.sqlid and rownum=1) sql_text
 from (
-select 
-e "ELA", case when <TOTELA> <> 0 then round(100*e/<TOTELA>,2)||'%' else null end "ELA %Tot", 
+select
+e "ELA", case when <TOTELA> <> 0 then round(100*e/<TOTELA>,2)||'%' else null end "ELA %Tot",
 c "CPU", case when <TOTCPU> <> 0 then round(100*c/<TOTCPU>,2)||'%' else null end "CPU %Tot",
 en "Execs",
 ti.sqlid SQL_ID
@@ -301,7 +302,7 @@ order by e desc, c desc
                                           --p_header number default 0,
                                           --p_break_col varchar2 default null,
                                           p_output => p_report);
-                                            
+
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
     p(HTF.BR);
@@ -315,11 +316,11 @@ order by e desc, c desc
 
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'Call Tree',cname=>'call_tree',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
-    
+
 
     l_sql := q'[with call_tree as (
-select *+ no_merge NO_ELIMINATE_OBY qb_name(TRC_REP1) * rpad('..',(level-1)*2,'..')||call_type lvl_capt, level lvl, CONNECT_BY_ISLEAF ilf, c.* 
-from trc_call c 
+select *+ no_merge NO_ELIMINATE_OBY qb_name(TRC_REP1) * rpad('..',(level-1)*2,'..')||call_type lvl_capt, level lvl, CONNECT_BY_ISLEAF ilf, c.*
+from trc_call c
 where trc_file_id=<P_TRC_FILE_ID>
 start with parent_id is null and call_type<>'CLOSE' and trc_file_id=<P_TRC_FILE_ID>
 connect by prior call_id=parent_id and trc_file_id=<P_TRC_FILE_ID>
@@ -328,15 +329,15 @@ select lvl_capt "CALL",
        ct.c "CPU", case when <TOTCPU> <> 0 and ct.c/<TOTCPU> > 0.009 then round(100*ct.c/<TOTCPU>)||'%' else null end "CPU %Tot",
        ct.e "ELA", case when <TOTELA> <> 0 and ct.e/<TOTELA> > 0.009 then round(100*ct.e/<TOTELA>)||'%' else null end "ELA %Tot",
        cs.c||case when cs.c is not null and ct.c<>0 then ' ('||round(100*cs.c/ct.c,2)||'%)' else null end "Self CPU (%Cumul)",
-       cs.e||case when cs.e is not null and ct.e<>0 then ' ('||round(100*cs.e/ct.e,2)||'%)' else null end "Self ELA (%Cumul)", 
-       ct.dep, st.sqlid "SQL_ID", 
+       cs.e||case when cs.e is not null and ct.e<>0 then ' ('||round(100*cs.e/ct.e,2)||'%)' else null end "Self ELA (%Cumul)",
+       ct.dep, st.sqlid "SQL_ID",
        case when call_type='PARSE' then
          substr(st.sql_text,1,100)||case when length(st.sql_text)>100 then '...' else null end
        else null end sql_text
 from (select ct0.*, rownum rn from call_tree ct0)  ct
      left outer join trc_call_self cs on ct.call_id=cs.call_id
      left outer join trc_statement st on ct.stmt_id=st.stmt_id and st.trc_file_id=<P_TRC_FILE_ID>
-where case when ilf=1 and case when <TOTELA> <> 0 then ct.e/<TOTELA> else 0 end > 0.008 then 1 
+where case when ilf=1 and case when <TOTELA> <> 0 then ct.e/<TOTELA> else 0 end > 0.008 then 1
            when ilf=0 then 1
            else 0 end = 1
      order by rn]';
@@ -355,14 +356,14 @@ where case when ilf=1 and case when <TOTELA> <> 0 then ct.e/<TOTELA> else 0 end 
                                           --p_header number default 0,
                                           --p_break_col varchar2 default null,
                                           p_output => p_report);
-                                            
+
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
     p(HTF.BR);
     p(HTF.BR);
 
     p(COREMOD_REPORT_UTILS.end_lo_section);
-    --p(COREMOD_REPORT_UTILS.end_lo_section(p_is_finished=>true));    
+    --p(COREMOD_REPORT_UTILS.end_lo_section(p_is_finished=>true));
 */
 --  =============================================================================================================================================
     --SQL statements
@@ -370,7 +371,7 @@ where case when ilf=1 and case when <TOTELA> <> 0 then ct.e/<TOTELA> else 0 end 
 
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'SQL statements',cname=>'sqlstmts',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
- 
+
     for i in (select /*+ qb_name(TRC_REP1) */ sqlid from (select sqlid, e_tot from (select sqlid, sum(e) e_tot from trc$tmp_call_stats group by sqlid order by 2 desc) where rownum<=l_topsql) order by e_tot desc)
     loop
       p(HTF.header (4,cheader=>HTF.ANCHOR (curl=>'',ctext=>'SQL_ID='||i.sqlid,cname=>'sqlid_'||i.sqlid,cattributes=>'class="awr"'),cattributes=>'class="awr"'));
@@ -385,18 +386,18 @@ where case when ilf=1 and case when <TOTELA> <> 0 then ct.e/<TOTELA> else 0 end 
                                                   p_style_tab => 'trctd',
                                                   p_style_head => 'trchd', --head
                                                   p_style_r1 => 'trcr1',   --odd rows
-                                                  p_style_r2  => 'trcr2', --even rows                                                  
-                                                  P_OUTPUT => p_report) ;  
+                                                  p_style_r2  => 'trcr2', --even rows
+                                                  P_OUTPUT => p_report) ;
       p(HTF.BR);
-      
+
       p(HTF.BIG('Cumulative statistics'));
-      
+
       l_sql := q'[select * from (
-with call_list 
+with call_list
   as (select 'PARSE' nm from dual union select 'EXEC' from dual union select 'FETCH' from dual union select 'CLOSE' from dual)
 select /*+ qb_name(TRC_REP1) */
   call_list.nm "Call", cnt "Count", c/1e6 "CPU", e/1e6 "Elapsed", p "Disk", cr "Query", cu "Current", r "Rows", mis "Mis" , 0 noprn_lastrow
-  from trc$tmp_call_stats c1, call_list 
+  from trc$tmp_call_stats c1, call_list
  where c1.call_type(+)=call_list.nm and c1.sqlid(+)='<SQL_ID>'
 union all
 select
@@ -418,12 +419,12 @@ order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';
                                             --p_header number default 0,
                                             --p_break_col varchar2 default null,
                                             p_output => p_report);
-      p(HTF.BR); 
-      
+      p(HTF.BR);
+
       select count(1) into l_cnt from dual where exists (select 1 from trc$tmp_wait_stats where sqlid=i.sqlid);
-      if l_cnt>0 then          
+      if l_cnt>0 then
         p(HTF.BIG('Cursor waits'));
-      
+
         l_sql := q'[select /*+ qb_name(TRC_REP1) */ 0 noprn_lastrow, nam "Event", CNT "Times waited", ela/1e6 "Total time", round(AVG_ELA/1e6,6) "Avg time", MAX_ELA/1e6 "Max time", ELA_95/1e6 "95% Percetile"
 from trc$tmp_wait_stats
 where sqlid='<SQL_ID>'
@@ -450,11 +451,11 @@ order by 1,4 desc]';
 
         p(HTF.BR);
       end if;
-      
+
       select count(1) into l_cnt from dual where exists (select 1 from TRC$TMP_CALL_SELF_STATS where sqlid=i.sqlid);
-      if l_cnt>0 then      
+      if l_cnt>0 then
         p(HTF.BIG('Self statistics'));
-      
+
         l_sql := q'[select * from (
 with call_list as (select 'PARSE' nm from dual union select 'EXEC' from dual union select 'FETCH' from dual union select 'CLOSE' from dual)
 select /*+ qb_name(TRC_REP1) */
@@ -480,14 +481,14 @@ order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';
                                             --p_header number default 0,
                                             --p_break_col varchar2 default null,
                                             p_output => p_report);
-        p(HTF.BR); 
+        p(HTF.BR);
       end if;
       --select count(1) into l_cnt from dual where exists (select 1 from trc$tmp_plan_stats where sqlid=i.sqlid);
-      
+
       --if l_cnt>0 then
       for j in (select unique sqlid, PLH from trc$tmp_plan_stats where sqlid=i.sqlid) loop
         p(HTF.BIG('Execution Plan Hash: '||j.PLH)); --||p_trc_file_id||':'||i.stmt_id));
-      
+
         l_sql := q'[with pl as (select /*+ materialize */ * from trc$tmp_plan_stats where sqlid='<SQL_ID>'<PLANHASH>)
 select /*+ qb_name(TRC_REP1) */
 id,
@@ -499,9 +500,9 @@ dbms_xplan.format_number(cnt) "A-Rows",
 tim/1e6 "A-Time, sec",
 dbms_xplan.format_number(cr) "Buffers",
 dbms_xplan.format_number(pr) "Reads",
-dbms_xplan.format_number(pw) "Writes" 
-from pl 
-start with pid=0 connect by prior id=pid 
+dbms_xplan.format_number(pw) "Writes"
+from pl
+start with pid=0 connect by prior id=pid
 order siblings by pos]';
         l_sql:=replace(l_sql,'<SQL_ID>',i.sqlid);
         if j.PLH is not null then
@@ -523,7 +524,7 @@ order siblings by pos]';
                                               --p_header number default 0,
                                               --p_break_col varchar2 default null,
                                               p_output => p_report);
-        p(HTF.BR); 
+        p(HTF.BR);
       --end if;
       end loop;
 
@@ -531,19 +532,19 @@ order siblings by pos]';
       p(HTF.BR);
       p(HTF.BR);
     end loop;
-    
+
 
     p(COREMOD_REPORT_UTILS.end_lo_section);
-    p(COREMOD_REPORT_UTILS.end_lo_section(p_is_finished=>true));    
+    p(COREMOD_REPORT_UTILS.end_lo_section(p_is_finished=>true));
 --  =============================================================================================================================================
 --  =============================================================================================================================================
 --  =============================================================================================================================================
 --  =============================================================================================================================================
 --  =============================================================================================================================================
     commit; --to cleanup temp tables
-    
+
     COREMOD_LOG.Stop_SQL_GATHER_STAT('TRC_REPORT.GETREPORT_I');
-    COREMOD_LOG.Stop_SQL_TRACE('TRC_REPORT.GETREPORT_I');    
+    COREMOD_LOG.Stop_SQL_TRACE('TRC_REPORT.GETREPORT_I');
   exception
     when others then
       rollback; --to cleanup temp tables
@@ -551,7 +552,48 @@ order siblings by pos]';
       coremod_log.log(l_sql);
       coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
       coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
-      raise_application_error(-20000, sqlerrm);    
+      raise_application_error(-20000, sqlerrm);
+  end;
+  
+  procedure getreport(p_trc_file_id trc_files.trc_file_id%type)
+  is
+    l_report coremod_report_utils.t_output_lines;
+    l_file_content clob;
+    l_file opas_files.file_id%type;
+    l_trc_file trc_files%rowtype;
+  begin
+    l_trc_file:=TRC_FILE_API.get_file(p_trc_file_id,true);
+    
+    getreport_i(p_trc_file_id, p_report => l_report, p_topsql => COREMOD_API.getconf('TOPSQL',TRC_FILE_API.gMODNAME));
+
+    l_file := COREFILE_API.create_file(P_MODNAME => TRC_FILE_API.gMODNAME,
+                                       P_FILE_TYPE => 'Extended SQL Trace Report',
+                                       P_FILE_NAME => l_trc_file.filename||'.html',
+                                       P_MIMETYPE => 'HTML',
+                                       P_OWNER => l_trc_file.OWNER);
+
+    COREFILE_API.get_locator(l_file,l_file_content);    
+    
+    for i in 1..l_report.count loop
+      l_file_content:=l_file_content||l_report(i)||chr(10);
+    end loop;    
+    
+    COREFILE_API.store_content(l_file,l_file_content);
+
+    UPDATE trc_files
+       SET report_content = l_file
+     WHERE trc_file_id = p_trc_file_id;    
+
+    commit;
+  end;
+  procedure get_sql_trace_report_async(p_trc_file_id trc_files.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type)
+  is
+    L_TASKNAME VARCHAR2(128) := 'TRC_CREATEREPORT';
+  begin
+    p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME) ;
+    COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_trc_file_id);
+    COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id ) ;
+    commit;
   end;
 
   procedure getreport_i2(p_sql_id varchar2, p_dblink varchar2, p_id in number, p_parent_id number default null)

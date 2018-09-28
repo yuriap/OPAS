@@ -4,3 +4,6 @@
 set define off
 @@TRC_REPORT
 set define on
+
+@@TRC_PROJ_LCC
+@@TRC_PROJ_API

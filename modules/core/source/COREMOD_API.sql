@@ -3,7 +3,7 @@ create or replace package COREMOD_API as
    gDefaultSource constant varchar2(32) := 'LOCAL';
    gDefaultOwner  constant varchar2(32) := 'PUBLIC';
    
-   gCOREMOD       constant varchar2(32) := 'OPASCORE';
+   gMODNAME       constant varchar2(32) := 'OPASCORE';
 
    function getconf(p_key varchar2, p_module opas_modules.modname%type) return varchar2 RESULT_CACHE;
    function getscript(p_script_id varchar2) return clob;
