@@ -25,17 +25,17 @@ create or replace package TRC_PROJ_API as
                              p_created   trc_projects.created%type);
 
   procedure drop_project(p_proj_id trc_projects.proj_id%type);
-  procedure load_project(p_proj_id trc_projects.proj_id%type);
-  procedure parse_project(p_proj_id trc_projects.proj_id%type);
-  procedure report_cr(p_proj_id trc_projects.proj_id%type);
-  procedure report_vw(p_proj_id trc_projects.PROJ_ID%type);
+  --procedure load_project(p_proj_id trc_projects.proj_id%type);
+  --procedure parse_project(p_proj_id trc_projects.proj_id%type);
+  --procedure report_cr(p_proj_id trc_projects.proj_id%type);
+  --procedure report_vw(p_proj_id trc_projects.PROJ_ID%type);
 
   procedure lock_project(p_proj_id trc_projects.proj_id%type);
   procedure unlock_project(p_proj_id trc_projects.proj_id%type);
 
   procedure compress_project(p_proj_id trc_projects.proj_id%type);  --remove source data
   procedure archive_project(p_proj_id trc_projects.proj_id%type);   --remove source and parsed data
-  procedure close_project(p_proj_id trc_projects.proj_id%type);
+  --procedure close_project(p_proj_id trc_projects.proj_id%type);
 
 
   -----------------------------------------------------------------
@@ -186,7 +186,8 @@ create or replace package body TRC_PROJ_API as
 	end loop;
     commit;
   end;
-
+  
+/*
   procedure load_project(p_proj_id trc_projects.proj_id%type)is
     l_curproj trc_projects%rowtype;
   begin
@@ -214,7 +215,7 @@ create or replace package body TRC_PROJ_API as
     l_curproj:=getproject(p_proj_id, false);
     TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_report_vw);
   end;
-
+*/
   procedure lock_project(p_proj_id trc_projects.proj_id%type)is
     l_curproj trc_projects%rowtype;
   begin
@@ -229,13 +230,14 @@ create or replace package body TRC_PROJ_API as
     TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_unlock);
   end;
 
+/*
   procedure close_project(p_proj_id trc_projects.proj_id%type)is
     l_curproj trc_projects%rowtype;
   begin
     l_curproj:=getproject(p_proj_id, true);
     TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_close);
   end;
-
+*/
   procedure compress_project(p_proj_id trc_projects.proj_id%type) as
     l_curproj trc_projects%rowtype;
   begin
