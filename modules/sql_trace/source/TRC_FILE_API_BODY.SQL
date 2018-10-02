@@ -1,50 +1,4 @@
-create or replace PACKAGE TRC_FILE_API AS
-
-  gMODNAME       constant varchar2(32) := 'SQL_TRACE';
-
-  function getMODNAME return varchar2;
-
-
-  procedure register_trace_file(p_proj_id         trc_files.proj_id%type,
-                                p_owner           trc_files.owner%type,
-                                p_filename        trc_files.filename%type,
-                                p_file_source     trc_files.file_source%type,
-                                p_store_file      boolean,
-                                p_trc_file_id out trc_files.trc_file_id%type);
-
-  procedure store_file(p_trc_file_id trc_files.trc_file_id%type, p_file blob default null);
-
-  procedure compress_file(p_trc_file_id trc_files.trc_file_id%type);
-  procedure archive_file(p_trc_file_id trc_files.trc_file_id%type);
-  procedure drop_file(p_trc_file_id trc_files.trc_file_id%type);
-  procedure cleanup_for_reparse(p_trc_file_id trc_files.trc_file_id%type);
-
-  procedure cleanup_files(p_proj_id trc_projects.proj_id%type, p_mode number, p_use_retention boolean);
-
-  procedure set_note(p_trc_file_id  trc_files.trc_file_id%type,
-                     p_note         trc_files.file_note%type);
-
-  function get_file(p_trc_file_id trc_files.trc_file_id%type, p_lock boolean default false) return trc_files%rowtype;
-
-  procedure set_file_security
-                        (p_trc_file_id         trc_files.trc_file_id%type,
-                         p_owner               trc_files.owner%type default null,
-                         p_source_keep_forever trc_files.source_keep_forever%type,
-                         p_parsed_keep_forever trc_files.parsed_keep_forever%type);
-
-  procedure delete_file (P_TRC_FILE_ID trc_files.trc_file_id%type,
-                         P_KEEP_SOURCE boolean,
-                         P_KEEP_PARSED boolean,
-                         P_KEEP_REPORT boolean);
-                         
-END TRC_FILE_API;
-/
-
---------------------------------------------------------
-show errors
---------------------------------------------------------
-
-create or replace PACKAGE BODY TRC_FILE_API AS
+PACKAGE BODY TRC_FILE_API AS
 
   function getMODNAME return varchar2 is begin return gMODNAME; end;
 
@@ -93,9 +47,9 @@ create or replace PACKAGE BODY TRC_FILE_API AS
 
       COREFILE_API.get_locator(l_file,l_file_content);
       if p_file is null then
-        
-        if l_trc_file.file_source is null then raise_application_error(-20000,'File source and file name are empty.'); end if; 
-        
+
+        if l_trc_file.file_source is null then raise_application_error(-20000,'File source and file name are empty.'); end if;
+
         if l_trc_file.file_source = '$LOCAL$' then
           for i in ( select payload from V$DIAG_TRACE_FILE_CONTENTS where trace_filename=l_trc_file.filename  order by line_number) loop
             l_file_content:=l_file_content||i.payload;
@@ -149,7 +103,7 @@ create or replace PACKAGE BODY TRC_FILE_API AS
 
 	TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_create);
     if not p_store_file then
-      TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_load);    
+      TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_load);
     end if;
   end;
 
@@ -165,13 +119,14 @@ create or replace PACKAGE BODY TRC_FILE_API AS
        SET owner = nvl(p_owner,owner),
            source_keep_forever = decode(p_source_keep_forever,'Y','Y','N','N','N'),
            parsed_keep_forever = decode(p_parsed_keep_forever,'Y','Y','N','N','N')
-     WHERE trc_file_id = p_trc_file_id;  
+     WHERE trc_file_id = p_trc_file_id;
   end;
-                         
+
   procedure remove_source_data_i(p_trc_file_id trc_files.trc_file_id%type)
   is
     l_trc_file         trc_files%rowtype;
   begin
+    coremod_log.log('TRC_FILE_API.remove_source_data_i: '||p_trc_file_id,'DEBUG');
     l_trc_file:=get_file(p_trc_file_id,true);
     update trc_files set file_content=null where trc_file_id=p_trc_file_id;
     COREFILE_API.delete_file(l_trc_file.file_content);
@@ -180,6 +135,7 @@ create or replace PACKAGE BODY TRC_FILE_API AS
   procedure remove_parsed_data_i(p_trc_file_id trc_files.trc_file_id%type)
   is
   begin
+    coremod_log.log('TRC_FILE_API.remove_parsed_data_i: '||p_trc_file_id,'DEBUG');
     delete from trc_stat where trc_file_id=p_trc_file_id;
     delete from trc_wait where trc_file_id=p_trc_file_id;
     delete from trc_binds where trc_file_id=p_trc_file_id;
@@ -188,12 +144,14 @@ create or replace PACKAGE BODY TRC_FILE_API AS
     delete from trc_client_identity where trc_file_id=p_trc_file_id;
     delete from trc_trans where trc_file_id=p_trc_file_id;
     delete from trc_session where trc_file_id=p_trc_file_id;
+    update trc_files set parsed=null where trc_file_id=p_trc_file_id;
   end;
 
   procedure remove_report_i(p_trc_file_id trc_files.trc_file_id%type)
   is
     l_trc_file         trc_files%rowtype;
   begin
+    coremod_log.log('TRC_FILE_API.remove_report_i: '||p_trc_file_id,'DEBUG');
     l_trc_file:=get_file(p_trc_file_id,true);
     update trc_files set report_content=null where trc_file_id=p_trc_file_id;
     COREFILE_API.delete_file(l_trc_file.report_content);
@@ -233,6 +191,18 @@ create or replace PACKAGE BODY TRC_FILE_API AS
     end loop;
   end;
 
+  procedure cleanup_for_reparse(p_trc_file_id trc_files.trc_file_id%type,
+                                P_KEEP_PARSED boolean,
+                                P_KEEP_REPORT boolean)
+  is
+  begin
+    coremod_log.log('TRC_FILE_API.cleanup_for_reparse: '||p_trc_file_id,'DEBUG');
+
+    TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_reparse);
+	if not P_KEEP_PARSED then remove_parsed_data_i(p_trc_file_id); end if;
+	if not P_KEEP_REPORT then remove_report_i     (p_trc_file_id); end if;
+  end;
+
   procedure delete_file (P_TRC_FILE_ID trc_files.trc_file_id%type,
                          P_KEEP_SOURCE boolean,
                          P_KEEP_PARSED boolean,
@@ -246,8 +216,8 @@ create or replace PACKAGE BODY TRC_FILE_API AS
       compress_file(P_TRC_FILE_ID);
     elsif not P_KEEP_SOURCE and not P_KEEP_PARSED and P_KEEP_REPORT then
       archive_file(P_TRC_FILE_ID);
-    elsif P_KEEP_SOURCE and not P_KEEP_PARSED and not P_KEEP_REPORT then
-      cleanup_for_reparse(P_TRC_FILE_ID);
+    elsif (P_KEEP_SOURCE and P_KEEP_PARSED and not P_KEEP_REPORT) or (P_KEEP_SOURCE and not P_KEEP_PARSED and not P_KEEP_REPORT) then
+      cleanup_for_reparse(P_TRC_FILE_ID,P_KEEP_PARSED,P_KEEP_REPORT);
     else
       raise_application_error(-20000,'Unimplemented file action');
     end if;
@@ -286,15 +256,6 @@ create or replace PACKAGE BODY TRC_FILE_API AS
 	delete from trc_files where trc_file_id = p_trc_file_id;
   end;
 
-  procedure cleanup_for_reparse(p_trc_file_id trc_files.trc_file_id%type)
-  is
-  begin
-    coremod_log.log('TRC_FILE_API.cleanup_for_reparse: '||p_trc_file_id,'DEBUG');
-    TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_reparse);
-	remove_parsed_data_i(p_trc_file_id);
-	remove_report_i    (p_trc_file_id);
-  end;
-
   procedure set_note(p_trc_file_id  trc_files.trc_file_id%type,
                      p_note         trc_files.file_note%type)
   is
@@ -304,9 +265,53 @@ create or replace PACKAGE BODY TRC_FILE_API AS
 
     update trc_files set file_note=p_note where trc_file_id=p_trc_file_id;
   end;
+
+  procedure parse_file_async(p_trc_file_id trc_files.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type)
+  is
+    L_TASKNAME VARCHAR2(128) := 'TRC_PARSEFILE';
+  begin
+    TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_inparsequeue);
+    p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME) ;
+    COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_trc_file_id);
+    COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id ) ;
+    commit;
+  end;
+/*
+  procedure reparse_file_async(p_trc_file_id trc_files.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type)
+  is
+  begin
+    TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_inparsequeue);
+	parse_file_async(p_trc_file_id,p_tq_id);
+  end;
+*/
+
+  procedure parse_file(p_trc_file_id trc_files.trc_file_id%type)
+  is
+    l_trc_file         trc_files%rowtype;
+  begin
+    coremod_log.log('TRC_FILE_API.parse_file: '||p_trc_file_id,'DEBUG');
+    l_trc_file:=get_file(p_trc_file_id,false);
+
+    if l_trc_file.parsed is null or l_trc_file.report_content is null then
+    begin
+      TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_startparse);	 --autonomous
+
+      if l_trc_file.parsed is null then
+        TRC_PROCESSFILE.parse_file(p_trc_file_id);
+      end if;
+
+      if l_trc_file.report_content is null then
+        trc_report.getreport(p_trc_file_id);
+      end if;
+
+      TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_finishparse);
+
+    exception
+      when others then
+        TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_failparse);
+        raise;
+    end;
+    end if;
+  end;
 END TRC_FILE_API;
 /
-
---------------------------------------------------------
-show errors
---------------------------------------------------------

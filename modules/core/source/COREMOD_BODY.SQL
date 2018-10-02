@@ -1,15 +1,5 @@
-create or replace package COREMOD as
+package body COREMOD as
 
-  procedure register(p_modname opas_modules.MODNAME%type, p_moddescr opas_modules.MODDESCR%type, p_modver opas_modules.MODVER%type, p_installed opas_modules.INSTALLED%type default sysdate);
-  
-end;
-/
-
---------------------------------------------------------
-show errors
---------------------------------------------------------
-create or replace package body COREMOD as
-  
   procedure register(p_modname opas_modules.MODNAME%type, p_moddescr opas_modules.MODDESCR%type, p_modver opas_modules.MODVER%type, p_installed opas_modules.INSTALLED%type default sysdate)
   is
   begin
@@ -23,9 +13,6 @@ create or replace package body COREMOD as
       (s.modname, s.moddescr, s.modver, s.installed);
     commit;
   end;
-  
+
 end;
 /
---------------------------------------------------------
-show errors
---------------------------------------------------------

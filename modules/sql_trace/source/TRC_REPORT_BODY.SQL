@@ -1,16 +1,4 @@
-create or replace package trc_report as
-
-  procedure getreport(p_trc_file_id trc_files.trc_file_id%type);
-  procedure get_sql_trace_report_async(p_trc_file_id trc_files.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type);
-  
-end;
-/
-
---------------------------------------------------------
-show errors
---------------------------------------------------------
-
-create or replace package body trc_report as
+package body trc_report as
 
   procedure getreport_i(p_trc_file_id trc_files.trc_file_id%type, p_report out coremod_report_utils.t_output_lines, p_topsql number default 0)
   is
@@ -554,7 +542,7 @@ order siblings by pos]';
       coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
       raise_application_error(-20000, sqlerrm);
   end;
-  
+
   procedure getreport(p_trc_file_id trc_files.trc_file_id%type)
   is
     l_report coremod_report_utils.t_output_lines;
@@ -563,7 +551,7 @@ order siblings by pos]';
     l_trc_file trc_files%rowtype;
   begin
     l_trc_file:=TRC_FILE_API.get_file(p_trc_file_id,true);
-    
+
     getreport_i(p_trc_file_id, p_report => l_report, p_topsql => COREMOD_API.getconf('TOPSQL',TRC_FILE_API.gMODNAME));
 
     l_file := COREFILE_API.create_file(P_MODNAME => TRC_FILE_API.gMODNAME,
@@ -572,17 +560,17 @@ order siblings by pos]';
                                        P_MIMETYPE => 'HTML',
                                        P_OWNER => l_trc_file.OWNER);
 
-    COREFILE_API.get_locator(l_file,l_file_content);    
-    
+    COREFILE_API.get_locator(l_file,l_file_content);
+
     for i in 1..l_report.count loop
       l_file_content:=l_file_content||l_report(i)||chr(10);
-    end loop;    
-    
+    end loop;
+
     COREFILE_API.store_content(l_file,l_file_content);
 
     UPDATE trc_files
        SET report_content = l_file
-     WHERE trc_file_id = p_trc_file_id;    
+     WHERE trc_file_id = p_trc_file_id;
 
     commit;
   end;
@@ -1062,7 +1050,3 @@ order siblings by pos]';
   end;
 end;
 /
-
---------------------------------------------------------
-show errors
---------------------------------------------------------

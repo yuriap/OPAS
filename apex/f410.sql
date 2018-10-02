@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   10:45 Tuesday October 2, 2018
+--   Date and Time:   14:49 Tuesday October 2, 2018
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -38,9 +38,9 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Statistics:
 --   Pages:                     24
 --     Items:                   68
---     Processes:               36
+--     Processes:               35
 --     Regions:                 63
---     Buttons:                 46
+--     Buttons:                 45
 --     Dynamic Actions:          7
 --   Shared Components:
 --     Logic:
@@ -123,7 +123,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181001154806'
+,p_last_upd_yyyymmddhh24miss=>'20181002144033'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -13984,7 +13984,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(12068365168018244)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181001154806'
+,p_last_upd_yyyymmddhh24miss=>'20181002144033'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(10060006480275409)
@@ -14068,7 +14068,7 @@ wwv_flow_api.create_page_plug(
 ,p_plug_display_sequence=>5
 ,p_include_in_reg_disp_sel_yn=>'Y'
 ,p_plug_display_point=>'BODY'
-,p_plug_source=>'<b>Owner:</b> &P204_OWNER.; <b>DB Version:</b> &P204_DB_VERSION.; <b>Created:</b> &P204_CREATED.; <b>Status:</b> &P204_STATUS.'
+,p_plug_source=>'<b>Owner:</b> &P204_OWNER.; <b>DB Version:</b> &P204_DB_VERSION.; <b>Created:</b> &P204_CREATED.; <b>Status:</b> &P204_STATUS.; <b>Parsed:</b> &P204_PARSED..'
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 ,p_attribute_01=>'N'
 ,p_attribute_02=>'HTML'
@@ -14140,7 +14140,7 @@ wwv_flow_api.create_page_button(
 ,p_button_image_alt=>'Parse'
 ,p_button_position=>'BELOW_BOX'
 ,p_button_alignment=>'LEFT'
-,p_button_condition=>'TRC_FILE_LCC.trcfile_check_action(:P204_TRC_FILE_ID,TRC_FILE_LCC.c_trcfile_startparse)'
+,p_button_condition=>'TRC_FILE_LCC.trcfile_check_action(:P204_TRC_FILE_ID,TRC_FILE_LCC.c_trcfile_inparsequeue)'
 ,p_button_condition_type=>'PLSQL_EXPRESSION'
 ,p_security_scheme=>wwv_flow_api.id(12068233984016247)
 );
@@ -14159,21 +14159,6 @@ wwv_flow_api.create_page_button(
 ,p_button_condition=>'TRC_FILE_LCC.trcfile_check_action(:P204_TRC_FILE_ID,TRC_FILE_LCC.c_trcfile_report_vw)'
 ,p_button_condition_type=>'PLSQL_EXPRESSION'
 ,p_security_scheme=>wwv_flow_api.id(12068365168018244)
-);
-wwv_flow_api.create_page_button(
- p_id=>wwv_flow_api.id(10060861754275417)
-,p_button_sequence=>50
-,p_button_plug_id=>wwv_flow_api.id(10060006480275409)
-,p_button_name=>'Reparse'
-,p_button_action=>'SUBMIT'
-,p_button_template_options=>'#DEFAULT#'
-,p_button_template_id=>wwv_flow_api.id(11870518977539690)
-,p_button_image_alt=>'Reparse'
-,p_button_position=>'BELOW_BOX'
-,p_button_alignment=>'LEFT'
-,p_button_condition=>'TRC_FILE_LCC.trcfile_check_action(:P204_TRC_FILE_ID,TRC_FILE_LCC.c_trcfile_reparse)'
-,p_button_condition_type=>'PLSQL_EXPRESSION'
-,p_security_scheme=>wwv_flow_api.id(12068233984016247)
 );
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(10060977190275418)
@@ -14399,7 +14384,7 @@ wwv_flow_api.create_page_process(
 '    owner,',
 '    db_version,',
 '    to_char(created,''&NLS_DATETIME_SHORT.'') created,',
-'    to_char(parsed,''&NLS_DATETIME_SHORT.'') parsed,    ',
+'    nvl(to_char(parsed,''&NLS_DATETIME_SHORT.''),''N/A'') parsed,    ',
 '    status,',
 '    file_note,',
 '    SOURCE_KEEP_FOREVER,',
@@ -14483,7 +14468,7 @@ wwv_flow_api.create_page_process(
 ,p_process_name=>'ParseFile'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
-'  TRC_PROCESSFILE.parse_file_async(P_TRC_FILE_ID => :P204_TRC_FILE_ID, P_TQ_ID => :P204_PARSE_EXEC_ID);',
+'  TRC_FILE_API.parse_file_async(P_TRC_FILE_ID => :P204_TRC_FILE_ID, P_TQ_ID => :P204_PARSE_EXEC_ID);',
 'end;',
 '--declare',
 '--  L_TASKNAME VARCHAR2(128) := ''TRC_TEST'';',
@@ -14495,20 +14480,6 @@ wwv_flow_api.create_page_process(
 ''))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(9949310022600054)
-,p_security_scheme=>wwv_flow_api.id(12068233984016247)
-);
-wwv_flow_api.create_page_process(
- p_id=>wwv_flow_api.id(10061144419275420)
-,p_process_sequence=>30
-,p_process_point=>'AFTER_SUBMIT'
-,p_process_type=>'NATIVE_PLSQL'
-,p_process_name=>'ReParse'
-,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'begin',
-'  TRC_PROCESSFILE.reparse_file_async(P_TRC_FILE_ID => :P204_TRC_FILE_ID, P_TQ_ID => :P204_PARSE_EXEC_ID);',
-'end;'))
-,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_api.id(10060861754275417)
 ,p_security_scheme=>wwv_flow_api.id(12068233984016247)
 );
 wwv_flow_api.create_page_process(

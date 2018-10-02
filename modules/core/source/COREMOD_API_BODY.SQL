@@ -1,49 +1,4 @@
-create or replace package COREMOD_API as
-
-   gDefaultSource constant varchar2(32) := 'LOCAL';
-   gDefaultOwner  constant varchar2(32) := 'PUBLIC';
-   
-   gMODNAME       constant varchar2(32) := 'OPASCORE';
-
-   function getconf(p_key varchar2, p_module opas_modules.modname%type) return varchar2 RESULT_CACHE;
-   function getscript(p_script_id varchar2) return clob;
-
-   procedure register_dblink(p_db_link_name varchar2, 
-                             p_db_link_displ_name varchar2, 
-                             p_owner varchar2,
-                             p_is_public varchar2,
-                             p_username varchar2,
-                             p_password varchar2,
-                             p_connectstring varchar2);
-   procedure edit_dblink    (p_db_link_name varchar2, 
-                             p_db_link_displ_name varchar2, 
-                             p_is_public varchar2,
-                             p_username varchar2,
-                             p_password varchar2,
-                             p_connectstring varchar2);                             
-   procedure create_dblink(p_db_link_name varchar2, p_recreate boolean default false);
-   procedure drop_dblink(p_db_link_name varchar2);
-   procedure test_dblink(p_db_link_name varchar2);
-   
-   function get_def_source return varchar2;
-   function get_def_owner return varchar2;
-
-   procedure init_longops(p_op_name varchar2, p_target_desc varchar2, p_units varchar2, p_totalwork number, p_lops_ind out pls_integer);
-   procedure start_longops_section(p_module_name varchar2, p_action_name varchar2);
-   procedure end_longops_section(p_sofar number default 1, p_lops_ind pls_integer);
-   
-   procedure lock_resource(p_resource_name varchar2, p_mode number default DBMS_LOCK.X_MODE, p_timeout number default 0, p_release_on_commit boolean default true);
-   function lock_resource(p_resource_name varchar2, p_mode number default DBMS_LOCK.X_MODE, p_timeout number default 0, p_release_on_commit boolean default true) return varchar2;
-   procedure release_resource(p_handle varchar2);
-   procedure release_resource;
-
-end COREMOD_API;
-/
---------------------------------------------------------
-show errors
---------------------------------------------------------
-
-create or replace package body COREMOD_API as
+package body COREMOD_API as
 
   type t_lops_rec is record(
   g_rindex    BINARY_INTEGER,
@@ -62,7 +17,7 @@ create or replace package body COREMOD_API as
 
   -- lock handle
   g_handle varchar2(512);
-  
+
   procedure init_longops(p_op_name varchar2, p_target_desc varchar2, p_units varchar2, p_totalwork number, p_lops_ind out pls_integer)
   is
   begin
@@ -131,8 +86,8 @@ create or replace package body COREMOD_API as
     when no_data_found then raise_application_error(-20000,'Script "'||p_script_id||'" not found.');
   end;
 
-  procedure register_dblink(p_db_link_name varchar2, 
-                            p_db_link_displ_name varchar2, 
+  procedure register_dblink(p_db_link_name varchar2,
+                            p_db_link_displ_name varchar2,
                             p_owner varchar2,
                             p_is_public varchar2,
                             p_username varchar2,
@@ -140,15 +95,15 @@ create or replace package body COREMOD_API as
                             p_connectstring varchar2)
   is
   begin
-    insert into opas_db_links 
-      (DB_LINK_NAME,DISPLAY_NAME,OWNER,STATUS,is_public,username,password,connstr) 
-    values 
-      (upper(p_db_link_name), p_db_link_displ_name, upper(p_owner), 
+    insert into opas_db_links
+      (DB_LINK_NAME,DISPLAY_NAME,OWNER,STATUS,is_public,username,password,connstr)
+    values
+      (upper(p_db_link_name), p_db_link_displ_name, upper(p_owner),
        'NEW', case when upper(p_owner)='PUBLIC' then 'Y' else case when p_is_public = 'Y' then 'Y' else 'N' end end, p_username,p_password,p_connectstring);
   end;
-   
-  procedure edit_dblink    (p_db_link_name varchar2, 
-                            p_db_link_displ_name varchar2, 
+
+  procedure edit_dblink    (p_db_link_name varchar2,
+                            p_db_link_displ_name varchar2,
                             p_is_public varchar2,
                             p_username varchar2,
                             p_password varchar2,
@@ -161,7 +116,7 @@ create or replace package body COREMOD_API as
     if nvl(p_username,'~^')<>nvl(l_dblink.username,'~^') or
        nvl(p_password,'~^')<>nvl(l_dblink.password,'~^') or
        nvl(p_connectstring,'~^')<>nvl(l_dblink.connstr,'~^')
-    then       
+    then
       update opas_db_links set
              STATUS = 'MODIFIED',
              DISPLAY_NAME = p_db_link_displ_name,
@@ -175,7 +130,7 @@ create or replace package body COREMOD_API as
              DISPLAY_NAME = p_db_link_displ_name,
              is_public = case when upper(owner)='PUBLIC' then 'Y' else case when p_is_public = 'Y' then 'Y' else 'N' end end
        where DB_LINK_NAME = upper(p_db_link_name);
-    end if;     
+    end if;
   end;
 
   procedure create_dblink(p_db_link_name varchar2, p_recreate boolean default false)
@@ -187,16 +142,16 @@ create or replace package body COREMOD_API as
     else
       select * into l_dblink from opas_db_links where DB_LINK_NAME = upper(p_db_link_name) for update nowait;
       if p_recreate then
-        declare 
+        declare
           l_domain varchar2(128);
         begin
           select value into l_domain from v$parameter where name like '%domain%';
           execute immediate 'drop database link '||p_db_link_name||'.'||l_domain;
         exception
-          when others then 
+          when others then
             COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
             COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
-            COREMOD_LOG.log(sqlerrm);              
+            COREMOD_LOG.log(sqlerrm);
         end;
       end if;
         execute immediate q'[CREATE DATABASE LINK ]'||l_dblink.db_link_name||q'[ CONNECT TO ]'||l_dblink.username||q'[ IDENTIFIED BY ]'||l_dblink.password||q'[ USING ']'||l_dblink.connstr||q'[']';
@@ -204,7 +159,7 @@ create or replace package body COREMOD_API as
       commit;
     end if;
   end;
-  
+
   procedure drop_dblink(p_db_link_name varchar2)
   is
     l_domain varchar2(128);
@@ -222,17 +177,17 @@ create or replace package body COREMOD_API as
           update opas_db_links set STATUS='TODELETE' where DB_LINK_NAME=upper(p_db_link_name);
           execute immediate 'drop database link '||p_db_link_name||'.'||l_domain;
         exception
-          when others then 
+          when others then
             COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
             COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
-            COREMOD_LOG.log(sqlerrm);              
+            COREMOD_LOG.log(sqlerrm);
             raise;
         end;
       end if;
       delete from opas_db_links where DB_LINK_NAME=upper(p_db_link_name);
       commit;
     end if;
-  end;  
+  end;
 
   procedure test_dblink(p_db_link_name varchar2)
   is
@@ -247,7 +202,7 @@ create or replace package body COREMOD_API as
   function get_def_owner return varchar2 is begin return gDefaultOwner; end;
 
 
-  function lock_resource(p_resource_name varchar2, p_mode number default DBMS_LOCK.X_MODE, p_timeout number default 0, p_release_on_commit boolean default true) return varchar2  
+  function lock_resource(p_resource_name varchar2, p_mode number default DBMS_LOCK.X_MODE, p_timeout number default 0, p_release_on_commit boolean default true) return varchar2
   is
     l_res    integer;
   begin
@@ -260,37 +215,34 @@ create or replace package body COREMOD_API as
       lockmode           => p_mode, --DBMS_LOCK.X_MODE, -- Exclusive mode
       timeout            => p_timeout,
       release_on_commit  => p_release_on_commit);
-    
+
     if l_res <> 0 then
       raise_application_error(-20000, 'Resource '||p_resource_name||' can not be locked right now. Return code: '||l_res);
     end if;
-    
+
     return g_handle;
   end;
-  
+
   procedure lock_resource(p_resource_name varchar2, p_mode number default DBMS_LOCK.X_MODE, p_timeout number default 0, p_release_on_commit boolean default true)
   is
     l_handle varchar2(512);
   begin
     l_handle:=lock_resource(p_resource_name,p_mode,p_timeout,p_release_on_commit);
   end;
-  
+
   procedure release_resource(p_handle varchar2)
-  is  
+  is
     l_res integer;
   begin
     l_res := DBMS_LOCK.RELEASE(p_handle);
   end;
 
   procedure release_resource
-  is  
+  is
   begin
     release_resource(g_handle);
   end;
-  
-  
+
+
 end COREMOD_API;
 /
---------------------------------------------------------
-show errors
---------------------------------------------------------

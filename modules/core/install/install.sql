@@ -29,3 +29,4 @@ begin
                                             p_task_body => 'begin coremod_tasks.cleanup_tasks; end;');
 end;
 /
+commit;

@@ -1,17 +1,4 @@
-create or replace PACKAGE TRC_PROCESSFILE AS
-
-  procedure parse_file(p_trc_file_id trc_files.trc_file_id%type);
-  procedure parse_file_async(p_trc_file_id trc_files.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type);
-  procedure reparse_file_async(p_trc_file_id trc_files.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type);
-
-END TRC_PROCESSFILE;
-/
-
---------------------------------------------------------
-show errors
---------------------------------------------------------
-
-create or replace PACKAGE BODY TRC_PROCESSFILE AS
+PACKAGE BODY TRC_PROCESSFILE AS
 
   cursor g_file_crsr(p_fname trc_files.filename%type) is
     select line_number rn, payload frow from trc$tmp_file_content order by line_number;
@@ -864,16 +851,9 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     l_total_rows       number;
     l_tq_id            opas_task_queue.tq_id%type;
   begin
-    --set_file_parsing_state(p_trc_file_id);
-	TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_startparse);	 --autonomous
+--	TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_startparse);	 --autonomous
 
     l_trc_file:=TRC_FILE_API.get_file(p_trc_file_id, true); --with locking
-
-    --if l_trc_file.status<>TRC_UTILS.fsBeingParsed then
-    --  raise_application_error(-20000, 'File ID:'||p_trc_file_id||' already parsed ('||l_trc_file.status||')');
-    --end if;
-
-    --delete from trc$tmp_file_content;
 
     if l_trc_file.file_content is not null then
       insert into trc$tmp_file_content select line_number, payload from table(page_clob(l_trc_file.file_content));
@@ -895,13 +875,12 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     parse_file_i(p_trc_file_id,l_file_crsr, l_total_rows,l_trc_file.filename);
     close l_file_crsr;
 
-    --update trc_files set status = TRC_UTILS.fsParsed where trc_file_id = p_trc_file_id;
-	TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_finishparse);
-    
-    trc_report.get_sql_trace_report_async(p_trc_file_id,l_tq_id);
+--	TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_finishparse);
+
+    --trc_report.get_sql_trace_report_async(p_trc_file_id,l_tq_id);
   exception
     when others then
-	  TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_failparse);
+--	  TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_failparse);
       if l_file_crsr%isopen then close l_file_crsr; end if;
       raise;
   end;
@@ -912,28 +891,9 @@ create or replace PACKAGE BODY TRC_PROCESSFILE AS
     parse_file_i(p_trc_file_id);
   end;
 
-  procedure parse_file_async(p_trc_file_id trc_files.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type)
-  is
-    L_TASKNAME VARCHAR2(128) := 'TRC_PARSEFILE';
-  begin
-    p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME) ;
-    COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_trc_file_id);
-    COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id ) ;
-    commit;
-  end;
 
-  procedure reparse_file_async(p_trc_file_id trc_files.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type)
-  is
-  begin
-	TRC_FILE_API.cleanup_for_reparse(p_trc_file_id);
-	parse_file_async(p_trc_file_id,p_tq_id);
-  end;
 begin
   init();
   init_version_dependencies();
 END TRC_PROCESSFILE;
 /
-
---------------------------------------------------------
-show errors
---------------------------------------------------------
