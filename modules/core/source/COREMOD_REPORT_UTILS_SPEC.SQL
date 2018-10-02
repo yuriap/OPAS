@@ -55,7 +55,7 @@ PACKAGE COREMOD_REPORT_UTILS AS
                                     p_style_r2  varchar2, --even rows
                                     p_output in out t_output_lines);
 
-  procedure save_report_for_download(p_filename varchar2, p_report t_output_lines, p_id in number, p_parent_id number default null);
+  procedure save_report_for_download(p_file opas_files.file_id%type);
 
   --long ops for reports
   procedure set_report_timing(p_timing boolean);

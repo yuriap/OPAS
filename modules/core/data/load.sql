@@ -18,7 +18,7 @@ declare
 begin
   l_script := 
 q'[
-@@../scripts/awr.css
+@@../scripts/opasawr.css
 ]';
   delete from opas_scripts where script_id='PROC_AWRCSS';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRCSS','&MODNM.',l_script);  

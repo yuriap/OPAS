@@ -573,6 +573,8 @@ order siblings by pos]';
      WHERE trc_file_id = p_trc_file_id;
 
     commit;
+
+    COREMOD_REPORT_UTILS.save_report_for_download (  P_FILE => l_file) ;
   end;
   procedure get_sql_trace_report_async(p_trc_file_id trc_files.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type)
   is
@@ -1040,7 +1042,7 @@ order siblings by pos]';
 --  =============================================================================================================================================
     DBMS_APPLICATION_INFO.SET_MODULE ( module_name => 'SQL V$ report: '||p_sql_id, action_name => 'Finished');
 
-    coremod_report_utils.save_report_for_download('sql_'||p_sql_id||'.html', l_report, p_id, p_parent_id);
+    --coremod_report_utils.save_report_for_download('sql_'||p_sql_id||'.html', l_report, p_id, p_parent_id);
   exception
     when others then
       coremod_log.log(sqlerrm);

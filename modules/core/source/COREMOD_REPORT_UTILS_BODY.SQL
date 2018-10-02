@@ -391,7 +391,7 @@ end;]';
       raise_application_error(-20000, 'print_table_html'||chr(10)||sqlerrm||chr(10));
   end;
 
-  procedure save_report_for_download(p_filename varchar2, p_report t_output_lines, p_id in number, p_parent_id number default null)
+  procedure save_report_for_download(p_file opas_files.file_id%type)
   is
     PRAGMA AUTONOMOUS_TRANSACTION;
     l_rpt clob;
@@ -401,11 +401,15 @@ end;]';
     l_soff number := 1;
     l_cont integer := DBMS_LOB.DEFAULT_LANG_CTX;
     l_warn integer;
+
+    l_file opas_files%rowtype;
   begin
+    select * into l_file from opas_files where file_id=p_file for update;
+    update opas_files set file_contentb=empty_blob() where file_id=p_file returning file_contentb into l_file.file_contentb;
 
     l_pref:=l_pref||HTF.HTMLOPEN||chr(10);
     l_pref:=l_pref||HTF.HEADOPEN||chr(10);
-    l_pref:=l_pref||HTF.TITLE('SQL runtime statistics report')||chr(10);
+    l_pref:=l_pref||HTF.TITLE(l_file.file_type)||chr(10);
 
     l_pref:=l_pref||'<style type="text/css">'||chr(10);
     l_pref:=l_pref||coremod_api.getscript('PROC_AWRCSS')||chr(10);
@@ -413,19 +417,14 @@ end;]';
     l_pref:=l_pref||HTF.HEADCLOSE||chr(10);
     l_pref:=l_pref||HTF.BODYOPEN(cattributes=>'class="awr"')||chr(10);
 
-    for i in 1..p_report.count loop
-      l_rpt:=l_rpt||p_report(i)||chr(10);
-    end loop;
-
---    INSERT INTO awrtools_online_rpt (id,ts,file_mimetype,file_name,report, reportc, parent_id)
---         VALUES (p_id,default,default,p_filename,empty_blob(),l_rpt, p_parent_id) return report into l_brpt;
+    l_rpt:=l_rpt||l_file.file_contentc;
 
     l_rpt:=l_pref||chr(10)||l_rpt;
     l_rpt:=l_rpt||(HTF.BODYCLOSE)||chr(10);
     l_rpt:=l_rpt||(HTF.HTMLCLOSE);
 
     DBMS_LOB.CONVERTTOBLOB(
-      dest_lob       => l_brpt,
+      dest_lob       => l_file.file_contentb,
       src_clob       => l_rpt,
       amount         => DBMS_LOB.LOBMAXSIZE,
       dest_offset    => l_doff,
