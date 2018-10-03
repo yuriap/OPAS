@@ -308,6 +308,7 @@ PACKAGE BODY TRC_FILE_API AS
 
     exception
       when others then
+        rollback;
         TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_failparse);
         raise;
     end;
