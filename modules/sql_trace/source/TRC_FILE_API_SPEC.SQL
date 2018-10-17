@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 PACKAGE TRC_FILE_API AS
 
   gMODNAME       constant varchar2(32) := 'SQL_TRACE';

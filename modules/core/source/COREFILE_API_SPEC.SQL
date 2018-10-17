@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 PACKAGE COREFILE_API AS
 
   function create_file(p_modname   opas_files.modname%type,

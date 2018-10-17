@@ -1,14 +1,19 @@
+define namepref=opas40
+
 -- Oracle Performance Analytic Suite version
-define OPASVER=4.1.0
+define OPASVER=4.2.0
 
 -- Oracle Performance Analytic Suite scheme for local database
-define localscheme=opas40
+define localscheme=&namepref.
 
 -- Tablespace name for Oracle Performance Analytic Suite
-define tblspc_name=opas40tbs
+define tblspc_name=&namepref.tbs
 
 -- Local database connection string host:port/service_name
 define localdb=localhost:1521/pdb1.localdomain
 
 -- Local SYS password (can be empty)
 define localsys=qazwsx
+
+-- module configs
+@..\modules\awr_warehouse\install\install_config

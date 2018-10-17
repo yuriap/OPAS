@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 PACKAGE COREMOD_REPORT_UTILS AS
 
   type t_output_lines is table of varchar2(32767) index by pls_integer;

@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 PACKAGE BODY TRC_FILE_API AS
 
   function getMODNAME return varchar2 is begin return gMODNAME; end;
@@ -310,7 +311,7 @@ PACKAGE BODY TRC_FILE_API AS
       when others then
         rollback;
         TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_failparse);
-        raise;
+        raise_application_error(-20000,'parse_file exception: '||sqlerrm);
     end;
     end if;
   end;

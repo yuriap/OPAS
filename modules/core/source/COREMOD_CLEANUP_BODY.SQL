@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package body coremod_cleanup as
 
   procedure register_cleanup_tasks(p_taskname   opas_cleanup_tasks.taskname%type,
@@ -14,7 +15,7 @@ package body coremod_cleanup as
                               job_type => 'PLSQL_BLOCK',
                               job_action => 'begin coremod_cleanup.cleanup_job_proc; end;',
                               start_date => trunc(systimestamp,'hh'),
-                              repeat_interval => 'FREQ=HOURLY; INTERVAL=12',
+                              repeat_interval => 'FREQ=MINUTELY; INTERVAL=15',
                               enabled => true);
   end;
 

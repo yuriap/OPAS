@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package COREMOD_LOG is
   -- INFO
   -- DEBUG

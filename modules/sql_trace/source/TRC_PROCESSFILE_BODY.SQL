@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 PACKAGE BODY TRC_PROCESSFILE AS
 
   cursor g_file_crsr(p_fname trc_files.filename%type) is
@@ -137,7 +138,14 @@ PACKAGE BODY TRC_PROCESSFILE AS
     else
       p_trc_ver:=substr(p_db_ver,1,instr(p_db_ver,'.')-1);
       p_trc_release:=substr(p_db_ver,instr(p_db_ver,'.')+1,instr(p_db_ver,'.',2)-1);
---raise_application_error(-20000,p_db_ver||':'||p_trc_ver||':'||p_trc_release);
+    end if;
+  end;
+
+  procedure check_supported_versions
+  is
+  begin
+    if not(g_version||'.'||g_release in ('12.1','12.2','18.0')) then
+      raise_application_error(-20000,'Unsupported trace file version: '||g_version||'.'||g_release);
     end if;
   end;
 
@@ -145,20 +153,13 @@ PACKAGE BODY TRC_PROCESSFILE AS
   is
   begin
     return regexp_substr(p_row,'[^'||p_delim||']+', 1, p_ntoken);
-    /* it works but slightly slower then regexp
-    if p_ntoken = 1 then
-      return substr(p_row,1,instr(p_row,p_delim)-length(p_delim));
-    elsif p_ntoken > 1 then
-      return substr(p_row,instr(p_row,p_delim,1,p_ntoken-1)+length(p_delim),instr(p_row,p_delim,1,p_ntoken)-instr(p_row,p_delim,1,p_ntoken-1)-length(p_delim));
-    end if;
-    */
   end;
 
   procedure parse_call_row(p_row varchar2,p_rowtp varchar2, p_call out trc_call%rowtype)
   is
     l_row varchar2(32765);
   begin
-    if g_version='12' then
+--    if g_version='12' then
       case
         when p_rowtp in (cPARSE,cEXEC,cFETCH) then
         begin
@@ -206,7 +207,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
           p_call.typ:=getntoken(l_row,5);
           p_call.tim:=getntoken(l_row,6);
         end if;
-    end if;
+--    end if;
     exception
       when others then
         COREMOD_LOG.log('parse_call_row: '||sqlerrm);
@@ -222,7 +223,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
     l_row varchar2(32765);
   begin
 
-    if g_version='12' then
+--    if g_version='12' then
         begin
           l_row:=rtrim(rtrim(
                  replace(replace(replace(
@@ -256,7 +257,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
           p_stmt.tim:=getntoken(l_row,7);
           p_stmt.err:=getntoken(l_row,8);
         end if;
-    end if;
+--    end if;
     if p_stmt.trc_slot is null then raise_application_error(-20000,'slot is null: '||p_rowtp);end if;
     exception
       when others then
@@ -277,7 +278,10 @@ PACKAGE BODY TRC_PROCESSFILE AS
 --WAIT #1629483784: nam='asynch descriptor resize' ela= 17 outstanding #aio=0 current aio limit=0 new aio limit=128 obj#=83 tim=329666287338
 --WAIT #1629483784: nam='Disk file operations I/O' ela= 169 FileOperation=2 fileno=1 filetype=2 obj#=83 tim=329666287491
 --WAIT #1629483784: nam='db file sequential read' ela= 17 file#=1 block#=115518 blocks=1 obj#=83 tim=329666287556
-    if g_version='12' then
+--WAIT #140485731055920: nam='SQL*Net message to client' ela= 0 driver id=1413697536 #bytes=1 p3=0 obj#=-1 tim=11902236206633
+--18.3
+--WAIT #2856586288: nam='SQL*Net message to client' ela= 29 driver id=1297371904 #bytes=1 p3=0 obj#=-1 tim=1172931705409
+--    if g_version='12' then
         begin
           l_row:=rtrim(rtrim(
                  replace(replace(replace(
@@ -285,8 +289,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
                                       ,': nam=',','),' ela= ',',')
                                       ,' obj#=',','),' tim=',','),chr(10)), chr(13))||g_delim;
         end;
---dbms_output.put_line(p_row);
---dbms_output.put_line(l_row);
+
        l_row:=substr(l_row,1,instr(l_row,' ',instr(l_row,g_delim,1,2))-1)||','||substr(l_row,instr(l_row,' ',instr(l_row,g_delim,1,2))+1);
        p_wait.trc_slot:=getntoken(l_row,1);
        p_wait.nam:=trim(both q'[']' from getntoken(l_row,2));
@@ -294,7 +297,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
        p_wait.pars:=getntoken(l_row,4);
        p_wait.obj#:=getntoken(l_row,5);
        p_wait.tim:=getntoken(l_row,6);
-    end if;
+--    end if;
     exception
       when others then
         COREMOD_LOG.log('parse_wait_row: '||sqlerrm);
@@ -308,6 +311,23 @@ PACKAGE BODY TRC_PROCESSFILE AS
   procedure init_version_dependencies
   is
   begin
+
+    g_stat_token_indx('trc_slot')('18.0'):=1;
+    g_stat_token_indx('id')('18.0'):=2;
+    g_stat_token_indx('cnt')('18.0'):=3;
+    g_stat_token_indx('pid')('18.0'):=4;
+    g_stat_token_indx('pos')('18.0'):=5;
+    g_stat_token_indx('obj')('18.0'):=6;
+    g_stat_token_indx('op')('18.0'):=7;
+    g_stat_token_indx('cr')('18.0'):=8;
+    g_stat_token_indx('pr')('18.0'):=9;
+    g_stat_token_indx('pw')('18.0'):=10;
+    g_stat_token_indx('str')('18.0'):=11;
+    g_stat_token_indx('tim')('18.0'):=12;
+    g_stat_token_indx('cost')('18.0'):=13;
+    g_stat_token_indx('sz')('18.0'):=14;
+    g_stat_token_indx('card')('18.0'):=15;
+
     g_stat_token_indx('trc_slot')('12.2'):=1;
     g_stat_token_indx('id')('12.2'):=2;
     g_stat_token_indx('cnt')('12.2'):=3;
@@ -346,8 +366,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
   begin
 --STAT #139705803211616 id=1 cnt=1 pid=0 pos=1 obj=0 op='VIEW  (cr=0 pr=0 pw=0 time=38 us)'
 --STAT #140556341179024 id=1 cnt=0 pid=0 pos=1 obj=0 op='UPDATE  T1 (cr=160 pr=0 pw=0 time=149301 us)'
-    --if g_version='12' then
---        begin
+
           l_row:=rtrim(rtrim(replace(replace(
                  replace(replace(replace(replace(
                  replace(replace(replace(replace(
@@ -358,31 +377,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
                                       ,q'[ op=']',','),' (cr=',','),' pr=',',')
                                       ,' pw=',','),' str=',','),' time=',','),' cost=',','),' size=',','),' card=',','),q'[)']')
                                       ,chr(10)), chr(13))||g_delim;
---        end;
-/*
-          p_stat.trc_slot:=getntoken(l_row,1);
-          p_stat.id:=getntoken(l_row,2);
-          p_stat.cnt:=getntoken(l_row,3);
-          p_stat.pid:=getntoken(l_row,4);
-          p_stat.pos:=getntoken(l_row,5);
-          p_stat.obj:=getntoken(l_row,6);
-          p_stat.op:=getntoken(l_row,7);
-          p_stat.cr:=getntoken(l_row,8);
-          p_stat.pr:=getntoken(l_row,9);
-          p_stat.pw:=getntoken(l_row,10);
-          if g_release=2 then
-            p_stat.str:=getntoken(l_row,11);
-            p_stat.tim:=replace(getntoken(l_row,12),' us');--assuming the only measurement is us and it means 1e-6 sec as all other times
-            p_stat.cost:=getntoken(l_row,13);
-            p_stat.sz:=getntoken(l_row,14);
-            p_stat.card:=getntoken(l_row,15);
-          elsif g_release=1 then
-            p_stat.tim:=replace(getntoken(l_row,11),' us');--assuming the only measurement is us and it means 1e-6 sec as all other times
-            p_stat.cost:=getntoken(l_row,12);
-            p_stat.sz:=getntoken(l_row,13);
-            p_stat.card:=getntoken(l_row,14);
-          end if;
-*/
+
       if g_stat_token_indx.exists('trc_slot') and g_stat_token_indx('trc_slot').exists(g_version||'.'||g_release) then p_stat.trc_slot:=getntoken(l_row,g_stat_token_indx('trc_slot')(g_version||'.'||g_release)); end if;
       if g_stat_token_indx.exists('id') and g_stat_token_indx('id').exists(g_version||'.'||g_release) then p_stat.id:=getntoken(l_row,g_stat_token_indx('id')(g_version||'.'||g_release)); end if;
       if g_stat_token_indx.exists('cnt') and g_stat_token_indx('cnt').exists(g_version||'.'||g_release) then p_stat.cnt:=getntoken(l_row,g_stat_token_indx('cnt')(g_version||'.'||g_release)); end if;
@@ -399,7 +394,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
       if g_stat_token_indx.exists('sz') and g_stat_token_indx('sz').exists(g_version||'.'||g_release) then p_stat.sz:=getntoken(l_row,g_stat_token_indx('sz')(g_version||'.'||g_release)); end if;
       if g_stat_token_indx.exists('card') and g_stat_token_indx('card').exists(g_version||'.'||g_release) then p_stat.card:=getntoken(l_row,g_stat_token_indx('card')(g_version||'.'||g_release)); end if;
 
---    end if;
+
     exception
       when others then
         COREMOD_LOG.log('parse_stat_row: '||g_version||'.'||g_release||':'||sqlerrm);
@@ -407,7 +402,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
         COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
         COREMOD_LOG.log(p_row);
         COREMOD_LOG.log(l_row);
-        --COREMOD_LOG.log(g_stat_token_indx('tim')(g_version||'.'||g_release)||':'||getntoken(l_row,g_stat_token_indx('tim')(g_version||'.'||g_release)));
         raise_application_error(-20000, 'parse_stat_row: '||sqlerrm);
   end;
 
@@ -488,15 +482,18 @@ PACKAGE BODY TRC_PROCESSFILE AS
     COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Step: Parsing');
 
     set_version(null,g_version,g_release); --default trace file version
+    COREMOD_LOG.log('Trace file default DB version: '||g_version||'.'||g_release);
     l_curr_XCTEND_stmt_id:=null;
 
     INSERT INTO trc_session (trc_file_id,row_num,sid,serial#,start_ts,end_ts) VALUES (l_file_id,0,null,null,null,null) returning session_id into l_session_id;
     --open p_file;
     loop
       --if mod(l_file_rec.rn,g_longops_step)=0 then
+      if l_file_rec.rn is not null then
         COREMOD_API.end_longops_section(p_sofar=>l_file_rec.rn-1, p_lops_ind=>l_lops_idx_rows);
         COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Rows processed: '||l_file_rec.rn);
-      --end if;
+      end if;
+
       if not l_new_loop_wo_fetch then
         fetch p_file into l_file_rec;
         exit when p_file%notfound;
@@ -518,6 +515,8 @@ PACKAGE BODY TRC_PROCESSFILE AS
             l_db_ver:=substr(l_file_rec.frow,instr(l_file_rec.frow,'Release')+8,instr(l_file_rec.frow,' ',instr(l_file_rec.frow,'Release')+8)-instr(l_file_rec.frow,'Release')-8);
 --raise_application_error(-20000,l_file_rec.frow||':'||l_db_ver);
             set_version(l_db_ver,g_version,g_release);
+            check_supported_versions();
+            COREMOD_LOG.log('Trace file DB version: '||g_version||'.'||g_release);
           end if;
           l_header:=l_header||l_file_rec.frow||chr(10);
         end loop;
@@ -791,9 +790,13 @@ PACKAGE BODY TRC_PROCESSFILE AS
       COREMOD_LOG.log('Create CALLs tree: 3','DEBUG');
 
       l_idx := l_call_prnt.first;
+      --COREMOD_LOG.log('l_idx '||nvl(to_char(l_idx),'NULL'));
       loop
-        l_call_ids.extend; l_call_ids(l_call_ids.last):=l_idx;
-        l_call_prnts.extend; l_call_prnts(l_call_prnts.last):=l_call_prnt(l_idx);
+        exit when l_idx is null; -- exit if all calls are dep=0
+        l_call_ids.extend;
+        l_call_ids(l_call_ids.last):=l_idx;
+        l_call_prnts.extend;
+        l_call_prnts(l_call_prnts.last):=l_call_prnt(l_idx);
         l_idx:=l_call_prnt.next(l_idx);
         exit when l_idx is null;
       end loop;
@@ -805,7 +808,8 @@ PACKAGE BODY TRC_PROCESSFILE AS
 
       COREMOD_LOG.log('Create CALLs tree: 5','DEBUG');
     exception
-      when others then raise_application_error(-20000,l_idx_main||':'||l_idx_prev||': '||sqlerrm);
+      when others then raise_application_error(-20000,'l_idx_main:l_idx_prev:l_idx '||nvl(to_char(l_idx_main),'NULL')||':'||nvl(to_char(l_idx_prev),'NULL')||':'||nvl(to_char(l_idx),'NULL')
+                                                    ||': '||sqlerrm||chr(10)||DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
     end;
 
     COREMOD_LOG.log('Finished "Create CALLs tree"');

@@ -1,4 +1,7 @@
 -- Module list uninstallation
 
 --Core
-@..\modules\core\install\uninstall.sql
+rem @..\modules\core\install\uninstall.sql
+
+--ASH Analyzer
+@..\modules\ash_analyzer\install\uninstall.sql

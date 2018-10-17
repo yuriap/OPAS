@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package body TRC_PROJ_API as
 
   function getproject(p_proj_id trc_projects.proj_id%type, p_for_update boolean default false) return trc_projects%rowtype
@@ -106,22 +107,23 @@ package body TRC_PROJ_API as
   end;
 
   procedure cleanup_projects is
-    l_curproj trc_projects%rowtype; --getproject
   begin
 
-    for p in (select proj_id, systimestamp - created duration, nvl(keep_forever,'N') keep_forever from trc_projects) loop
+    for p in (select proj_id,proj_name, systimestamp - created duration, nvl(keep_forever,'N') keep_forever from trc_projects) loop
 	  if p.keep_forever='N' and p.duration > TO_DSINTERVAL(nvl(COREMOD_API.getconf('PROJECTRETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00') then
         begin
           drop_project_i(p_proj_id=>p.proj_id, p_is_purge => true);
+          coremod_log.log('Project removed: '||p.proj_id||' : '||p.proj_name);
         exception
           when others then
-            coremod_log.log('Cleanup project '||p.proj_id||' error: '||sqlerrm);
+            coremod_log.log('Removing project '||p.proj_id||' error: '||sqlerrm);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
         end;
       else
         begin
           cleanup_project(p_proj_id=>p.proj_id, p_mode => c_ALL, p_use_retention => true);
+          coremod_log.log('Project cleaned: '||p.proj_id||' : '||p.proj_name);
         exception
           when others then
             coremod_log.log('Cleanup project '||p.proj_id||' components error: '||sqlerrm);
@@ -133,35 +135,6 @@ package body TRC_PROJ_API as
     commit;
   end;
 
-/*
-  procedure load_project(p_proj_id trc_projects.proj_id%type)is
-    l_curproj trc_projects%rowtype;
-  begin
-    l_curproj:=getproject(p_proj_id, false);
-    TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_load);
-  end;
-
-  procedure parse_project(p_proj_id trc_projects.proj_id%type)is
-    l_curproj trc_projects%rowtype;
-  begin
-    l_curproj:=getproject(p_proj_id, false);
-    TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_parse);
-  end;
-
-  procedure report_cr(p_proj_id trc_projects.proj_id%type)is
-    l_curproj trc_projects%rowtype;
-  begin
-    l_curproj:=getproject(p_proj_id, false);
-    TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_report_cr);
-  end;
-
-  procedure report_vw(p_proj_id trc_projects.proj_id%type)is
-    l_curproj trc_projects%rowtype;
-  begin
-    l_curproj:=getproject(p_proj_id, false);
-    TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_report_vw);
-  end;
-*/
   procedure lock_project(p_proj_id trc_projects.proj_id%type)is
     l_curproj trc_projects%rowtype;
   begin
@@ -176,14 +149,6 @@ package body TRC_PROJ_API as
     TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_unlock);
   end;
 
-/*
-  procedure close_project(p_proj_id trc_projects.proj_id%type)is
-    l_curproj trc_projects%rowtype;
-  begin
-    l_curproj:=getproject(p_proj_id, true);
-    TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_close);
-  end;
-*/
   procedure compress_project(p_proj_id trc_projects.proj_id%type) as
     l_curproj trc_projects%rowtype;
   begin

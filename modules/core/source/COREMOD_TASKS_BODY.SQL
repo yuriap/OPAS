@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package body coremod_tasks as
 
   g_time number;
@@ -12,11 +13,13 @@ package body coremod_tasks as
 
   gJOBNMPREF   constant varchar2(10):='OPASTASK';
 
+  gTQ_ID       number;
+
   procedure log(p_msg opas_log.msg%type, p_tq_id opas_task_queue.tq_id%type default null)
   is
     PRAGMA AUTONOMOUS_TRANSACTION;
   begin
-    insert into opas_log (created, msg, tq_id) values (default, p_msg, p_tq_id);
+    insert into opas_log (created, msg, tq_id) values (default, p_msg, nvl(p_tq_id,gTQ_ID));
     commit;
   end;
 
@@ -178,6 +181,7 @@ package body coremod_tasks as
     l_task opas_task%rowtype;
     l_task_body clob;
   begin
+    gTQ_ID:=p_tq_id;
     set_task_running(p_tq_id);
     select * into l_task from opas_task where taskname=(select taskname from opas_task_queue where tq_id = p_tq_id);
     l_task_body:=l_task.task_body;
@@ -193,6 +197,7 @@ package body coremod_tasks as
     end loop;
     execute immediate l_task_body;
     set_task_finished(p_tq_id,gtqSUCCEEDED);
+    gTQ_ID:=null;
   exception
     when others then
       set_task_finished(p_tq_id,gtqFAILED);
@@ -200,6 +205,7 @@ package body coremod_tasks as
       log(l_task_body,p_tq_id);
       log(DBMS_UTILITY.FORMAT_ERROR_STACK,p_tq_id);
       log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE,p_tq_id);
+      gTQ_ID:=null;
       raise_application_error(-20000, 'Execute task error: '||sqlerrm);
   end;
 

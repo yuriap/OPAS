@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package body COREMOD_LOG is
 
   function bool2str(p_bool boolean) return varchar2
@@ -12,14 +13,15 @@ package body COREMOD_LOG is
 
   procedure log(p_msg clob, p_loglevel varchar2 default 'INFO')
   is
-    PRAGMA AUTONOMOUS_TRANSACTION;
+    --PRAGMA AUTONOMOUS_TRANSACTION;
     l_level varchar2(100):=COREMOD_API.getconf('LOGGING_LEVEL',COREMOD_API.gMODNAME);
   begin
     if (l_level='INFO' and p_loglevel='INFO') or
        (l_level='DEBUG' and p_loglevel in ('INFO', 'DEBUG'))
     then
-      insert into opas_log (created, msg, tq_id) values (default, p_msg, null);
-      commit;
+      --insert into opas_log (created, msg, tq_id) values (default, p_msg, null);
+      --commit;
+      coremod_tasks.log(p_msg);
     end if;
   end;
 

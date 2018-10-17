@@ -280,7 +280,8 @@ PW                  NUMBER,
 TIM                 NUMBER, 
 COST                NUMBER, 
 SZ                  NUMBER, 
-CARD                NUMBER
+CARD                NUMBER,
+STR                 NUMBER
 ) ON COMMIT DELETE ROWS ;
    
 create index TRC$TMP_PLAN_STATS_SQLID on TRC$TMP_PLAN_STATS(SQLID);

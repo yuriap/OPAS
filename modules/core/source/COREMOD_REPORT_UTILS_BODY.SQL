@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 PACKAGE BODY COREMOD_REPORT_UTILS AS
 
   --long ops for reports

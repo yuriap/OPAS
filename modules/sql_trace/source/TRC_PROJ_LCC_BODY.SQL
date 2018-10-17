@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package body TRC_PROJ_LCC as
 
   function project_check_action(p_proj trc_projects%rowtype, p_action VARCHAR2) return boolean
@@ -11,12 +12,8 @@ package body TRC_PROJ_LCC as
         when p_action = c_project_drop      and l_status in (c_projstate_new,c_projstate_compressed,c_projstate_archived)                    then true
         when p_action = c_project_rocontent and l_status in (c_projstate_new,c_projstate_active,c_projstate_locked,c_projstate_compressed,c_projstate_archived) then true
         when p_action = c_project_rwcontent and l_status in (c_projstate_new,c_projstate_active)                                             then true
-        --when p_action = c_project_parse     and l_status in (c_projstate_active)                                                             then true
-        --when p_action = c_project_report_cr and l_status in (c_projstate_new,c_projstate_active,c_projstate_compressed)                      then true
-        --when p_action = c_project_report_vw and l_status in (c_projstate_new,c_projstate_active,c_projstate_compressed,c_projstate_archived) then true
         when p_action = c_project_lock      and l_status in (c_projstate_active)                                                             then true
         when p_action = c_project_unlock    and l_status in (c_projstate_locked)                                                             then true
-        --when p_action = c_project_close     and l_status in (c_projstate_active,c_projstate_compressed,c_projstate_archived)                 then true
         when p_action = c_project_compress  and l_status in (c_projstate_active)                                                             then true
         when p_action = c_project_archive   and l_status in (c_projstate_active,c_projstate_compressed)                                      then true
       else
@@ -44,17 +41,12 @@ package body TRC_PROJ_LCC as
     if project_check_action(p_proj,p_action) then
     case
       when p_action = c_project_create     then project_set_status(p_proj.proj_id,c_projstate_new);
-      when p_action = c_project_edit       then /*case when p_proj.status = c_projstate_new then project_set_status(p_proj.proj_id,c_projstate_active); else*/ null; --end case;
+      when p_action = c_project_edit       then null;
       when p_action = c_project_drop       then null;
-      --when p_action = c_project_load       then case when p_proj.status = c_projstate_new then project_set_status(p_proj.proj_id,c_projstate_active); else null; end case;
-      --when p_action = c_project_parse      then null;
       when p_action = c_project_rocontent  then null;
       when p_action = c_project_rwcontent  then case when p_proj.status = c_projstate_new then project_set_status(p_proj.proj_id,c_projstate_active); else null; end case;
-      --when p_action = c_project_report_cr  then null;
-      --when p_action = c_project_report_vw  then null;
       when p_action = c_project_lock       then project_set_status(p_proj.proj_id,c_projstate_locked);
       when p_action = c_project_unlock     then project_set_status(p_proj.proj_id,c_projstate_active);
-      --when p_action = c_project_close      then project_set_status(p_proj.proj_id,c_projstate_closed);
       when p_action = c_project_compress   then project_set_status(p_proj.proj_id,c_projstate_compressed);
       when p_action = c_project_archive    then project_set_status(p_proj.proj_id,c_projstate_archived);
       else

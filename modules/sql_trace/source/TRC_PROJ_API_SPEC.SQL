@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package TRC_PROJ_API as
 
   --project cleanup modes
@@ -25,18 +26,12 @@ package TRC_PROJ_API as
                              p_created   trc_projects.created%type);
 
   procedure drop_project(p_proj_id trc_projects.proj_id%type);
-  --procedure load_project(p_proj_id trc_projects.proj_id%type);
-  --procedure parse_project(p_proj_id trc_projects.proj_id%type);
-  --procedure report_cr(p_proj_id trc_projects.proj_id%type);
-  --procedure report_vw(p_proj_id trc_projects.PROJ_ID%type);
 
   procedure lock_project(p_proj_id trc_projects.proj_id%type);
   procedure unlock_project(p_proj_id trc_projects.proj_id%type);
 
   procedure compress_project(p_proj_id trc_projects.proj_id%type);  --remove source data
   procedure archive_project(p_proj_id trc_projects.proj_id%type);   --remove source and parsed data
-  --procedure close_project(p_proj_id trc_projects.proj_id%type);
-
 
   -----------------------------------------------------------------
   procedure cleanup_projects;

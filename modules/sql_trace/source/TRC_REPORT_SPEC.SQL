@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package trc_report
 ACCESSIBLE BY (package TRC_FILE_API)
 as

@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package COREMOD_SEC as
 
   type t_mod_list    is table of OPAS_GROUPS2APEXUSR.modname%type;

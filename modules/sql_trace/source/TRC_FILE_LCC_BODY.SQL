@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package body TRC_FILE_LCC as
 
   function trcfile_check_action(p_trc_file trc_files%rowtype, p_action varchar2) return boolean

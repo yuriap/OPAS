@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package coremod_tasks as
 
   procedure cleanup_tasks;

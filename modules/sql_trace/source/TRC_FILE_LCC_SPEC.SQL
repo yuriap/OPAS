@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package TRC_FILE_LCC as
 
   -- Trace file actions
@@ -18,13 +19,13 @@ package TRC_FILE_LCC as
 
 
   --Trace file states
-  c_trcfilestate_new         constant trc_projects.status%type := 'NEW';        --just created
-  c_trcfilestate_loaded      constant trc_projects.status%type := 'LOADED';     --file loaded
-  c_trcfilestate_parsequeue  constant trc_projects.status%type := 'PARSEQUEUE';
-  c_trcfilestate_parsing     constant trc_projects.status%type := 'PARSING';    --being parsed
-  c_trcfilestate_parsed      constant trc_projects.status%type := 'PARSED';     --file parsed
-  c_trcfilestate_compressed  constant trc_projects.status%type := 'COMPRESSED'; --source data removed, parsed is available
-  c_trcfilestate_archived    constant trc_projects.status%type := 'ARCHIVED';   --source and parsed data removed
+  c_trcfilestate_new         constant trc_files.status%type := 'NEW';        --just created
+  c_trcfilestate_loaded      constant trc_files.status%type := 'LOADED';     --file loaded
+  c_trcfilestate_parsequeue  constant trc_files.status%type := 'PARSEQUEUE';
+  c_trcfilestate_parsing     constant trc_files.status%type := 'PARSING';    --being parsed
+  c_trcfilestate_parsed      constant trc_files.status%type := 'PARSED';     --file parsed
+  c_trcfilestate_compressed  constant trc_files.status%type := 'COMPRESSED'; --source data removed, parsed is available
+  c_trcfilestate_archived    constant trc_files.status%type := 'ARCHIVED';   --source and parsed data removed
 
   --Trace file life-cycle set state
   procedure trcfile_exec_action(p_trc_file trc_files%rowtype, p_action varchar2);

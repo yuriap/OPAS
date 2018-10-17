@@ -18,12 +18,25 @@ descr   varchar2(200)
 alter table opas_config add constraint opas_config_pk primary key (modname,ckey);
 --create unique index idx_opas_config_key on opas_config(decode(cgroup,'PRJRETENTION',null,ckey));
 
+create table opas_dictionary (
+modname     varchar2(128) references opas_modules(modname) on delete cascade,
+dic_name    varchar2(20) NOT NULL,
+val         varchar2(20) NOT NULL,
+display_val varchar2(256) not null,
+sparse1     varchar2(100),
+sparse2     varchar2(100),
+sparse3     varchar2(100),
+dic_ordr    number);
+
+create index idx_opas_dictionary_mod on opas_dictionary(modname,dic_name);
 
 create table opas_scripts (
 script_id      varchar(100) primary key,
 modname        varchar2(128) references opas_modules(modname) on delete cascade,
 script_content clob
 );
+
+create index idx_opas_scripts_mod on opas_scripts(modname);
 
 --Database link dictionary
 create table opas_db_links (
@@ -65,6 +78,8 @@ modname     varchar2(128) references opas_modules(modname) on delete cascade,
 created     timestamp default systimestamp,
 task_body   clob
 );
+
+create index idx_opas_cleanup_tasks_mod on opas_cleanup_tasks(modname);
 
 create table opas_task (
 taskname    varchar2(128) primary key,
@@ -156,6 +171,18 @@ alter table opas_files move lob (file_contentb) store as (compress high);
 alter table opas_files move lob (file_contentc) store as (compress high);
 
 create index idx_opas_files_mod on opas_files(modname);
+
+create table opas_reports (
+report_id      NUMBER GENERATED ALWAYS AS IDENTITY primary key,
+modname        varchar2(128) references opas_modules(modname) on delete cascade,
+tq_id          number references opas_task_queue(tq_id) on delete set null,
+report_content number REFERENCES opas_files ( file_id ),
+report_params  clob,
+report_params_displ varchar2(1000),
+CONSTRAINT opas_reports_json_chk CHECK (report_params IS JSON));
+
+create index idx_opas_reports_mod   on opas_reports(modname);
+create index idx_opas_reports_fcntn on opas_reports(report_content);
 
 --Clob2row representation
 --https://jonathanlewis.wordpress.com/2008/11/19/lateral-lobs/

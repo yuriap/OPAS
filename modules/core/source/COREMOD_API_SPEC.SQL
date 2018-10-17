@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package COREMOD_API as
 
    gDefaultSource constant varchar2(32) := 'LOCAL';

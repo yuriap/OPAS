@@ -1,3 +1,4 @@
+CREATE OR REPLACE
 package body trc_report as
 
   procedure getreport_i(p_trc_file_id trc_files.trc_file_id%type, p_report out coremod_report_utils.t_output_lines, p_topsql number default 0)
@@ -85,7 +86,7 @@ package body trc_report as
        and w.stmt_id=st.stmt_id  group by nam, st.sqlid, ev.wait_class;
 
     insert /*+ qb_name(TRC_REP1) */ into trc$tmp_plan_stats
-    select st.sqlid, p.plh, p.id, sum(cnt) cnt, p.pid, p.pos, p.obj, p.op, sum(cr)cr, sum(pr) pr, sum(pw) pw, sum(p.tim) tim, p.cost, p.sz, p.card
+    select st.sqlid, p.plh, p.id, sum(cnt) cnt, p.pid, p.pos, p.obj, p.op, sum(cr)cr, sum(pr) pr, sum(pw) pw, sum(p.tim) tim, p.cost, p.sz, p.card, sum(p.str)
       from (select x.*, (select plh from trc_call y where trc_file_id=p_trc_file_id and x.stmt_id=y.stmt_id and nvl(plh,0)>0 and rownum=1) plh from trc_stat x) p,
            trc_statement st
      where p.trc_file_id=p_trc_file_id and p.trc_file_id=st.trc_file_id and p.stmt_id=st.stmt_id
@@ -474,7 +475,7 @@ order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';
       --select count(1) into l_cnt from dual where exists (select 1 from trc$tmp_plan_stats where sqlid=i.sqlid);
 
       --if l_cnt>0 then
-      for j in (select unique sqlid, PLH from trc$tmp_plan_stats where sqlid=i.sqlid) loop
+      for j in (select sqlid, PLH, sum(str) restarts from trc$tmp_plan_stats where sqlid=i.sqlid group by sqlid, PLH) loop
         p(HTF.BIG('Execution Plan Hash: '||j.PLH)); --||p_trc_file_id||':'||i.stmt_id));
 
         l_sql := q'[with pl as (select /*+ materialize */ * from trc$tmp_plan_stats where sqlid='<SQL_ID>'<PLANHASH>)
@@ -488,8 +489,8 @@ dbms_xplan.format_number(cnt) "A-Rows",
 tim/1e6 "A-Time, sec",
 dbms_xplan.format_number(cr) "Buffers",
 dbms_xplan.format_number(pr) "Reads",
-dbms_xplan.format_number(pw) "Writes"
-from pl
+dbms_xplan.format_number(pw) "Writes"]' || case when j.restarts > 0 then q'[, str "Restarts"]' else null end ||
+q'[from pl
 start with pid=0 connect by prior id=pid
 order siblings by pos]';
         l_sql:=replace(l_sql,'<SQL_ID>',i.sqlid);
