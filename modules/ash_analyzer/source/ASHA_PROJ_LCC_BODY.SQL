@@ -25,7 +25,7 @@ package body ASHA_PROJ_LCC as
   is
     l_curproj asha_cube_projects%rowtype;
   begin
-    l_curproj:=TRC_PROJ_API.getproject(p_proj_id,false);
+    l_curproj:=ASHA_PROJ_API.getproject(p_proj_id,false);
     return project_check_action(l_curproj,p_action);
   end;
 
@@ -61,7 +61,7 @@ package body ASHA_PROJ_LCC as
   is
     l_curproj asha_cube_projects%rowtype;
   begin
-    l_curproj:=TRC_PROJ_API.getproject(p_proj_id,false);
+    l_curproj:=ASHA_PROJ_API.getproject(p_proj_id,false);
     project_exec_action(l_curproj,p_action);
   end;
 

@@ -1,39 +1,39 @@
 CREATE OR REPLACE
 PACKAGE ASHA_CUBE_PKG AS
 
-  procedure load_cube         (p_sess_id in out number,
-                               p_source varchar2,
-                               p_dblink varchar2,
-                               p_agg varchar2,
-                               p_inst_id varchar2,
-                               p_start_dt date,
-                               p_end_dt date,
-                               p_filter varchar2,
-                               p_dump_id number default null,
-                               p_metric_id number default null,
-                               p_metricgroup_id number default null,
-                               p_aggr_func varchar2 default null,
-                               p_block_analyze boolean default false,
-                               p_unknown_analyze boolean default false,
-                               p_monitor boolean default false);
+  c_datetime_fmt         constant varchar2(100) := 'YYYY/MM/DD HH24:MI:SS';
+  c_source               constant varchar2(100) := 'SOURCE';
+  c_dblink               constant varchar2(100) := 'DBLINK';
+  c_cubeagg              constant varchar2(100) := 'CUBEAGG';
+  c_inst_id              constant varchar2(100) := 'INST_ID';
+  c_start_dt             constant varchar2(100) := 'START_DT';
+  c_end_dt               constant varchar2(100) := 'END_DT';
+  c_filter               constant varchar2(100) := 'FILTER';
+  c_dump_id              constant varchar2(100) := 'DUMP_ID';
+  c_metric_id            constant varchar2(100) := 'METRIC_ID';
+  c_metricgroup_id       constant varchar2(100) := 'METRICGROUP_ID';
+  c_metricagg            constant varchar2(100) := 'METRICAGG';
+  c_block_analyze        constant varchar2(100) := 'BLOCKANALYZE';
+  c_unknown_analyze      constant varchar2(100) := 'UNKNOWNANALYZE';
+  c_monitor              constant varchar2(100) := 'MONITOR';
+  c_top_sess             constant varchar2(100) := 'TOP_SESS';
 
-  procedure load_cube_mon     (p_sess_id number,
-                               p_source varchar2,
-                               p_dblink varchar2,
-                               p_agg varchar2,
-                               p_inst_id varchar2,
-                               p_start_dt date,
-                               p_end_dt date,
-                               p_filter varchar2,
-                               p_dump_id number default null,
-                               p_metric_id number default null,
-                               p_metricgroup_id number default null,
-                               p_aggr_func varchar2 default null,
-                               p_block_analyze boolean default false,
-                               p_unknown_analyze boolean default false,
-                               p_monitor boolean default false);
+  c_date_interval        constant varchar2(100) := 'DATE_INTERVAL';
 
-  procedure load_dic(p_db_link varchar2, p_src_tab varchar2);
+  procedure load_cube         (p_sess_id asha_cube_sess.sess_id%type);
+  procedure load_cube_mon     (p_sess_id asha_cube_sess.sess_id%type);
+
+  procedure init_session(p_proj_id          asha_cube_sess.sess_proj_id%type,
+                         p_retention        asha_cube_sess.sess_retention_days%type,
+                         p_sess_id   in out asha_cube_sess.sess_id%type);
+
+  procedure load_par_tmpl(p_tmpl_id          asha_cube_sess_tmpl.tmpl_id%type,
+                          p_sess_id          asha_cube_sess.sess_id%type);
+
+  procedure add_parameter(p_sess_id         asha_cube_sess.sess_id%type,
+                          p_param_name      asha_cube_sess_pars.sess_par_nm%type,
+                          p_value           asha_cube_sess_pars.sess_par_val%type);
+  function get_parameter (p_param_name      asha_cube_sess_pars.sess_par_nm%type) return asha_cube_sess_pars.sess_par_val%type;
 
 END ASHA_CUBE_PKG;
 /

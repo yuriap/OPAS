@@ -4,7 +4,7 @@ define MODNM=ASH_ANALYZER
 conn &localscheme./&localscheme.@&localdb.
 
 set serveroutput on
-@..\..\core\install\cleanup_common.sql
+@..\modules\core\install\cleanup_common.sql
 
 declare
   type t_names is table of varchar2(512);
@@ -36,3 +36,9 @@ end;
 /
 
 drop sequence asha_sq_cube;
+
+begin
+  dbms_scheduler.drop_job(job_name         => 'OPAS_ASHA_DIC');
+  dbms_scheduler.drop_program(program_name => 'OPAS_ASHA_DIC_PRG');
+end;
+/

@@ -12,6 +12,13 @@ keep_forever        varchar2(1) default 'N' not null,
 is_public           varchar2(1) default 'Y' not null
 );
 
+create table asha_cube_srcdblink2projects (
+proj_id         number references asha_cube_projects(proj_id) on delete cascade,
+src_dblink      varchar2(128) references opas_db_links (DB_LINK_NAME) on delete cascade);
+
+create index idx_asha_cube_src2proj_proj on asha_cube_srcdblink2projects(proj_id);
+create index idx_asha_cube_src2proj_src  on asha_cube_srcdblink2projects(src_dblink);
+
 CREATE OR REPLACE FORCE VIEW V$ASHA_CUBE_PROJECTS AS 
 select x.*,
 case
@@ -31,18 +38,82 @@ create table asha_cube_reports(
 create index idx_asha_cube_reports_proj on asha_cube_reports(proj_id);
 create index idx_asha_cube_reports_rep  on asha_cube_reports(report_id);
 
+create table asha_cube_sess_tmpl (
+tmpl_id             NUMBER GENERATED ALWAYS AS IDENTITY primary key,
+tmpl_proj_id        number references asha_cube_projects(proj_id) on delete cascade,
+tmpl_name           varchar2(100),
+tmpl_description    varchar2(4000),
+tmpl_created        timestamp default systimestamp not null);
+
+create index idx_asha_cube_tmpl_prj on asha_cube_sess_tmpl(tmpl_proj_id);
+
+create table asha_cube_sess_tmpl_pars (
+tmpl_id             number references asha_cube_sess_tmpl(tmpl_id) on delete cascade,
+tmpl_par_nm         varchar2(100),
+tmpl_par_expr       varchar2(4000));
+
+create index idx_asha_cube_tmpl_fk on asha_cube_sess_tmpl_pars(tmpl_id);
+
+--=====================================================================================
+--=====================================================================================
+--=====================================================================================
+
+create table asha_cube_metrics_dic as
+select group_id, group_name, metric_id, metric_name||' ('||metric_unit||')' metric_name, 'N' is_manual, systimestamp created
+from v$metricname where metric_name in (
+'Average Synchronous Single-Block Read Latency',
+'Physical Reads Per Sec',
+'Physical Writes Per Sec',   
+'Redo Generated Per Sec',  
+'I/O Requests per Second',
+'I/O Megabytes per Second',
+'CPU Usage Per Sec',
+'Host CPU Usage Per Sec',
+'Executions Per Sec',
+'Network Traffic Volume Per Sec',
+'User Calls Per Sec');
+
+--=====================================================================================
+--=====================================================================================
+--=====================================================================================
+
+create table asha_cube_racnodes_cache (
+src_dblink  varchar2(128) references opas_db_links (DB_LINK_NAME) on delete cascade,
+inst_name   varchar2(256),
+inst_id     number,
+created     timestamp default systimestamp);
+
+create index idx_asha_cube_rac_cache_src on asha_cube_racnodes_cache(src_dblink);
+
+create table asha_cube_qry_cache (
+sql_id      varchar2(128),
+sql_text    clob,
+created     timestamp default systimestamp);
+
+alter table asha_cube_qry_cache add constraint xpk_asha_cube_qry_cache primary key(sql_id);
+
+--=====================================================================================
+--=====================================================================================
+--=====================================================================================
+
 create table asha_cube_sess (
 sess_id             number,
 sess_proj_id        number references asha_cube_projects(proj_id) on delete cascade,
 sess_created        timestamp default systimestamp,
 sess_retention_days number,
-sess_params         clob,
-CONSTRAINT asha_cube_sess_json_chk CHECK (sess_params IS JSON));
+sess_params         clob);
 
 rem sess_retention_days: null - default project retention, 0 - keep forever, N - keep days
 
 create unique index xpk_asha_cube_sess on asha_cube_sess(sess_id);
 alter table asha_cube_sess add constraint xpk_asha_cube_sess primary key(sess_id);
+
+create table asha_cube_sess_pars (
+sess_id      number references asha_cube_sess(sess_id) on delete cascade,
+sess_par_nm  varchar2(100),
+sess_par_val varchar2(4000));
+
+create unique index idx_asha_cube_see_pars_s on asha_cube_sess_pars(sess_id,sess_par_nm);
 
 create table asha_cube_timeline (
 sess_id      number references asha_cube_sess(sess_id) on delete cascade,
@@ -124,19 +195,19 @@ CREATE TABLE ASHA_CUBE_BLOCK (
 
 create index IDX_ASHA_CUBE_BLOCK on ASHA_CUBE_BLOCK(sess_id);
 
-create table asha_racnodes_cache (
-src_dblink  varchar2(128) references opas_db_links (DB_LINK_NAME) on delete set null,
-inst_name   varchar2(256),
-inst_id     number,
-created     timestamp default systimestamp);
+create table asha_cube_top_sess (
+sess_id          number references asha_cube_sess(sess_id) on delete cascade,
+session_id       number, 
+session_serial#  number, 
+inst_id          number, 
+module           varchar2(64 byte), 
+action           varchar2(64 byte), 	
+program          varchar2(48),
+client_id        varchar2(64),
+machine          varchar2(64),
+ecid             varchar2(64),
+username         varchar2(128),
+smpls            number);
 
-create index idx1_asha_cube_dic on asha_cube_dic(src_db,dic_type);
+create index idx_asha_cube_top_sess_ss on asha_cube_top_sess(sess_id);
 
-create table asha_cube_qry_cache (
-src_dblink  varchar2(128) references opas_db_links (DB_LINK_NAME) on delete set null,
-sql_id      varchar2(128),
-sql_text    clob,
-ts          timestamp default systimestamp);
-
-create unique index xpk_asha_cube_qry_cache on asha_cube_qry_cache(src_db,sql_id);
-alter table asha_cube_qry_cache add constraint xpk_asha_cube_qry_cache primary key(src_db,sql_id);

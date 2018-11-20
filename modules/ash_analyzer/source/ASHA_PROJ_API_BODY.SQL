@@ -82,7 +82,7 @@ package body ASHA_PROJ_API as
     l_done    number := 0;
   begin
     l_curproj:=getproject(p_proj_id, true);
-    TRC_FILE_API.cleanup_files(p_proj_id,p_mode,p_use_retention);
+    --TRC_FILE_API.cleanup_files(p_proj_id,p_mode,p_use_retention);
   end cleanup_project;
 
   procedure drop_project_i(p_proj_id asha_cube_projects.proj_id%type, p_is_purge boolean default false) as
@@ -111,7 +111,7 @@ package body ASHA_PROJ_API as
   begin
 
     for p in (select proj_id,proj_name, systimestamp - created duration, nvl(keep_forever,'N') keep_forever from asha_cube_projects) loop
-      if p.keep_forever='N' and p.duration > TO_DSINTERVAL(nvl(COREMOD_API.getconf('PROJECTRETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00') then
+      if p.keep_forever='N' and p.duration > TO_DSINTERVAL(nvl(COREMOD_API.getconf('PROJECTRETENTION',ASHA_CUBE_API.gMODNAME),8)||' 00:00:00') then
         begin
           drop_project_i(p_proj_id=>p.proj_id, p_is_purge => true);
           coremod_log.log('Project removed: '||p.proj_id||' : '||p.proj_name);
