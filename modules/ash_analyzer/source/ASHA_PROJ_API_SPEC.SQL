@@ -41,5 +41,8 @@ package ASHA_PROJ_API as
   procedure set_note(p_proj_id      asha_cube_projects.proj_id%type,
                      p_proj_note    asha_cube_projects.proj_note%type);
 
+  procedure set_proj_dblinks (p_proj_id       asha_cube_projects.proj_id%type,
+                              p_db_links_list varchar2);
+
 end ASHA_PROJ_API;
 /

@@ -199,6 +199,14 @@ package body COREMOD_API as
     execute immediate 'select 1 from dual@'||l_dblink into a;
   end;
 
+  function get_ora_dblink(p_db_link_name varchar2) return varchar2
+  is
+    l_dblink varchar2(512);
+  begin
+    select ora_db_link into l_dblink from V$OPAS_DB_LINKS where db_link_name=upper(p_db_link_name);
+    return l_dblink;
+  end;
+
   function get_def_source return varchar2 is begin return gDefaultSource; end;
   function get_def_owner return varchar2 is begin return gDefaultOwner; end;
 

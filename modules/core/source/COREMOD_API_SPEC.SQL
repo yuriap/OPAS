@@ -25,6 +25,7 @@ package COREMOD_API as
    procedure create_dblink(p_db_link_name varchar2, p_recreate boolean default false);
    procedure drop_dblink(p_db_link_name varchar2);
    procedure test_dblink(p_db_link_name varchar2);
+   function get_ora_dblink(p_db_link_name varchar2) return varchar2;
 
    function get_def_source return varchar2;
    function get_def_owner return varchar2;

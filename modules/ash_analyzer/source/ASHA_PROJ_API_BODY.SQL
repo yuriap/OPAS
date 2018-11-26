@@ -76,13 +76,19 @@ package body ASHA_PROJ_API as
 
 
   procedure cleanup_project(p_proj_id asha_cube_projects.proj_id%type, p_mode number, p_use_retention boolean) as
-    l_curproj asha_cube_projects%rowtype;
-    l_errmsg  varchar2(1000);
-    l_cmd     varchar2(1000);
-    l_done    number := 0;
+    --l_curproj asha_cube_projects%rowtype;
+    --l_errmsg  varchar2(1000);
+    --l_cmd     varchar2(1000);
+    --l_done    number := 0;
   begin
-    l_curproj:=getproject(p_proj_id, true);
-    --TRC_FILE_API.cleanup_files(p_proj_id,p_mode,p_use_retention);
+    --l_curproj:=getproject(p_proj_id, true);
+
+    --delete expired sessions
+    delete from asha_cube_sess
+     where (sess_created+nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME)/24))<sysdate
+       and sess_proj_id=p_proj_id
+       and nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME)/24)>0;
+    coremod_log.log('Sessions: '||sql%rowcount||' removed');
   end cleanup_project;
 
   procedure drop_project_i(p_proj_id asha_cube_projects.proj_id%type, p_is_purge boolean default false) as
@@ -177,5 +183,22 @@ package body ASHA_PROJ_API as
     update asha_cube_projects set proj_note = p_proj_note where proj_id = p_proj_id;
   end;
 
+  procedure set_proj_dblinks (p_proj_id       asha_cube_projects.proj_id%type,
+                              p_db_links_list varchar2)
+  is
+    l_tbl DBMS_UTILITY.LNAME_ARRAY;
+    l_n   number;
+  begin
+    DBMS_UTILITY.COMMA_TO_TABLE (
+      list   => replace(p_db_links_list,':',','),
+      tablen => l_n,
+      tab    => l_tbl);
+
+    delete from asha_cube_srcdblink2projects where proj_id=p_proj_id;
+    for i in 1..l_n loop
+      --coremod_log.log(i||':'||l_tbl(i));
+      insert into asha_cube_srcdblink2projects (proj_id,src_dblink) values(p_proj_id,l_tbl(i));
+    end loop;
+  end;
 end ASHA_PROJ_API;
 /

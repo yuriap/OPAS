@@ -15,6 +15,8 @@ package body coremod_tasks as
 
   gTQ_ID       number;
 
+  function get_curr_tq_id return opas_task_queue.tq_id%type is begin return gTQ_ID; end;
+
   procedure log(p_msg opas_log.msg%type, p_tq_id opas_task_queue.tq_id%type default null)
   is
     PRAGMA AUTONOMOUS_TRANSACTION;
@@ -85,10 +87,10 @@ package body coremod_tasks as
     update opas_task_queue set status=gtqQUEUED, queued=systimestamp where tq_id = p_tq_id;
   end;
 
-  procedure set_task_started(p_tq_id opas_task_queue.tq_id%type)
+  procedure set_task_started(p_tq_id opas_task_queue.tq_id%type, p_job_name opas_task_queue.job_name%type)
   is
   begin
-    update opas_task_queue set status=gtqSTARTED where tq_id = p_tq_id;
+    update opas_task_queue set status=gtqSTARTED, job_name = p_job_name where tq_id = p_tq_id;
   end;
 
   procedure set_task_running(p_tq_id opas_task_queue.tq_id%type)
@@ -135,7 +137,8 @@ package body coremod_tasks as
       for i in 1..least(l_freeslots,l_tasks.count) loop
         l_2run.extend;
         l_2run(l_2run.count):=l_tasks(i);
-        set_task_started(l_tasks(i).tq_id);
+        l_2run(l_2run.count).job_name:=gJOBNMPREF||'_'||upper(l_2run(l_2run.count).taskname)||'_'||to_char(systimestamp,'FF6');
+        set_task_started(l_tasks(i).tq_id, l_2run(l_2run.count).job_name);
       end loop;
     end if;
 
@@ -144,7 +147,7 @@ package body coremod_tasks as
     for i in 1..l_2run.count
     loop
       begin
-        dbms_scheduler.create_job(job_name => gJOBNMPREF||'_'||upper(l_2run(i).taskname)||'_'||to_char(systimestamp,'FF6'),
+        dbms_scheduler.create_job(job_name => l_2run(i).job_name,
                                   job_type => 'PLSQL_BLOCK',
                                   job_action => 'begin coremod_tasks.execute_task('||l_2run(i).tq_id||'); end;',
                                   start_date => systimestamp,
@@ -156,6 +159,28 @@ package body coremod_tasks as
           log(DBMS_UTILITY.FORMAT_ERROR_STACK,l_2run(i).tq_id);
           log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE,l_2run(i).tq_id);
       end;
+    end loop;
+  end;
+
+  procedure stop_task(p_tq_id opas_task_queue.tq_id%type)
+  is
+    l_job_name opas_task_queue.job_name%type;
+  begin
+    select job_name into l_job_name from opas_task_queue where tq_id=p_tq_id;
+    dbms_scheduler.stop_job(l_job_name);
+  exception
+     when others then
+       log('Stop job error: '||l_job_name||':'||p_tq_id||chr(10)||sqlerrm);
+       log(DBMS_UTILITY.FORMAT_ERROR_STACK);
+       log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+  end;
+
+  procedure stop_previous_user_task(p_taskname   opas_task.taskname%type)
+  is
+  begin
+    for i in (select * from opas_task_queue where status=gtqRUNNING and owner = V('APP_USER') and taskname=p_taskname and job_name in (select job_name from user_scheduler_running_jobs)) loop
+      log('Stopping previous instance of '||p_taskname||' with job name: '||i.job_name);
+      stop_task(i.tq_id);
     end loop;
   end;
 
@@ -195,7 +220,9 @@ package body coremod_tasks as
           raise_application_error(-20000,'Not implemented parameter type: DATE');
       end case;
     end loop;
+    log('Start task: '||l_task.taskname,p_tq_id);
     execute immediate l_task_body;
+    log('End task',p_tq_id);
     set_task_finished(p_tq_id,gtqSUCCEEDED);
     gTQ_ID:=null;
   exception

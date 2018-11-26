@@ -7,7 +7,7 @@ PACKAGE BODY ASHA_CUBE_API AS
   is
   begin
     delete from asha_cube_qry_cache where created < (systimestamp - to_number(COREMOD_API.getconf('DICRETENTION',gMODNAME)));
-    coremod_log.log('ASHA_CUBE_API.CLEANUP_CACHE_INT: Deleted '||sql%rowcount||' query text(s).');
+    coremod_log.log('Cleanup query cache: Deleted '||sql%rowcount||' query text(s).');
     commit;
   exception
     when others then
@@ -16,28 +16,16 @@ PACKAGE BODY ASHA_CUBE_API AS
       coremod_log.log('ASHA_CUBE_API.CLEANUP_CACHE_INT error: '||sqlerrm);
   end;
 
-  procedure CLEANUP_CUBE_INT
-  is
-  begin
-    delete from asha_cube_sess where sess_created < (systimestamp - to_number(COREMOD_API.getconf('CUBERETENTION',gMODNAME))/24);
-    coremod_log.log('ASHA_CUBE_API.CLEANUP_CUBE_INT: Deleted '||sql%rowcount||' session(s).');
-    commit;
-  exception
-    when others then
-      rollback;
-      dbms_output.put_line(sqlerrm);
-      coremod_log.log('ASHA_CUBE_API.CLEANUP_CUBE_INT error: '||sqlerrm);
-  end;
-
   procedure CLEANUP_CUBE
   is begin
     CLEANUP_CACHE_INT;
-    CLEANUP_CUBE_INT;
   end;
 
   procedure refresh_dictionaries
   is
+    l_dblink varchar2(100);
   begin
+    --coremod_log.log('Reloading RAC node dictionary');
     for i in (select *
                 from (select p2l.src_dblink, min(created) min_created
                         from asha_cube_srcdblink2projects p2l, asha_cube_racnodes_cache c
@@ -45,15 +33,15 @@ PACKAGE BODY ASHA_CUBE_API AS
                        group by p2l.src_dblink)
                where (min_created is null or min_created < (systimestamp - to_number(COREMOD_API.getconf('DICRETENTION',gMODNAME)))))
     loop
-      coremod_log.log('Reloading RAC node dictionary for: '||i.src_dblink);
+      coremod_log.log('Reloading RAC node dictionary for: '||i.src_dblink||'('||COREMOD_API.get_ora_dblink(i.src_dblink)||')');
       delete from asha_cube_racnodes_cache where src_dblink=i.src_dblink;
       execute immediate
 q'[insert into asha_cube_racnodes_cache (src_dblink, inst_name, inst_id)
-select :p_src_dblink, instance_name||' (Node'||inst_id||')', inst_id from gv$instance@]'||i.src_dblink||q'[
+select :p_src_dblink, instance_name||' (Node'||inst_id||')', inst_id from gv$instance@]'||COREMOD_API.get_ora_dblink(i.src_dblink)||q'[
 union all
-select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink;
+select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_dblink;
+      commit;
     end loop;
-    commit;
   exception
     when others then rollback;dbms_output.put_line(sqlerrm);coremod_log.log('ASHA_CUBE_API.refresh_dictionaries error: '||sqlerrm);
   end;
@@ -113,6 +101,17 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink;
         return l_txt;
       end;
   END get_sql_qry_txt;
+
+  procedure edit_session(p_sess_id             asha_cube_sess.sess_id%type,
+                         p_sess_retention_days asha_cube_sess.sess_retention_days%type,
+                         p_sess_description    asha_cube_sess.sess_description%type)
+  is
+  begin
+    update asha_cube_sess set
+      sess_retention_days = decode(p_sess_retention_days,-1,null,p_sess_retention_days),
+      sess_description = p_sess_description
+    where  sess_id = p_sess_id;
+  end;
 
 END ASHA_CUBE_API;
 /

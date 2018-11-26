@@ -17,11 +17,18 @@ PACKAGE ASHA_CUBE_PKG AS
   c_unknown_analyze      constant varchar2(100) := 'UNKNOWNANALYZE';
   c_monitor              constant varchar2(100) := 'MONITOR';
   c_top_sess             constant varchar2(100) := 'TOP_SESS';
+  c_SNAP_ASH             constant varchar2(100) := 'SNAP_ASH';
+  --c_SNAP_DURATION        constant varchar2(100) := 'SNAP_DURATION';
 
   c_date_interval        constant varchar2(100) := 'DATE_INTERVAL';
 
-  procedure load_cube         (p_sess_id asha_cube_sess.sess_id%type);
-  procedure load_cube_mon     (p_sess_id asha_cube_sess.sess_id%type);
+  type tt_params_t is table of asha_cube_sess_pars.sess_par_val%type index by asha_cube_sess_pars.sess_par_nm%type;
+
+  procedure queue_load_cube   (p_sess_id asha_cube_sess.sess_id%type, p_tq_id out opas_task_queue.tq_id%type); --from UI
+
+  procedure load_cube_inqueue (p_sess_id asha_cube_sess.sess_id%type); --from OPAS Task
+  procedure load_cube_mon     (p_sess_id asha_cube_sess.sess_id%type); --from monitor job
+  procedure snap_ash (p_dblink opas_db_links.db_link_name%type, p_sess_id number); --from OPAS task
 
   procedure init_session(p_proj_id          asha_cube_sess.sess_proj_id%type,
                          p_retention        asha_cube_sess.sess_retention_days%type,
@@ -34,6 +41,9 @@ PACKAGE ASHA_CUBE_PKG AS
                           p_param_name      asha_cube_sess_pars.sess_par_nm%type,
                           p_value           asha_cube_sess_pars.sess_par_val%type);
   function get_parameter (p_param_name      asha_cube_sess_pars.sess_par_nm%type) return asha_cube_sess_pars.sess_par_val%type;
+  function get_parameter_db(p_sess_id         asha_cube_sess.sess_id%type,
+                            p_param_name      asha_cube_sess_pars.sess_par_nm%type) return asha_cube_sess_pars.sess_par_val%type result_cache;
+  function get_sess_pars (p_sess_id asha_cube_sess.sess_id%type) return tt_params_t;
 
 END ASHA_CUBE_PKG;
 /

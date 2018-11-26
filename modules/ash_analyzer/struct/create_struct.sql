@@ -101,7 +101,10 @@ sess_id             number,
 sess_proj_id        number references asha_cube_projects(proj_id) on delete cascade,
 sess_created        timestamp default systimestamp,
 sess_retention_days number,
-sess_params         clob);
+sess_status         varchar2(30),
+sess_tq_id          number,
+sess_tq_id_snap     number,
+sess_description    varchar2(4000);
 
 rem sess_retention_days: null - default project retention, 0 - keep forever, N - keep days
 
@@ -117,13 +120,13 @@ create unique index idx_asha_cube_see_pars_s on asha_cube_sess_pars(sess_id,sess
 
 create table asha_cube_timeline (
 sess_id      number references asha_cube_sess(sess_id) on delete cascade,
-sample_time  date);
+sample_time  timestamp);
 
 create index idx_asha_cube_timeline_1 on asha_cube_timeline(sess_id);
 
 create table asha_cube (
 sess_id      number references asha_cube_sess(sess_id) on delete cascade,
-sample_time  date,
+sample_time  timestamp,
 wait_class   VARCHAR2(64),
 sql_id       VARCHAR2(13),
 event        VARCHAR2(64),
@@ -173,7 +176,7 @@ create index idx_asha_cube_seg on asha_cube_seg(sess_id);
 create table asha_cube_metrics (
 sess_id      number references asha_cube_sess(sess_id) on delete cascade,
 metric_id    number,
-end_time     date,
+end_time     timestamp,
 value        number
 );
 
@@ -211,3 +214,7 @@ smpls            number);
 
 create index idx_asha_cube_top_sess_ss on asha_cube_top_sess(sess_id);
 
+create sequence asha_snap_ash;
+create table asha_cube_snap_ash as select 1 sess_id, x.* from gv$active_session_history x where 1=2;
+create index idx_asha_cube_snap_ash_ix1 on asha_cube_snap_ash(sess_id);
+alter table asha_cube_snap_ash add constraint fk_snap_sess foreign key (sess_id) references asha_cube_sess(sess_id) on delete cascade;

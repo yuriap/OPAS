@@ -103,7 +103,8 @@ status       varchar2(32) default 'NEW',
 owner        varchar2(128),
 sid          number,
 serial#      number,
-inst_id      number
+inst_id      number,
+job_name     varchar2(128)
 --result_link  varchar2(4000)
 );
 

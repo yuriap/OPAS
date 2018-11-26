@@ -94,11 +94,12 @@ PACKAGE BODY TRC_FILE_API AS
   is
     l_db_source trc_files.file_source%type;
   begin
-    if nvl(p_file_source,'$LOCAL$') = '$LOCAL$' then
-      l_db_source := p_file_source;
-    else
-      select DB_LINK_NAME into l_db_source from v$opas_db_links where ORA_DB_LINK=p_file_source;
-    end if;
+    --if nvl(p_file_source,'$LOCAL$') = '$LOCAL$' then
+    --  l_db_source := p_file_source;
+    --else
+    --  select DB_LINK_NAME into l_db_source from v$opas_db_links where ORA_DB_LINK=p_file_source;
+    --end if;
+    l_db_source := p_file_source;
 
     INSERT INTO trc_files (proj_id, filename, owner, created, status, file_source) VALUES (p_proj_id,p_filename, nvl(p_owner,COREMOD_API.gDefaultOwner), default, TRC_FILE_LCC.c_trcfilestate_new, l_db_source) returning trc_file_id into p_trc_file_id;
 

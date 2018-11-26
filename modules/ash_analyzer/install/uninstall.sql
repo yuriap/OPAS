@@ -36,6 +36,7 @@ end;
 /
 
 drop sequence asha_sq_cube;
+drop sequence asha_snap_ash;
 
 begin
   dbms_scheduler.drop_job(job_name         => 'OPAS_ASHA_DIC');

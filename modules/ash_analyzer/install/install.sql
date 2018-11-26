@@ -15,13 +15,30 @@ exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Oracle Performance 
 
 @..\modules\ash_analyzer\data\load.sql
 
---begin
---  COREMOD_TASKS.create_task (  p_taskname  => 'TRC_PARSEFILE',
---                               p_modname   => '&MODNM.',
---                               p_is_public => 'Y', 
---                               p_task_body => 'begin TRC_FILE_API.parse_file (P_TRC_FILE_ID => <B1>) ; end;');
---end;
---/
+begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'ASHA_CALC_CUBE',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin ASHA_CUBE_PKG.load_cube_inqueue (p_sess_id => <B1>) ; end;');
+end;
+/
+
+begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'ASHA_SNAP_ASH',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin ASHA_CUBE_PKG.snap_ash (p_dblink => <B1>, p_sess_id => <B2>) ; end;');
+end;
+/
+
+
+begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'ASHA_MONITOR',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin ASHA_CUBE_PKG.load_cube_mon(p_sess_id=><B1>); end;');
+end;
+/
 
 begin
     dbms_scheduler.create_program(
@@ -43,7 +60,7 @@ end;
 begin
   coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUP_ASH_ANALYZER',
                                             P_MODNAME => '&MODNM.',
-                                            p_task_body => 'begin ASHA_PROJ_API.cleanup_projects; end;');
+                                            p_task_body => 'begin ASHA_PROJ_API.cleanup_projects; ASHA_CUBE_API.CLEANUP_CUBE; end;');
 end;
 /
 commit;
