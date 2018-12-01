@@ -21,14 +21,20 @@ package body coremod_tasks as
   is
     PRAGMA AUTONOMOUS_TRANSACTION;
   begin
-    insert into opas_log (created, msg, tq_id) values (default, p_msg, nvl(p_tq_id,gTQ_ID));
+    if length(p_msg)<=4000 then
+      insert into opas_log (created, msg, tq_id) values (default, p_msg, nvl(p_tq_id,gTQ_ID));
+    else
+      insert into opas_log (created, msg_long, tq_id) values (default, p_msg, nvl(p_tq_id,gTQ_ID));
+    end if;
     commit;
   end;
 
   procedure cleanup_tasks is
     l_rows_processed number;
   begin
-    delete from opas_task_queue where systimestamp - finished > TO_DSINTERVAL(COREMOD_API.getconf('TASKRETENTION',COREMOD_API.gMODNAME)||' 00:00:00');
+    delete from opas_task_queue
+     where (systimestamp - finished > TO_DSINTERVAL(COREMOD_API.getconf('TASKRETENTION',COREMOD_API.gMODNAME)||' 00:00:00'))
+        or (status = 'RUNNING' and started<sysdate-0.95 and nvl(job_name,'~^') not in (select job_name from user_scheduler_running_jobs));
     l_rows_processed:=sql%rowcount;
     commit;
     coremod_log.log('Cleanup task queue: deleted '||l_rows_processed||' row(s).');
@@ -157,7 +163,7 @@ package body coremod_tasks as
         when others then
           log('Execute task error: '||sqlerrm,l_2run(i).tq_id);
           log(DBMS_UTILITY.FORMAT_ERROR_STACK,l_2run(i).tq_id);
-          log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE,l_2run(i).tq_id);
+          --log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE,l_2run(i).tq_id);
       end;
     end loop;
   end;
@@ -172,7 +178,7 @@ package body coremod_tasks as
      when others then
        log('Stop job error: '||l_job_name||':'||p_tq_id||chr(10)||sqlerrm);
        log(DBMS_UTILITY.FORMAT_ERROR_STACK);
-       log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+       --log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
   end;
 
   procedure stop_previous_user_task(p_taskname   opas_task.taskname%type)
@@ -228,12 +234,12 @@ package body coremod_tasks as
   exception
     when others then
       set_task_finished(p_tq_id,gtqFAILED);
-      log('Execute task error: '||sqlerrm,p_tq_id);
-      log(l_task_body,p_tq_id);
-      log(DBMS_UTILITY.FORMAT_ERROR_STACK,p_tq_id);
-      log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE,p_tq_id);
+      log('Execute task error ('||l_task.taskname||'): '||sqlerrm,p_tq_id);
+      log('Task body: '||l_task_body,p_tq_id);
+      log('Execute task error stack: '||DBMS_UTILITY.FORMAT_ERROR_STACK,p_tq_id);
+      --log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE,p_tq_id);
       gTQ_ID:=null;
-      raise_application_error(-20000, 'Execute task error: '||sqlerrm);
+      raise_application_error(-20000, 'Execute task error ('||l_task.taskname||'): '||sqlerrm);
   end;
 
 

@@ -29,4 +29,12 @@ begin
                                             p_task_body => 'begin coremod_tasks.cleanup_tasks; end;');
 end;
 /
+
+begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'OPAS_REPORT',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin coremod_report_utils.execute_report (p_report_id => <B1>) ; end;');
+end;
+/
 commit;

@@ -17,6 +17,145 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     g_cpu_tim number; g_tot_cpu_tim number;
     g_lops_ind number;
 
+  gparReportType constant varchar2(32) := 'REPORT_TYPE';
+
+  procedure init_report(p_modname opas_reports.modname%type, p_report_id out opas_reports.report_id%type, p_parent_report opas_reports.report_id%type default null)
+  is
+  begin
+    INSERT INTO opas_reports (modname, tq_id, report_content, report_params_displ, parent_id)
+         VALUES (p_modname, null, null, null, p_parent_report) returning report_id into p_report_id;
+  end;
+
+  procedure set_report_type(p_report_id opas_reports.report_id%type, p_report_type varchar2)
+  is
+  begin
+    if p_report_type not in (gSQL_MEMORY_REPORT, gSQL_AWR_REPORT) then
+      raise_application_error(-20000,'Unknowm report type: '||p_report_type);
+    end if;
+    set_report_param(p_report_id,gparReportType,p_report_type);
+  end;
+
+  procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_num_par number)
+  is
+  begin
+    merge into opas_reports_pars t using (select p_report_id id, p_name nm, p_num_par val from dual) s
+    on (t.report_id = s.id and t.par_name=s.nm)
+    when matched then update set num_par = s.val
+    when not matched then insert (report_id,par_name,num_par) values (s.id, s.nm, s.val);
+  end;
+
+  procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_varchar_par varchar2)
+  is
+  begin
+    merge into opas_reports_pars t using (select p_report_id id, p_name nm, p_varchar_par val from dual) s
+    on (t.report_id = s.id and t.par_name=s.nm)
+    when matched then update set varchar_par = s.val
+    when not matched then insert (report_id,par_name,varchar_par) values (s.id, s.nm, s.val);
+  end;
+
+  procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_date_par date)
+  is
+  begin
+    merge into opas_reports_pars t using (select p_report_id id, p_name nm, p_date_par val from dual) s
+    on (t.report_id = s.id and t.par_name=s.nm)
+    when matched then update set date_par = s.val
+    when not matched then insert (report_id,par_name,date_par) values (s.id, s.nm, s.val);
+  end;
+
+  function get_reppar_n(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type) return number result_cache
+  is
+    l_val number;
+  begin
+    select num_par into l_val from opas_reports_pars where report_id = p_report_id and par_name=p_name;
+    return l_val;
+  exception
+    when no_data_found then raise_application_error(-20000,'Parameter: '||p_name||' for report_id: '||p_report_id||' is not defined (get_reppar_n).');
+  end;
+
+  function get_reppar_c(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type) return varchar2 result_cache
+  is
+    l_val opas_reports_pars.varchar_par%type;
+  begin
+    select varchar_par into l_val from opas_reports_pars where report_id = p_report_id and par_name=p_name;
+    return l_val;
+  exception
+    when no_data_found then raise_application_error(-20000,'Parameter: '||p_name||' for report_id: '||p_report_id||' is not defined (get_reppar_c).');
+  end;
+
+  function get_reppar_d(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type) return date result_cache
+  is
+    l_val date;
+  begin
+    select date_par into l_val from opas_reports_pars where report_id = p_report_id and par_name=p_name;
+    return l_val;
+  exception
+    when no_data_found then raise_application_error(-20000,'Parameter: '||p_name||' for report_id: '||p_report_id||' is not defined (get_reppar_d).');
+  end;
+
+  procedure queue_report(p_report_id opas_reports.report_id%type)
+  is
+    l_tq_id opas_task_queue.tq_id%type;
+  begin
+    l_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => 'OPAS_REPORT') ;
+    COREMOD_TASKS.set_task_param( p_tq_id => l_tq_id, p_name => 'B1', p_num_par => p_report_id);
+    COREMOD_TASKS.queue_task ( p_tq_id => l_tq_id ) ;
+    update opas_reports set tq_id=l_tq_id where report_id=p_report_id;
+  end;
+
+  procedure execute_report(p_report_id opas_reports.report_id%type)
+  is
+    l_report_type  varchar2(32);
+    l_report       coremod_report_utils.t_output_lines;
+    l_file_content clob;
+    l_file         opas_files.file_id%type;
+    l_file_type    opas_files.file_type%type;
+    l_file_name    opas_files.file_name%type;
+    l_mime         opas_files.FILE_MIMETYPE%type;
+    l_displ_params opas_reports.report_params_displ%type;
+    l_modname      opas_reports.modname%type;
+  begin
+    l_report_type:=get_reppar_c(p_report_id,gparReportType);
+    select modname into l_modname from opas_reports where report_id=p_report_id;
+
+    if l_report_type = gSQL_MEMORY_REPORT then
+      l_file_type := 'SQL Memory stats report';
+      l_file_name := 'opas_sql_'||get_reppar_c(p_report_id,gparSQLID)||'.html';
+      l_mime := 'HTML';
+      l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBLINK: '||get_reppar_c(p_report_id,gparDBLINK);
+      l_report := coremod_reports.getreport_sql_memory_stats(get_reppar_c(p_report_id,gparSQLID), COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)));
+    end if;
+
+    l_file := COREFILE_API.create_file(P_MODNAME => l_modname,
+                                       P_FILE_TYPE => l_file_type,
+                                       P_FILE_NAME => l_file_name,
+                                       P_MIMETYPE => l_mime,
+                                       P_OWNER => get_reppar_c(p_report_id,gparOWNER));
+
+    COREFILE_API.get_locator(l_file,l_file_content);
+
+    for i in 1..l_report.count loop
+      l_file_content:=l_file_content||l_report(i)||chr(10);
+    end loop;
+
+    COREFILE_API.store_content(l_file,l_file_content);
+    COREMOD_REPORT_UTILS.save_report_for_download (P_FILE => l_file) ;
+
+    update opas_reports set report_content = l_file, report_params_displ=l_displ_params where report_id=p_report_id;
+
+    commit;
+  end;
+
+  procedure drop_report(p_report_id opas_reports.report_id%type)
+  is
+    l_report_content      opas_reports.report_content%type;
+  begin
+    select report_content into l_report_content from opas_reports where report_id=p_report_id;
+    COREFILE_API.delete_file(l_report_content);
+    delete from opas_reports where report_id=p_report_id;
+  end;
+
+--=============================================================================================
+
     procedure set_report_timing(p_timing boolean) is begin g_timing:=p_timing; end;
 
     procedure start_tim is
@@ -67,6 +206,62 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
   begin
     COREMOD_API.end_longops_section(1,g_lops_ind);
     return end_tim(p_is_finished);
+  end;
+  procedure prepare_saved_sql_script(p_script_name opas_scripts.script_id%type)
+  is
+    l_script clob;
+    l_scr    clob;
+    l_line   varchar2(32765);
+    l_eol    number;
+    l_iter   number := 1;
+  begin
+    l_script:= coremod_api.getscript(p_script_name);
+
+    --Put at least one EOL into script
+    --if instr(l_script,chr(10))=0 then
+      l_script:=l_script||chr(10);
+    --end if;
+
+    --remove sqlplus settings
+    l_scr := l_script;
+    l_script:=null;
+    loop
+      l_eol:=instr(l_scr,chr(10));
+      l_line:=substr(l_scr,1,l_eol);
+
+      if upper(l_line) like 'SET%' or
+         upper(l_line) like 'COL%' or
+         upper(l_line) like 'BREAK%' or
+         upper(l_line) like 'ALTER SESSION%' or
+         upper(l_line) like 'SERVEROUTPUT%' or
+         upper(l_line) like 'REM%' or
+         upper(l_line) like '--%'
+      then
+        null;
+      else
+        l_script:=l_script||l_line;--||chr(10);
+      end if;
+
+      l_scr:=substr(l_scr,l_eol+1);
+      l_iter:=l_iter+1;
+      exit when l_iter>100000 or dbms_lob.getlength(l_scr)=0;
+    end loop;
+
+    if instr(upper(l_script),'BEGIN')=0 then l_script:=replace(l_script,';'); end if;
+
+    update opas_scripts set script_content=l_script where script_id=p_script_name;
+  end;
+
+  procedure prepare_script(p_script in out clob,
+                           p_sqlid varchar2,
+                           p_dbid varchar2 default null,
+                           p_inst_id varchar2 default null,
+                           p_start_snap number default null,
+                           p_end_snap number default null) is
+  begin
+    p_script:=replace(replace(replace(replace(replace(p_script,'&SQLID.',p_sqlid),'&SQLID',p_sqlid),'&1.',p_sqlid),'&1',p_sqlid),'&VSQL.','gv$sql');
+    p_script:=replace(replace(replace(replace(p_script,'&INST_ID.',p_inst_id),'&INST_ID',p_inst_id),'&DBID.',p_dbid),'&DBID',p_dbid);
+    p_script:=replace(replace(p_script,'&start_sn.',p_start_snap),'&end_sn.',p_end_snap);
   end;
 
   procedure execute_plsql_remotelly(p_sql varchar2, p_dblink varchar2, p_output out clob, p_is_output boolean default true)
@@ -138,9 +333,10 @@ else q'[end;]' end;
       if l_open then
         execute immediate 'begin dbms_sql.close_cursor@'||p_dblink||'(:p_theCursor); end;' using in out l_theCursor;
       end if;
-      coremod_log.log(sqlerrm);
-      coremod_log.log(l_sql2exec);
-      raise_application_error(-20000, sqlerrm||chr(10)||l_sql2exec);
+      coremod_log.log('Error in COREMOD_REPORT_UTILS.execute_plsql_remotelly: '||sqlerrm);
+      coremod_log.log('Error in COREMOD_REPORT_UTILS.execute_plsql_remotelly: SQL: '||l_sql2exec);
+      coremod_log.log('Error in COREMOD_REPORT_UTILS.execute_plsql_remotelly: Error stack: '||DBMS_UTILITY.FORMAT_ERROR_STACK);
+      raise_application_error(-20000,'Error in COREMOD_REPORT_UTILS.execute_plsql_remotelly: '||sqlerrm);
   end;
 
   procedure execute_plsql_remotelly(p_sql varchar2, p_dblink varchar2, p_output out t_output_lines)
@@ -394,7 +590,7 @@ end;]';
 
   procedure save_report_for_download(p_file opas_files.file_id%type)
   is
-    PRAGMA AUTONOMOUS_TRANSACTION;
+    --PRAGMA AUTONOMOUS_TRANSACTION;
     l_rpt clob;
     l_pref clob;
     l_brpt blob;
@@ -433,7 +629,7 @@ end;]';
       blob_csid      => DBMS_LOB.DEFAULT_CSID,
       lang_context   => l_cont,
       warning        => l_warn);
-    commit;
+    --commit;
   end;
 
   procedure print_table_html_new

@@ -3,6 +3,40 @@ PACKAGE COREMOD_REPORT_UTILS AS
 
   type t_output_lines is table of varchar2(32767) index by pls_integer;
 
+  --custom reports
+  gSQL_MEMORY_REPORT       constant varchar2(32) := 'SQL_MEMORY_REPORT';
+  --gparDBLINK, gparSQLID, gparOWNER
+  gSQL_AWR_REPORT          constant varchar2(32) := 'SQL_AWR_REPORT';
+  --gparDBLINK, gparSQLID, gparOWNER
+
+  --params
+  gparDBLINK                  constant varchar2(32) := 'PAR_DBLINK';
+  gparSQLID                   constant varchar2(32) := 'PAR_SQLID';
+  gparOWNER                   constant varchar2(32) := 'PAR_OWNER';
+
+  procedure init_report(p_modname opas_reports.modname%type, p_report_id out opas_reports.report_id%type, p_parent_report opas_reports.report_id%type default null);
+  procedure set_report_type(p_report_id opas_reports.report_id%type, p_report_type varchar2);
+
+  procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_num_par number);
+  procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_varchar_par varchar2);
+  procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_date_par date);
+
+  procedure queue_report(p_report_id opas_reports.report_id%type);
+  --for task
+  procedure execute_report(p_report_id opas_reports.report_id%type);
+
+  procedure drop_report(p_report_id opas_reports.report_id%type);
+  --===========================================================================
+
+  --script preparation
+  procedure prepare_saved_sql_script(p_script_name opas_scripts.script_id%type);
+  procedure prepare_script(p_script in out clob,
+                           p_sqlid varchar2,
+                           p_dbid varchar2 default null,
+                           p_inst_id varchar2 default null,
+                           p_start_snap number default null,
+                           p_end_snap number default null);
+
   procedure execute_plsql_remotelly(p_sql varchar2, p_dblink varchar2, p_output out clob, p_is_output boolean default true);
   procedure execute_plsql_remotelly(p_sql varchar2, p_dblink varchar2, p_output out t_output_lines);
   procedure print_table_html_remotelly(p_query in varchar2,

@@ -123,7 +123,8 @@ create index idx_opas_task_parstske on opas_task_pars(tq_id);
 create table opas_log (
 created     timestamp default systimestamp,
 msg         varchar2(4000),
-tq_id       number references opas_task_queue(tq_id) on delete cascade
+tq_id       number references opas_task_queue(tq_id) on delete cascade,
+msg_long    clob
 );
 
 create index idx_opas_task_logtske on opas_log(tq_id);
@@ -131,7 +132,7 @@ create index idx_opas_task_created on opas_log(created);
 
 CREATE OR REPLACE FORCE VIEW V$OPAS_TASK_QUEUE AS 
 select
-  t.taskname, t.modname, t.is_public, q.tq_id, q.queued, q.started, q.finished, q.cpu_time, q.elapsed_time, q.status, q.owner, q.sid, q.serial#, q.inst_id --, q.result_link
+  t.taskname, t.modname, t.is_public, q.tq_id, q.queued, q.started, q.finished, q.cpu_time, q.elapsed_time, q.status, q.owner, q.sid, q.serial#, q.inst_id , q.job_name
 from opas_task t left outer join opas_task_queue q on (t.taskname = q.taskname and q.owner=decode(t.is_public,'Y',q.owner,nvl(V('APP_USER'),'~^')))
 where 1=decode(t.is_public,'Y',1, COREMOD_SEC.is_role_assigned_n(t.modname,'Reas-write users'))
 ;
@@ -175,15 +176,24 @@ create index idx_opas_files_mod on opas_files(modname);
 
 create table opas_reports (
 report_id      NUMBER GENERATED ALWAYS AS IDENTITY primary key,
+parent_id      number references opas_reports(report_id) on delete cascade,
 modname        varchar2(128) references opas_modules(modname) on delete cascade,
 tq_id          number references opas_task_queue(tq_id) on delete set null,
 report_content number REFERENCES opas_files ( file_id ),
-report_params  clob,
-report_params_displ varchar2(1000),
-CONSTRAINT opas_reports_json_chk CHECK (report_params IS JSON));
+report_params_displ varchar2(1000));
 
 create index idx_opas_reports_mod   on opas_reports(modname);
 create index idx_opas_reports_fcntn on opas_reports(report_content);
+
+create table opas_reports_pars (
+report_id   number references opas_reports(report_id) on delete cascade,
+par_name    varchar2(100),
+num_par     number,
+varchar_par varchar2(4000),
+date_par    date
+);
+
+create index idx_opas_reports_parstske on opas_reports_pars(report_id);
 
 --Clob2row representation
 --https://jonathanlewis.wordpress.com/2008/11/19/lateral-lobs/

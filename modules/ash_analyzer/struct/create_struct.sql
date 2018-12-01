@@ -31,12 +31,19 @@ from asha_cube_projects x
 where owner=decode(owner,'PUBLIC',owner,decode(is_public,'Y',owner,nvl(V('APP_USER'),'~^')));
 
 create table asha_cube_reports(
-    proj_id        NUMBER NOT NULL REFERENCES asha_cube_projects ( proj_id )   on delete cascade,
-	report_id      NUMBER NOT NULL REFERENCES opas_reports       ( report_id ) on delete cascade
+    proj_id          NUMBER NOT NULL REFERENCES asha_cube_projects ( proj_id )   on delete cascade,
+	report_id        NUMBER NOT NULL REFERENCES opas_reports       ( report_id ) on delete cascade,
+	sess_id          number references asha_cube_sess(sess_id) on delete set null,
+	report_retention number,
+	report_note      varchar2(4000),
+	created          timestamp default systimestamp
 );
 
-create index idx_asha_cube_reports_proj on asha_cube_reports(proj_id);
+rem report_retention: null - default project retention, 0 - keep forever, N - keep days
+
+create unique index idx_asha_cube_reports_proj on asha_cube_reports(proj_id, report_id);
 create index idx_asha_cube_reports_rep  on asha_cube_reports(report_id);
+create index idx_asha_cube_reports_sess  on asha_cube_reports(sess_id);
 
 create table asha_cube_sess_tmpl (
 tmpl_id             NUMBER GENERATED ALWAYS AS IDENTITY primary key,
@@ -218,3 +225,20 @@ create sequence asha_snap_ash;
 create table asha_cube_snap_ash as select 1 sess_id, x.* from gv$active_session_history x where 1=2;
 create index idx_asha_cube_snap_ash_ix1 on asha_cube_snap_ash(sess_id);
 alter table asha_cube_snap_ash add constraint fk_snap_sess foreign key (sess_id) references asha_cube_sess(sess_id) on delete cascade;
+
+
+--create table asha_cube_statistics (
+--sess_id          number references asha_cube_sess(sess_id) on delete cascade,
+--sample_id        number,
+--sample_time      timestamp,
+--statistic#       number, 
+--value            number);
+
+--create index idx_asha_statistics_ss on asha_cube_statistics(sess_id);
+
+--create global temporary table asha_cube$tmp_statistics (
+--sample_id        number,
+--sample_time      timestamp,
+--statistic#       number, 
+--value            number)
+--on commit preserve rows;

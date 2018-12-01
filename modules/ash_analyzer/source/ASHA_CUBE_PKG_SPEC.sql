@@ -45,5 +45,7 @@ PACKAGE ASHA_CUBE_PKG AS
                             p_param_name      asha_cube_sess_pars.sess_par_nm%type) return asha_cube_sess_pars.sess_par_val%type result_cache;
   function get_sess_pars (p_sess_id asha_cube_sess.sess_id%type) return tt_params_t;
 
+  procedure validate_params(p_sess_id         asha_cube_sess.sess_id%type);
+
 END ASHA_CUBE_PKG;
 /

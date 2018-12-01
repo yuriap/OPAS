@@ -55,9 +55,9 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
   end;
 
   function get_sql_qry_txt(p_srcdb varchar2, p_sql_id varchar2) return clob AS
-    l_txt clob;
+    l_txt  varchar2(4000);
     l_dbid number;
-    l_sql varchar2(32765);
+    l_sql  varchar2(32765);
     pragma autonomous_transaction;
   BEGIN
     select sql_text into l_txt from asha_cube_qry_cache where sql_id=p_sql_id;
@@ -110,7 +110,42 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
     update asha_cube_sess set
       sess_retention_days = decode(p_sess_retention_days,-1,null,p_sess_retention_days),
       sess_description = p_sess_description
-    where  sess_id = p_sess_id;
+     where sess_id = p_sess_id;
+  end;
+
+  procedure create_report_sql_memory_report(
+                          p_proj_id          asha_cube_reports.proj_id%type,
+                          p_sess_id          asha_cube_reports.sess_id%type,
+                          p_sql_id           varchar2,
+                          p_dblink           varchar2)
+  is
+    l_proj asha_cube_projects%rowtype;
+    l_report_id opas_reports.report_id%type;
+  begin
+    l_proj:=ASHA_PROJ_API.getproject(p_proj_id,true);
+
+    l_report_id := coremod_reports.queue_report_sql_memory_stats(p_modname => gMODNAME, p_owner => l_proj.owner, p_sql_id => p_sql_id, p_dblink => p_dblink);
+
+    INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
+
+    commit;
+
+    insert into asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
+    select p_proj_id,report_id,p_sess_id,null,null from opas_reports where parent_id=l_report_id;
+
+    commit;
+  end;
+
+  procedure edit_report_properties(p_report_id          asha_cube_reports.report_id%type,
+                                   p_report_retention   asha_cube_reports.report_retention%type,
+                                   p_report_note        asha_cube_reports.report_note%type)
+  is
+  begin
+    update asha_cube_reports set
+      report_retention = decode(p_report_retention,-1,null,p_report_retention),
+      report_note = p_report_note
+     where report_id = p_report_id;
   end;
 
 END ASHA_CUBE_API;

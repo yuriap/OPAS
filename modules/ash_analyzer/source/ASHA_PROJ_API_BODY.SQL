@@ -76,19 +76,39 @@ package body ASHA_PROJ_API as
 
 
   procedure cleanup_project(p_proj_id asha_cube_projects.proj_id%type, p_mode number, p_use_retention boolean) as
-    --l_curproj asha_cube_projects%rowtype;
-    --l_errmsg  varchar2(1000);
-    --l_cmd     varchar2(1000);
-    --l_done    number := 0;
+    l_done    number := 0;
   begin
-    --l_curproj:=getproject(p_proj_id, true);
 
     --delete expired sessions
-    delete from asha_cube_sess
-     where (sess_created+nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME)/24))<sysdate
-       and sess_proj_id=p_proj_id
-       and nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME)/24)>0;
-    coremod_log.log('Sessions: '||sql%rowcount||' removed');
+    if p_mode in (c_ALL, c_SOURCEDATA) and p_use_retention then
+      delete from asha_cube_sess
+       where sess_proj_id=p_proj_id
+         and (sess_created+nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME)/24))<sysdate
+         and nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME))>0;
+      coremod_log.log('Sessions: '||sql%rowcount||' removed');
+
+      for i in (select * from asha_cube_reports
+                 where proj_id = p_proj_id
+                   and (created+nvl(report_retention,COREMOD_API.getconf('REPORTRETENTION',ASHA_CUBE_API.gMODNAME)/24))<sysdate
+                   and nvl(report_retention,COREMOD_API.getconf('REPORTRETENTION',ASHA_CUBE_API.gMODNAME))>0)
+      loop
+        coremod_report_utils.drop_report(i.report_id);
+        delete from asha_cube_reports where proj_id=i.proj_id and report_id=i.report_id;
+        l_done:=l_done+1;
+      end loop;
+      coremod_log.log('Repors: '||l_done||' removed');
+
+    elsif not p_use_retention then
+
+      delete from asha_cube_sess where sess_proj_id=p_proj_id;
+      for i in (select * from asha_cube_reports where proj_id = p_proj_id)
+      loop
+        coremod_report_utils.drop_report(i.report_id);
+      end loop;
+      delete from asha_cube_reports where proj_id=p_proj_id;
+
+    end if;
+
   end cleanup_project;
 
   procedure drop_project_i(p_proj_id asha_cube_projects.proj_id%type, p_is_purge boolean default false) as
@@ -96,9 +116,9 @@ package body ASHA_PROJ_API as
   begin
     l_curproj:=getproject(p_proj_id, true);
 
-    if not p_is_purge then
+	if not p_is_purge then
       ASHA_PROJ_LCC.project_exec_action(l_curproj,ASHA_PROJ_LCC.c_project_drop);
-    end if;
+	end if;
 
     cleanup_project(p_proj_id=>p_proj_id, p_mode => c_ALL, p_use_retention => false);
 
