@@ -150,8 +150,8 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     l_report_content      opas_reports.report_content%type;
   begin
     select report_content into l_report_content from opas_reports where report_id=p_report_id;
-    COREFILE_API.delete_file(l_report_content);
     delete from opas_reports where report_id=p_report_id;
+    COREFILE_API.delete_file(l_report_content);
   end;
 
 --=============================================================================================

@@ -60,8 +60,12 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
     l_sql  varchar2(32765);
     pragma autonomous_transaction;
   BEGIN
-    select sql_text into l_txt from asha_cube_qry_cache where sql_id=p_sql_id;
-    return l_txt;
+    if p_sql_id = upper('<UNKNOWN SQL>') then
+      return 'Unknown sql_id.';
+    else
+      select sql_text into l_txt from asha_cube_qry_cache where sql_id=p_sql_id;
+      return l_txt;
+    end if;
   exception
     when no_data_found then
       begin
@@ -83,7 +87,7 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
 
           if l_txt is null and p_srcdb is not null and p_srcdb <> '$LOCAL$' then
             begin
-              l_sql := 'select txt from (select cast(substr(SQL_FULLTEXT,1,4000) as varchar2(4000)) from gv$sql@'||p_srcdb||' a where sql_id=:p_sql_id) where rownum<2';
+              l_sql := 'select txt from (select cast(substr(SQL_FULLTEXT,1,4000) as varchar2(4000)) txt from gv$sql@'||p_srcdb||' a where sql_id=:p_sql_id) where rownum<2';
               execute immediate l_sql into l_txt using p_sql_id;
             exception
               when no_data_found then null;

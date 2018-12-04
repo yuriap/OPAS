@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   15:56 Saturday December 1, 2018
+--   Date and Time:   18:30 Tuesday December 4, 2018
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -126,7 +126,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181201155537'
+,p_last_upd_yyyymmddhh24miss=>'20181204182942'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -21897,7 +21897,7 @@ wwv_flow_api.create_page(
 ''))
 ,p_page_template_options=>'ui-dialog--stretch'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181130180302'
+,p_last_upd_yyyymmddhh24miss=>'20181204182941'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(28869892273501246)
@@ -21929,9 +21929,8 @@ wwv_flow_api.create_page_plug(
 ,p_include_in_reg_disp_sel_yn=>'Y'
 ,p_plug_display_point=>'BODY'
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
-,p_plug_display_condition_type=>'VAL_OF_ITEM_IN_COND_NOT_EQ_COND2'
-,p_plug_display_when_condition=>'P305_SOURCEDB'
-,p_plug_display_when_cond2=>'$LOCAL$'
+,p_plug_display_condition_type=>'PLSQL_EXPRESSION'
+,p_plug_display_when_condition=>':P305_SOURCEDB<>''$LOCAL$'' and :P305_SQL_ID<>''<UNKNOWN SQL>'''
 ,p_attribute_01=>'N'
 ,p_attribute_02=>'HTML'
 );
@@ -22181,12 +22180,12 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(10418699612748713)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181201155537'
+,p_last_upd_yyyymmddhh24miss=>'20181201163110'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(29368498021949109)
 ,p_plug_name=>'Properties'
-,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
 ,p_plug_template=>wwv_flow_api.id(11818373874539548)
 ,p_plug_display_sequence=>10
 ,p_include_in_reg_disp_sel_yn=>'Y'
