@@ -124,6 +124,54 @@ q'[
 end;
 /
 
+declare
+  l_script clob;
+begin
+  l_script :=
+q'{
+@@../scripts/__sqlstat.sql
+}';
+  delete from opas_scripts where script_id='PROC_AWRSQLSTAT';
+  insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRSQLSTAT','~MODNM.',l_script);
+  COREMOD_REPORT_UTILS.prepare_saved_sql_script (  P_SCRIPT_NAME => 'PROC_AWRSQLSTAT');
+  
+  l_script := 
+q'[
+@@../scripts/__ash_summ
+]';
+  delete from opas_scripts where script_id='PROC_AWRASHSUMM';
+  insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRASHSUMM','~MODNM.',l_script);
+  COREMOD_REPORT_UTILS.prepare_saved_sql_script (  P_SCRIPT_NAME => 'PROC_AWRASHSUMM');
+  
+  l_script := 
+q'[
+@@../scripts/__ash_p1
+]';
+  delete from opas_scripts where script_id='PROC_AWRASHP1';
+  insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRASHP1','~MODNM.',l_script);
+  COREMOD_REPORT_UTILS.prepare_saved_sql_script (  P_SCRIPT_NAME => 'PROC_AWRASHP1');
+  
+  l_script := 
+q'[
+@@../scripts/__ash_p1_1
+]';
+  delete from opas_scripts where script_id='PROC_AWRASHP1_1';
+  insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRASHP1_1','~MODNM.',l_script);
+  COREMOD_REPORT_UTILS.prepare_saved_sql_script (  P_SCRIPT_NAME => 'PROC_AWRASHP1_1');
+  
+  l_script := 
+q'[
+@@../scripts/__ash_p2
+]';
+  delete from opas_scripts where script_id='PROC_AWRASHP2';
+  insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRASHP2','~MODNM.',l_script);
+  COREMOD_REPORT_UTILS.prepare_saved_sql_script (  P_SCRIPT_NAME => 'PROC_AWRASHP2');
+  
+end;
+/
+
+
+
 set define &
 
 INSERT INTO opas_groups2apexusr ( group_id, modname, apex_user) VALUES ( 0, 'OPASCORE', 'OPAS40ADM');

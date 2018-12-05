@@ -84,21 +84,23 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     g_allpars.pa_snap_ash := to_bool(get_parameter(c_SNAP_ASH));
     g_allpars.pa_monitor := to_bool(get_parameter(c_monitor));
 
-    if get_parameter(c_date_interval) = '-1' then
-      if to_bool(get_parameter(c_SNAP_ASH)) then
-        coremod_log.log('select max(st1), max(st2) from (select min(sample_time) st1, max(sample_time)st2 from asha_cube_snap_ash where sess_id=:p_sess_id group by inst_id)','DEBUG');
-        execute immediate 'select max(st1), max(st2) from (select min(sample_time) st1, max(sample_time)st2 from asha_cube_snap_ash where sess_id=:p_sess_id group by inst_id)' into l_dt1,l_dt2 using p_sess_id;
-      else
-        coremod_log.log('select max(st1), max(st2) from (select min(sample_time) st1, max(sample_time)st2 from gv$active_session_history'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end||' group by inst_id)','DEBUG');
-        execute immediate 'select max(st1), max(st2) from (select min(sample_time) st1, max(sample_time)st2 from gv$active_session_history'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end||' group by inst_id)' into l_dt1,l_dt2;
+    if get_parameter(c_date_interval) is not null then
+      if get_parameter(c_date_interval) = '-1' then
+        if to_bool(get_parameter(c_SNAP_ASH)) then
+          coremod_log.log('select max(st1), max(st2) from (select min(sample_time) st1, max(sample_time)st2 from asha_cube_snap_ash where sess_id=:p_sess_id group by inst_id)','DEBUG');
+          execute immediate 'select max(st1), max(st2) from (select min(sample_time) st1, max(sample_time)st2 from asha_cube_snap_ash where sess_id=:p_sess_id group by inst_id)' into l_dt1,l_dt2 using p_sess_id;
+        else
+          coremod_log.log('select max(st1), max(st2) from (select min(sample_time) st1, max(sample_time)st2 from gv$active_session_history'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end||' group by inst_id)','DEBUG');
+          execute immediate 'select max(st1), max(st2) from (select min(sample_time) st1, max(sample_time)st2 from gv$active_session_history'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end||' group by inst_id)' into l_dt1,l_dt2;
+        end if;
+      elsif TO_NUMBER(get_parameter(c_date_interval) DEFAULT -1 ON CONVERSION ERROR)<>-1 then
+        coremod_log.log('select systimestamp - '||get_parameter(c_date_interval)||'/60/24, systimestamp from dual'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end,'DEBUG');
+        execute immediate 'select systimestamp - '||get_parameter(c_date_interval)||'/60/24, systimestamp from dual'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end into l_dt1,l_dt2;
       end if;
-    elsif TO_NUMBER(get_parameter(c_date_interval) DEFAULT -1 ON CONVERSION ERROR)<>-1 then
-      coremod_log.log('select systimestamp - '||get_parameter(c_date_interval)||'/60/24, systimestamp from dual'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end,'DEBUG');
-      execute immediate 'select systimestamp - '||get_parameter(c_date_interval)||'/60/24, systimestamp from dual'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end into l_dt1,l_dt2;
-    end if;
 
-    add_parameter(p_sess_id,c_start_dt,to_char(l_dt1,c_datetime_fmt));
-    add_parameter(p_sess_id,c_end_dt,to_char(l_dt2,c_datetime_fmt));
+      add_parameter(p_sess_id,c_start_dt,to_char(l_dt1,c_datetime_fmt));
+      add_parameter(p_sess_id,c_end_dt,to_char(l_dt2,c_datetime_fmt));
+    end if;
 
     g_allpars.pa_source := get_parameter(c_source);
     g_allpars.pa_dblink := coremod_api.get_ora_dblink(get_parameter(c_dblink));

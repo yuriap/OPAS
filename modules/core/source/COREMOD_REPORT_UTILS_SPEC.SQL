@@ -7,12 +7,13 @@ PACKAGE COREMOD_REPORT_UTILS AS
   gSQL_MEMORY_REPORT       constant varchar2(32) := 'SQL_MEMORY_REPORT';
   --gparDBLINK, gparSQLID, gparOWNER
   gSQL_AWR_REPORT          constant varchar2(32) := 'SQL_AWR_REPORT';
-  --gparDBLINK, gparSQLID, gparOWNER
+  --gparDBLINK, gparSQLID, gparOWNER,gparREP_LIMIT
 
   --params
   gparDBLINK                  constant varchar2(32) := 'PAR_DBLINK';
   gparSQLID                   constant varchar2(32) := 'PAR_SQLID';
   gparOWNER                   constant varchar2(32) := 'PAR_OWNER';
+  gparREP_LIMIT               constant varchar2(32) := 'PAR_REPORT_LIMIT';
 
   procedure init_report(p_modname opas_reports.modname%type, p_report_id out opas_reports.report_id%type, p_parent_report opas_reports.report_id%type default null);
   procedure set_report_type(p_report_id opas_reports.report_id%type, p_report_type varchar2);

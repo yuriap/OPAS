@@ -130,14 +130,22 @@ PACKAGE BODY TRC_FILE_API AS
   begin
     coremod_log.log('TRC_FILE_API.remove_source_data_i: '||p_trc_file_id,'DEBUG');
     l_trc_file:=get_file(p_trc_file_id,true);
+    if l_trc_file.status=TRC_FILE_LCC.c_trcfilestate_parsed then
+      TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_compress);
+    else
+      TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_archive);
+    end if;
     update trc_files set file_content=null where trc_file_id=p_trc_file_id;
     COREFILE_API.delete_file(l_trc_file.file_content);
   end;
 
   procedure remove_parsed_data_i(p_trc_file_id trc_files.trc_file_id%type)
   is
+    l_trc_file         trc_files%rowtype;
   begin
     coremod_log.log('TRC_FILE_API.remove_parsed_data_i: '||p_trc_file_id,'DEBUG');
+    l_trc_file:=get_file(p_trc_file_id,true);
+    TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_archive);
     delete from trc_stat where trc_file_id=p_trc_file_id;
     delete from trc_wait where trc_file_id=p_trc_file_id;
     delete from trc_binds where trc_file_id=p_trc_file_id;
@@ -166,6 +174,11 @@ PACKAGE BODY TRC_FILE_API AS
     coremod_log.log('TRC_FILE_API.cleanup_files: '||p_proj_id||';'||p_mode||';'||COREMOD_LOG.bool2str(p_use_retention)||';','DEBUG');
     for i in (select x.*, systimestamp - created src_duration, systimestamp - parsed prsd_duration from trc_files x where proj_id = p_proj_id) loop
       begin
+        coremod_log.log('TRC_FILE_API.cleanup_files: '||i.trc_file_id||';'||
+                        i.source_keep_forever||';'||
+                        i.src_duration||';'||TO_DSINTERVAL(nvl(COREMOD_API.getconf('SOURCERETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00')||';'||
+                        i.prsd_duration||';'||TO_DSINTERVAL(nvl(COREMOD_API.getconf('PARSEDRETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00')
+                        ,'DEBUG');
         if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_SOURCEDATA) then
 		  if p_use_retention and i.source_keep_forever='N' and i.src_duration > TO_DSINTERVAL(nvl(COREMOD_API.getconf('SOURCERETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00') then
 		    remove_source_data_i(i.trc_file_id);
@@ -174,7 +187,7 @@ PACKAGE BODY TRC_FILE_API AS
 		  end if;
 		end if;
         if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_PARSEDDATA) then
-		  if p_use_retention and i.parsed_keep_forever='N' and i.prsd_duration > TO_DSINTERVAL(nvl(COREMOD_API.getconf('SOURCERETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00') then
+		  if p_use_retention and i.parsed_keep_forever='N' and i.prsd_duration > TO_DSINTERVAL(nvl(COREMOD_API.getconf('PARSEDRETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00') then
 		    remove_parsed_data_i(i.trc_file_id);
 		  elsif not (p_use_retention) then
 		    remove_parsed_data_i(i.trc_file_id);

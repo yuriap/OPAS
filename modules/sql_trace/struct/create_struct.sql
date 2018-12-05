@@ -48,12 +48,16 @@ select x.*,
 case
   when source_keep_forever = 'Y' 
     then 'Source file will be kept forever'
+  when status in ('COMPRESSED','ARCHIVED')
+    then 'N/A'
   else
     replace('Source file will be kept till <%p1>','<%p1>',to_char(created + TO_DSINTERVAL(COREMOD_API.getconf('SOURCERETENTION',TRC_FILE_API.getMODNAME)||' 00:00:00'),'YYYY-MON-DD HH24:MI' ))
 end source_retention,
 case
   when parsed_keep_forever = 'Y' 
     then 'Parsed data will be kept forever'
+  when status in ('ARCHIVED')
+    then 'N/A'	
   else
     decode(parsed,null,null,replace('Parsed data  will be kept till <%p1>','<%p1>',to_char(parsed + TO_DSINTERVAL(COREMOD_API.getconf('PARSEDRETENTION',TRC_FILE_API.getMODNAME)||' 00:00:00'),'YYYY-MON-DD HH24:MI' )))
 end parsed_retention

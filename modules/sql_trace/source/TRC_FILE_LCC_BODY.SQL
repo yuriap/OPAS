@@ -29,7 +29,7 @@ package body TRC_FILE_LCC as
                                                and TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rocontent) then true
         when p_action = c_trcfile_compress    and l_status in (c_trcfilestate_loaded,c_trcfilestate_parsed)
                                                and TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent) then true
-        when p_action = c_trcfile_archive     and l_status in (c_trcfilestate_loaded,c_trcfilestate_parsed,c_trcfilestate_compressed)
+        when p_action = c_trcfile_archive     and l_status in (c_trcfilestate_loaded,c_trcfilestate_parsed,c_trcfilestate_compressed,c_trcfilestate_archived)
                                                and TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent) then true
       else
         false

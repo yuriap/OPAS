@@ -13,8 +13,10 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     g_units     varchar2(100);
 */
     g_timing    boolean := false;
-    g_time number; g_tot_tim number;
-    g_cpu_tim number; g_tot_cpu_tim number;
+    g_time      number;
+    g_tot_tim   number;
+    g_cpu_tim   number;
+    g_tot_cpu_tim number;
     g_lops_ind number;
 
   gparReportType constant varchar2(32) := 'REPORT_TYPE';
@@ -122,7 +124,16 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
       l_file_name := 'opas_sql_'||get_reppar_c(p_report_id,gparSQLID)||'.html';
       l_mime := 'HTML';
       l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBLINK: '||get_reppar_c(p_report_id,gparDBLINK);
-      l_report := coremod_reports.getreport_sql_memory_stats(get_reppar_c(p_report_id,gparSQLID), COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)));
+      l_report := coremod_reports.getreport_sql_memory_stats(get_reppar_c(p_report_id,gparSQLID),
+                                                             COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)));
+    elsif l_report_type = gSQL_AWR_REPORT then
+      l_file_type := 'SQL AWR stats report';
+      l_file_name := 'opas_awr_'||get_reppar_c(p_report_id,gparSQLID)||'.html';
+      l_mime := 'HTML';
+      l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBLINK: '||get_reppar_c(p_report_id,gparDBLINK)||'; LIMIT: '||get_reppar_c(p_report_id,gparREP_LIMIT);
+      l_report := coremod_reports.getreport_sql_awr_stats(get_reppar_c(p_report_id,gparSQLID),
+                                                          COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)),
+                                                          get_reppar_n(p_report_id,gparREP_LIMIT));
     end if;
 
     l_file := COREFILE_API.create_file(P_MODNAME => l_modname,
@@ -180,8 +191,9 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
           return HTF.header (6,cheader=>'Elapsed (sec): '||to_char(round((l_delta_t)/100,2))||'; CPU (sec): '||to_char(round((l_delta_c)/100,2)),cattributes=>'class="awr"');
         else
           return HTF.header (6,cheader=>'Totals: Elapsed (sec): '||to_char(round((g_tot_tim)/100,2))||'; CPU (sec): '||to_char(round((g_tot_cpu_tim)/100,2)),cattributes=>'class="awr"');
-          null;
         end if;
+      else
+        return null;
       end if;
     end;
 
@@ -207,6 +219,7 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     COREMOD_API.end_longops_section(1,g_lops_ind);
     return end_tim(p_is_finished);
   end;
+
   procedure prepare_saved_sql_script(p_script_name opas_scripts.script_id%type)
   is
     l_script clob;

@@ -117,23 +117,28 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
      where sess_id = p_sess_id;
   end;
 
-  procedure create_report_sql_memory_report(
+  procedure create_report(p_report_type      varchar2,
                           p_proj_id          asha_cube_reports.proj_id%type,
                           p_sess_id          asha_cube_reports.sess_id%type,
                           p_sql_id           varchar2,
-                          p_dblink           varchar2)
+                          p_dblink           varchar2,
+                          p_limit            number default 0)
   is
     l_proj asha_cube_projects%rowtype;
     l_report_id opas_reports.report_id%type;
   begin
     l_proj:=ASHA_PROJ_API.getproject(p_proj_id,true);
 
-    l_report_id := coremod_reports.queue_report_sql_memory_stats(p_modname => gMODNAME, p_owner => l_proj.owner, p_sql_id => p_sql_id, p_dblink => p_dblink);
+    if p_report_type = gREPORT_SQL_MEMORY then
+      l_report_id := coremod_reports.queue_report_sql_memory_stats(p_modname => gMODNAME, p_owner => l_proj.owner, p_sql_id => p_sql_id, p_dblink => p_dblink);
+    elsif p_report_type = gREPORT_SQL_AWR then
+      l_report_id := coremod_reports.queue_report_sql_awr_stats(p_modname => gMODNAME, p_owner => l_proj.owner, p_sql_id => p_sql_id, p_dblink => p_dblink, p_report_limit => p_limit);
+    else
+      raise_application_error(-20000,'Unsupported report type: '||p_report_type);
+    end if;
 
     INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
     VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
-
-    commit;
 
     insert into asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
     select p_proj_id,report_id,p_sess_id,null,null from opas_reports where parent_id=l_report_id;
@@ -150,6 +155,14 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
       report_retention = decode(p_report_retention,-1,null,p_report_retention),
       report_note = p_report_note
      where report_id = p_report_id;
+  end;
+
+  procedure delete_report(p_proj_id          asha_cube_reports.proj_id%type,
+                          p_report_id          asha_cube_reports.report_id%type)
+  is
+  begin
+    coremod_report_utils.drop_report(p_report_id);
+    delete from asha_cube_reports where report_id=p_report_id and proj_id=p_proj_id;
   end;
 
 END ASHA_CUBE_API;
