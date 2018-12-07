@@ -19,7 +19,7 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     g_tot_cpu_tim number;
     g_lops_ind number;
 
-  gparReportType constant varchar2(32) := 'REPORT_TYPE';
+  --gparReportType constant varchar2(32) := 'REPORT_TYPE';
 
   procedure init_report(p_modname opas_reports.modname%type, p_report_id out opas_reports.report_id%type, p_parent_report opas_reports.report_id%type default null)
   is
@@ -34,7 +34,8 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     if p_report_type not in (gSQL_MEMORY_REPORT, gSQL_AWR_REPORT) then
       raise_application_error(-20000,'Unknowm report type: '||p_report_type);
     end if;
-    set_report_param(p_report_id,gparReportType,p_report_type);
+    --set_report_param(p_report_id,gparReportType,p_report_type);
+    update opas_reports set report_type=p_report_type where report_id=p_report_id;
   end;
 
   procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_num_par number)
@@ -116,8 +117,8 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     l_displ_params opas_reports.report_params_displ%type;
     l_modname      opas_reports.modname%type;
   begin
-    l_report_type:=get_reppar_c(p_report_id,gparReportType);
-    select modname into l_modname from opas_reports where report_id=p_report_id;
+    --l_report_type:=get_reppar_c(p_report_id,gparReportType);
+    select modname, report_type into l_modname, l_report_type from opas_reports where report_id=p_report_id;
 
     if l_report_type = gSQL_MEMORY_REPORT then
       l_file_type := 'SQL Memory stats report';
@@ -130,7 +131,7 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
       l_file_type := 'SQL AWR stats report';
       l_file_name := 'opas_awr_'||get_reppar_c(p_report_id,gparSQLID)||'.html';
       l_mime := 'HTML';
-      l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBLINK: '||get_reppar_c(p_report_id,gparDBLINK)||'; LIMIT: '||get_reppar_c(p_report_id,gparREP_LIMIT);
+      l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBLINK: '||get_reppar_c(p_report_id,gparDBLINK)||'; LIMIT: '||get_reppar_n(p_report_id,gparREP_LIMIT);
       l_report := coremod_reports.getreport_sql_awr_stats(get_reppar_c(p_report_id,gparSQLID),
                                                           COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)),
                                                           get_reppar_n(p_report_id,gparREP_LIMIT));

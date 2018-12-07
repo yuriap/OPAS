@@ -18,6 +18,7 @@ PACKAGE ASHA_CUBE_PKG AS
   c_monitor              constant varchar2(100) := 'MONITOR';
   c_top_sess             constant varchar2(100) := 'TOP_SESS';
   c_SNAP_ASH             constant varchar2(100) := 'SNAP_ASH';
+  c_FILTERED_SEPARATLY   constant varchar2(100) := 'FILTERED_SEPARATLY';
   --c_SNAP_DURATION        constant varchar2(100) := 'SNAP_DURATION';
 
   c_date_interval        constant varchar2(100) := 'DATE_INTERVAL';
@@ -32,7 +33,8 @@ PACKAGE ASHA_CUBE_PKG AS
 
   procedure init_session(p_proj_id          asha_cube_sess.sess_proj_id%type,
                          p_retention        asha_cube_sess.sess_retention_days%type,
-                         p_sess_id   in out asha_cube_sess.sess_id%type);
+                         p_sess_id   in out asha_cube_sess.sess_id%type,
+                         p_parent_sess      asha_cube_sess.parent_id%type default null);
 
   procedure load_par_tmpl(p_tmpl_id          asha_cube_sess_tmpl.tmpl_id%type,
                           p_sess_id          asha_cube_sess.sess_id%type);

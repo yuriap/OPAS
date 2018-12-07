@@ -17,7 +17,8 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     pa_unknown_analyze boolean,
     pa_monitor boolean,
     pa_top_sess boolean,
-    pa_snap_ash boolean--,
+    pa_snap_ash boolean,
+    pa_filtered_separatelly boolean
     --pa_snap_duration number
     );
 
@@ -73,16 +74,40 @@ PACKAGE BODY ASHA_CUBE_PKG AS
   end;
 
   procedure check_params(p_sess_id          asha_cube_sess.sess_id%type) is
+  begin
+
+    validate_params(p_sess_id);
+
+    g_allpars.pa_snap_ash := to_bool(get_parameter(c_SNAP_ASH));
+    g_allpars.pa_monitor := to_bool(get_parameter(c_monitor));
+    g_allpars.pa_source := get_parameter(c_source);
+    g_allpars.pa_dblink := coremod_api.get_ora_dblink(get_parameter(c_dblink));
+    g_allpars.pa_cubeagg := get_parameter(c_cubeagg);
+    g_allpars.pa_inst_id := get_parameter(c_inst_id);
+    g_allpars.pa_start_dt := to_date(get_parameter(c_start_dt),c_datetime_fmt);
+    g_allpars.pa_end_dt := to_date(get_parameter(c_end_dt),c_datetime_fmt);
+    g_allpars.pa_filter := get_parameter(c_filter);
+    g_allpars.pa_dump_id := get_parameter(c_dump_id);
+    g_allpars.pa_metric_id := get_parameter(c_metric_id);
+    g_allpars.pa_metricgroup_id := get_parameter(c_metricgroup_id);
+    g_allpars.pa_metricagg := get_parameter(c_metricagg);
+    g_allpars.pa_block_analyze := to_bool(get_parameter(c_block_analyze));
+    g_allpars.pa_unknown_analyze := to_bool(get_parameter(c_unknown_analyze));
+    g_allpars.pa_top_sess := to_bool(get_parameter(c_top_sess));
+    g_allpars.pa_filtered_separatelly := to_bool(get_parameter(c_FILTERED_SEPARATLY));
+
+    --g_allpars.pa_snap_duration := get_parameter(c_SNAP_DURATION);
+  end;
+
+  procedure validate_params(p_sess_id         asha_cube_sess.sess_id%type)
+  is
     l_dt1 timestamp;
     l_dt2 timestamp;
   begin
-
     if to_bool(get_parameter(c_SNAP_ASH)) then
       add_parameter(p_sess_id,c_monitor,'Y');
       add_parameter(p_sess_id,c_date_interval,'-1');
     end if;
-    g_allpars.pa_snap_ash := to_bool(get_parameter(c_SNAP_ASH));
-    g_allpars.pa_monitor := to_bool(get_parameter(c_monitor));
 
     if get_parameter(c_date_interval) is not null then
       if get_parameter(c_date_interval) = '-1' then
@@ -101,29 +126,6 @@ PACKAGE BODY ASHA_CUBE_PKG AS
       add_parameter(p_sess_id,c_start_dt,to_char(l_dt1,c_datetime_fmt));
       add_parameter(p_sess_id,c_end_dt,to_char(l_dt2,c_datetime_fmt));
     end if;
-
-    g_allpars.pa_source := get_parameter(c_source);
-    g_allpars.pa_dblink := coremod_api.get_ora_dblink(get_parameter(c_dblink));
-    g_allpars.pa_cubeagg := get_parameter(c_cubeagg);
-    g_allpars.pa_inst_id := get_parameter(c_inst_id);
-    g_allpars.pa_start_dt := to_date(get_parameter(c_start_dt),c_datetime_fmt);
-    g_allpars.pa_end_dt := to_date(get_parameter(c_end_dt),c_datetime_fmt);
-    g_allpars.pa_filter := get_parameter(c_filter);
-    g_allpars.pa_dump_id := get_parameter(c_dump_id);
-    g_allpars.pa_metric_id := get_parameter(c_metric_id);
-    g_allpars.pa_metricgroup_id := get_parameter(c_metricgroup_id);
-    g_allpars.pa_metricagg := get_parameter(c_metricagg);
-    g_allpars.pa_block_analyze := to_bool(get_parameter(c_block_analyze));
-    g_allpars.pa_unknown_analyze := to_bool(get_parameter(c_unknown_analyze));
-    g_allpars.pa_top_sess := to_bool(get_parameter(c_top_sess));
-
-    --g_allpars.pa_snap_duration := get_parameter(c_SNAP_DURATION);
-  end;
-
-  procedure validate_params(p_sess_id         asha_cube_sess.sess_id%type)
-  is
-  begin
-    null;
   end;
 
   procedure load_par_tmpl(p_tmpl_id          asha_cube_sess_tmpl.tmpl_id%type,
@@ -133,6 +135,12 @@ PACKAGE BODY ASHA_CUBE_PKG AS
   begin
     coremod_log.log('load_par_tmpl p_sess_id:p_tmpl_id: '||p_sess_id||':'||p_tmpl_id,'DEBUG');
 
+    -- load base parameter list
+    for i in (select p.* from asha_cube_sess_tmpl_pars p, asha_cube_sess_tmpl t where t.tmpl_base = 'Y' and t.tmpl_id=p.tmpl_id) loop
+      l_params_t(i.tmpl_par_nm):=i.tmpl_par_expr;
+    end loop;
+
+    --override by specific template
     for i in (select * from asha_cube_sess_tmpl_pars where tmpl_id=p_tmpl_id) loop
       l_params_t(i.tmpl_par_nm):=i.tmpl_par_expr;
     end loop;
@@ -155,6 +163,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     if l_params_t.exists(c_date_interval) then add_parameter(p_sess_id,c_date_interval,l_params_t(c_date_interval)); end if;
 
     if l_params_t.exists(c_SNAP_ASH) then add_parameter(p_sess_id,c_SNAP_ASH,l_params_t(c_SNAP_ASH)); end if;
+    if l_params_t.exists(c_FILTERED_SEPARATLY) then add_parameter(p_sess_id,c_FILTERED_SEPARATLY,l_params_t(c_FILTERED_SEPARATLY)); end if;
     --if l_params_t.exists(c_SNAP_DURATION) then add_parameter(p_sess_id,c_SNAP_DURATION,l_params_t(c_SNAP_DURATION)); end if;
 
     coremod_log.log('load_par_tmpl finished','DEBUG');
@@ -162,11 +171,17 @@ PACKAGE BODY ASHA_CUBE_PKG AS
 
   procedure init_session(p_proj_id          asha_cube_sess.sess_proj_id%type,
                          p_retention        asha_cube_sess.sess_retention_days%type,
-                         p_sess_id   in out asha_cube_sess.sess_id%type)
+                         p_sess_id   in out asha_cube_sess.sess_id%type,
+                         p_parent_sess      asha_cube_sess.parent_id%type default null)
   is
     l_sess_id asha_cube_sess.sess_id%type := p_sess_id;
+    l_curproj asha_cube_projects%rowtype;
   begin
-    insert into asha_cube_sess (sess_id, sess_proj_id, sess_created, sess_retention_days, sess_status) values (asha_sq_cube.nextval, p_proj_id, default, p_retention, stNEW) returning sess_id into p_sess_id;
+    l_curproj:=ASHA_PROJ_API.getproject(p_proj_id, false);
+    ASHA_PROJ_LCC.project_exec_action(l_curproj,ASHA_PROJ_LCC.c_project_rwcontent);
+
+    insert into asha_cube_sess (sess_id, sess_proj_id, sess_created, sess_retention_days, sess_status, parent_id)
+         values (asha_sq_cube.nextval, p_proj_id, default, p_retention, stNEW, p_parent_sess) returning sess_id into p_sess_id;
     g_params_t.delete;
     g_params_t(c_sess):=p_sess_id;
     if l_sess_id is not null then
@@ -901,11 +916,9 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
 
   procedure queue_load_cube(p_sess_id asha_cube_sess.sess_id%type, p_tq_id out opas_task_queue.tq_id%type)
   is
-    l_cnt number;
-    l_job_name varchar2(30):=g_mon_job_name;
-    l_job_body varchar2(32765);
-    l_tq_id opas_task_queue.tq_id%type;
-    pa_monitor boolean;
+    l_tq_id           opas_task_queue.tq_id%type;
+    pa_monitor        boolean;
+    l_parent_sess     asha_cube_sess.parent_id%type;
   begin
     ----------------------------------------------------
     init_params(p_sess_id);
@@ -917,50 +930,37 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
 
     set_cube_sess_status(p_sess_id,stINQUEUE);
 
-    --select count(1) into l_cnt from USER_SCHEDULER_RUNNING_JOBS where job_name=l_job_name;
-    coremod_tasks.stop_previous_user_task(P_TASKNAME => 'ASHA_SNAP_ASH');
+
+--    select parent_id into l_parent_sess from asha_cube_sess where sess_id=p_sess_id;
+--    if l_parent_sess is null then
+--      coremod_tasks.stop_previous_user_task(P_TASKNAME => 'ASHA_SNAP_ASH');
+--    end if;
     coremod_tasks.stop_previous_user_task(P_TASKNAME => 'ASHA_MONITOR');
 
     if pa_monitor then
-      --if l_cnt>0 then
-      --  begin
-      --    dbms_scheduler.stop_job(job_name => l_job_name);
-      --  exception
-      --    when others then coremod_log.log('Stopping job '||l_job_name||' error: '||chr(10)||sqlerrm);
-      --  end;
-      --end if;
       if to_bool(get_parameter(c_SNAP_ASH)) then
-        --dbms_lock.sleep(10);
         l_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => 'ASHA_SNAP_ASH') ;
         COREMOD_TASKS.set_task_param( p_tq_id => l_tq_id, p_name => 'B1', p_varchar_par => get_parameter(c_dblink));
         COREMOD_TASKS.set_task_param( p_tq_id => l_tq_id, p_name => 'B2', p_num_par => p_sess_id);
         COREMOD_TASKS.queue_task ( p_tq_id => l_tq_id ) ;
       end if;
-
-      --l_job_body:=q'[begin ASHA_CUBE_PKG.load_cube_mon(p_sess_id=>]'||p_sess_id||q'[); end;]';
-      --coremod_log.log(l_job_body,'DEBUG');
-      --dbms_scheduler.create_job(job_name => l_job_name,
-      --                          job_type => 'PLSQL_BLOCK',
-      --                          job_action => l_job_body,
-      --                          start_date => systimestamp,
-      --                          enabled => true,
-      --                          AUTO_DROP => true);
-
       p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => 'ASHA_MONITOR') ;
       COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_sess_id);
       COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id ) ;
     else
-      --if l_cnt>0 then
-      --  begin
-      --    dbms_scheduler.stop_job(job_name => l_job_name);
-      --  exception
-      --    when others then coremod_log.log('Stopping job '||l_job_name||' error: '||chr(10)||sqlerrm);
-      --  end;
-      --end if;
-
       p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => 'ASHA_CALC_CUBE') ;
       COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_sess_id);
       COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id ) ;
+--      coremod_log.log('MAIN CUBE SESS: '||p_sess_id);
+--      coremod_log.log('MAIN CUBE TQ: '||p_tq_id);
+      begin
+        select sess_id into l_parent_sess from asha_cube_sess where parent_id=p_sess_id;
+--        coremod_log.log('FILTERED CUBE SESS: '||l_parent_sess);
+        queue_load_cube(l_parent_sess,l_tq_id);
+--        coremod_log.log('FILTERED CUBE TQ: '||l_tq_id);
+      exception
+        when no_data_found then null;
+      end;
     end if;
     commit;
   exception

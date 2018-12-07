@@ -50,7 +50,8 @@ tmpl_id             NUMBER GENERATED ALWAYS AS IDENTITY primary key,
 tmpl_proj_id        number references asha_cube_projects(proj_id) on delete cascade,
 tmpl_name           varchar2(100),
 tmpl_description    varchar2(4000),
-tmpl_created        timestamp default systimestamp not null);
+tmpl_created        timestamp default systimestamp not null,
+tmpl_base           varchar2(1) default 'N');
 
 create index idx_asha_cube_tmpl_prj on asha_cube_sess_tmpl(tmpl_proj_id);
 
@@ -111,12 +112,14 @@ sess_retention_days number,
 sess_status         varchar2(30),
 sess_tq_id          number,
 sess_tq_id_snap     number,
-sess_description    varchar2(4000);
+sess_description    varchar2(4000),
+parent_id           number references asha_cube_sess(sess_id) on delete cascade;
 
 rem sess_retention_days: null - default project retention, 0 - keep forever, N - keep days
 
 create unique index xpk_asha_cube_sess on asha_cube_sess(sess_id);
 alter table asha_cube_sess add constraint xpk_asha_cube_sess primary key(sess_id);
+create unique index xpk_asha_cube_parsess on asha_cube_sess(parent_id);
 
 create table asha_cube_sess_pars (
 sess_id      number references asha_cube_sess(sess_id) on delete cascade,

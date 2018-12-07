@@ -180,7 +180,8 @@ parent_id      number references opas_reports(report_id) on delete cascade,
 modname        varchar2(128) references opas_modules(modname) on delete cascade,
 tq_id          number references opas_task_queue(tq_id) on delete set null,
 report_content number REFERENCES opas_files ( file_id ),
-report_params_displ varchar2(1000));
+report_params_displ varchar2(1000),
+report_type    varchar2(100);
 
 create index idx_opas_reports_mod   on opas_reports(modname);
 create index idx_opas_reports_fcntn on opas_reports(report_content);

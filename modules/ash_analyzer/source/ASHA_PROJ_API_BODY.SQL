@@ -84,7 +84,8 @@ package body ASHA_PROJ_API as
       delete from asha_cube_sess
        where sess_proj_id=p_proj_id
          and (sess_created+nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME)/24))<sysdate
-         and nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME))>0;
+         and nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME))>0
+         and parent_id is null;
       coremod_log.log('Sessions: '||sql%rowcount||' removed');
 
       for i in (select * from asha_cube_reports
