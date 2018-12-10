@@ -27,6 +27,10 @@ begin
   coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUPTASKSDATA',
                                             P_MODNAME => '&MODNM.',
                                             p_task_body => 'begin coremod_tasks.cleanup_tasks; end;');
+  coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUPCACHE',
+                                            P_MODNAME => '&MODNM.',
+                                            p_task_body => 'begin COREMOD_REPORT_UTILS.CLEANUP_CACHE; end;');
+											
 end;
 /
 

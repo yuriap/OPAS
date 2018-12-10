@@ -1,10 +1,10 @@
 -- Module list installation
 
 --Core
-rem @..\modules\core\install\install.sql
+@..\modules\core\install\install.sql
 
 --SQL Trace
-rem @..\modules\sql_trace\install\install.sql
+@..\modules\sql_trace\install\install.sql
 
 --ASH Analyzer
 @..\modules\ash_analyzer\install\install.sql

@@ -38,6 +38,14 @@ script_content clob
 
 create index idx_opas_scripts_mod on opas_scripts(modname);
 
+create table opas_qry_cache (
+sql_id      varchar2(128),
+sql_text    clob,
+created     timestamp default systimestamp,
+hit_num     number default 0);
+
+alter table opas_qry_cache add constraint xpk_asha_cube_qry_cache primary key(sql_id);
+
 --Database link dictionary
 create table opas_db_links (
 DB_LINK_NAME    varchar2(128) primary key,
@@ -69,7 +77,7 @@ select DB_LINK_NAME,
               'PUBLIC',
               owner,
               decode(is_public, 'Y', owner, nvl(V('APP_USER'), '~^')))
-   and l.db_link(+) = upper(o.DB_LINK_NAME ||'.'|| gn.value);
+   and l.db_link(+) = case when gn.value is null then upper(o.DB_LINK_NAME) else upper(o.DB_LINK_NAME ||'.'|| gn.value) end;
 
 --Task execution infrasrtucture
 create table opas_cleanup_tasks (
@@ -181,7 +189,7 @@ modname        varchar2(128) references opas_modules(modname) on delete cascade,
 tq_id          number references opas_task_queue(tq_id) on delete set null,
 report_content number REFERENCES opas_files ( file_id ),
 report_params_displ varchar2(1000),
-report_type    varchar2(100);
+report_type    varchar2(100));
 
 create index idx_opas_reports_mod   on opas_reports(modname);
 create index idx_opas_reports_fcntn on opas_reports(report_content);

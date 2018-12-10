@@ -26,8 +26,8 @@ begin
   p('set serveroutput on');
   p('begin');
   for i in (select * from user_db_links where DB_LINK not like 'DBAWR%') loop
-    p(replace(replace(replace(replace(replace(replace(replace(l_body,'<P_DB_LINK_NAME>',substr(i.DB_LINK,1,instr(i.DB_LINK,'.')-1))
-                                                            ,'<P_DB_LINK_DISPL_NAME>',substr(i.DB_LINK,1,instr(i.DB_LINK,'.')-1))
+    p(replace(replace(replace(replace(replace(replace(replace(l_body,'<P_DB_LINK_NAME>',case when instr(i.DB_LINK,'.') > 0 then substr(i.DB_LINK,1,instr(i.DB_LINK,'.')-1) else i.DB_LINK end)
+                                                            ,'<P_DB_LINK_DISPL_NAME>',case when instr(i.DB_LINK,'.') > 0 then substr(i.DB_LINK,1,instr(i.DB_LINK,'.')-1) else i.DB_LINK end)
                                                             ,'<P_OWNER>','PUBLIC')
                                                             ,'<P_IS_PUBLIC>','Y')
                                                             ,'<P_USERNAME>',i.USERNAME)

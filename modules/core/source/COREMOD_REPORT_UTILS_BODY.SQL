@@ -278,6 +278,75 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     p_script:=replace(replace(p_script,'&start_sn.',p_start_snap),'&end_sn.',p_end_snap);
   end;
 
+  procedure get_clob_remotelly(p_sql varchar2, p_dblink varchar2, p_output out clob)
+  is
+    l_theCursor     integer;
+    l_status        integer;
+    l_line          varchar2(32767);
+    l_output        varchar2(32767);
+    l_open          boolean;
+    l_sql2exec      varchar2(32767);
+    l_sql clob:=
+q'[declare
+l_out clob; l_len number;
+l_chunk varchar2(32767);
+l_status integer;
+l_pos number;
+l_chunk_length number := 32767;
+l_r raw(32767);
+l_rc raw(32767);
+begin
+DBMS_OUTPUT.ENABLE(NULL);
+begin
+<PLSQL_BLOCK>
+exception when no_data_found then l_out:='<NO_DATA_FOUND>'; end;
+l_pos:=1;l_len:=length(l_out);
+loop
+  l_chunk:=substr(l_out,l_pos,l_chunk_length);
+  l_pos:=l_pos+l_chunk_length;
+  l_r:=utl_raw.cast_to_raw(l_chunk);
+  l_rc:=UTL_COMPRESS.LZ_COMPRESS(l_r);
+  dbms_output.put(l_rc);
+  DBMS_OUTPUT.NEW_LINE;
+  exit when l_len<l_pos;
+end loop;
+end;]';
+    l_time number := 0;
+  begin
+    coremod_log.log(p_sql,'DEBUG');
+    l_sql:=replace(l_sql,'<PLSQL_BLOCK>',p_sql);
+    if length(l_sql) > 32767 then raise_application_error(-20000,'SQL <'||substr(l_sql,1,100)||'...> too long for remote table printing.');end if;
+    l_sql2exec:=l_sql;
+--dbms_output.put_line(l_sql2exec);
+    l_time:=DBMS_UTILITY.GET_TIME;
+    execute immediate 'begin :p_theCursor:=dbms_sql.open_cursor@'||p_dblink||'; end;' using out l_theCursor;
+    execute immediate 'begin dbms_sql.parse@'||p_dblink||'(:p_theCursor, :p_stmt , :p_flg ); end;' using l_theCursor, l_sql2exec, dbms_sql.native;
+    execute immediate 'begin :a:=dbms_sql.execute@'||p_dblink||'(:p_theCursor); end;' using out l_status, in l_theCursor;
+    execute immediate 'begin dbms_sql.close_cursor@'||p_dblink||'(:p_theCursor); end;' using in out l_theCursor;
+    l_time:=DBMS_UTILITY.GET_TIME-l_time;
+    coremod_log.log('Executing: '||(l_time/100),'DEBUG');
+    l_time:=DBMS_UTILITY.GET_TIME;
+    loop
+      execute immediate 'begin DBMS_OUTPUT.GET_LINE@'||p_dblink||'(line => :p_line, status => :p_status); end;' using out l_line, out l_status;
+      exit when l_status=1;
+      --p_output:=p_output||l_line||chr(10);
+      p_output:=p_output||utl_raw.cast_to_varchar2(UTL_COMPRESS.LZ_UNCOMPRESS(l_line));
+    end loop;
+    if instr(p_output,'<NO_DATA_FOUND>')>0 then p_output:=null; end if;
+    l_time:=DBMS_UTILITY.GET_TIME-l_time;
+    coremod_log.log('Getting output: '||(l_time/100),'DEBUG');
+  exception
+    when others then
+       execute immediate 'begin :p_open:=dbms_sql.IS_OPEN@'||p_dblink||'(:p_theCursor); end;' using out l_open, in l_theCursor;
+      if l_open then
+        execute immediate 'begin dbms_sql.close_cursor@'||p_dblink||'(:p_theCursor); end;' using in out l_theCursor;
+      end if;
+      coremod_log.log('Error in COREMOD_REPORT_UTILS.get_clob_emotelly: '||sqlerrm);
+      coremod_log.log('Error in COREMOD_REPORT_UTILS.get_clob_emotelly: SQL: '||l_sql2exec);
+      coremod_log.log('Error in COREMOD_REPORT_UTILS.get_clob_emotelly: Error stack: '||DBMS_UTILITY.FORMAT_ERROR_STACK);
+      raise_application_error(-20000,'Error in COREMOD_REPORT_UTILS.get_clob_emotelly: '||sqlerrm);
+  end;
+
   procedure execute_plsql_remotelly(p_sql varchar2, p_dblink varchar2, p_output out clob, p_is_output boolean default true)
   is
     l_theCursor     integer;
@@ -861,6 +930,135 @@ end;]';
 
     p(HTF.TABLECLOSE);
   end print_text_as_table_new;
+
+  procedure CLEANUP_CACHE
+  is
+  begin
+    delete from opas_qry_cache where hit_num <= 0 and created < (systimestamp - to_number(COREMOD_API.getconf('SQLCACHERETENTION',COREMOD_API.gMODNAME)));
+    coremod_log.log('Cleanup query cache: Deleted '||sql%rowcount||' query text(s).');
+    if sysdate - trunc(sysdate) between 23.05/24 and 23.45/24 then --decrement of cache hit once per day
+      update opas_qry_cache set hit_num = hit_num - 1;
+    end if;
+    commit;
+  exception
+    when others then
+      rollback;
+      dbms_output.put_line(sqlerrm);
+      coremod_log.log('COREMOD_REPORT_UTILS.CLEANUP_CACHE_INT error: '||sqlerrm);
+  end;
+
+  procedure set_sql_cache_hit(p_sql_id opas_qry_cache.sql_id%type, p_hit opas_qry_cache.hit_num%type)
+  is
+  begin
+    update opas_qry_cache set hit_num = hit_num + p_hit where sql_id = p_sql_id;
+  end;
+
+  function get_sql_search_query(p_srcdb varchar2, p_sql_search_str varchar2, p_use_cache varchar2 default 'N', p_result_limit number default 0) return varchar2
+  is
+    l_dblink varchar2(512);
+  begin
+    if (p_srcdb is null and p_sql_search_str is null) or p_sql_search_str is null then
+      return q'[select /*+ qb_name(OPAS_SEARCH) */ 1 nn#, 'Local query cache' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,4000) as varchar2(4000)) sql_text from opas_qry_cache
+                 where 1=2]';
+    elsif p_srcdb is null or p_srcdb = '$LOCAL$' then
+      return q'[select * from (
+               (select /*+ qb_name(OPAS_SEARCH) */ 1 nn#, 'Local query cache' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,4000) as varchar2(4000)) sql_text from opas_qry_cache
+                 where (sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'[')) and 'Y'=']'||p_use_cache||q'['
+                union all
+                select 2 nn#, 'Local AWR repository' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,4000) as varchar2(4000)) sql_text from dba_hist_sqltext
+                 where (sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'['))
+                   and sql_text not like '%qb_name(OPAS_SEARCH)%'
+                union all
+                select 3 nn#, 'Local V$SQL' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(SQL_FULLTEXT,1,4000) as varchar2(4000)) sql_text from gv$sql
+                  where (SQL_FULLTEXT like ']'||p_sql_search_str||q'[' or upper(SQL_FULLTEXT) like upper(']'||p_sql_search_str||q'['))
+                    and sql_fulltext not like '%qb_name(OPAS_SEARCH)%'
+                ) ]' || case when p_result_limit = 0 then null else ' where rownum <= '||p_result_limit end || q'[ order by nn#]';
+    else
+      l_dblink := COREMOD_API.get_ora_dblink(p_srcdb);
+      return q'[select * from (
+                select /*+ qb_name(OPAS_SEARCH) */ 1 nn#, 'Local query cache' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,4000) as varchar2(4000)) sql_text from opas_qry_cache
+                 where (sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'[')) and 'Y'=']'||p_use_cache||q'['
+                union all
+                select 2 nn#, 'Local AWR repository' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,4000) as varchar2(4000)) sql_text from dba_hist_sqltext
+                 where sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'[')
+                union all
+                select 3 nn#, 'Remote AWR repository' source_tab, ']'||p_srcdb||q'[' source_db, sql_id, cast(substr(sql_text,1,4000) as varchar2(4000)) sql_text from dba_hist_sqltext@]'||p_srcdb||q'[
+                 where sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'[')
+                union all
+                select 4 nn#, 'Remote V$SQL' source_tab, ']'||p_srcdb||q'[' source_db, sql_id, cast(substr(SQL_FULLTEXT,1,4000) as varchar2(4000)) sql_text from gv$sql@]'||p_srcdb||q'[
+                 where SQL_FULLTEXT like ']'||p_sql_search_str||q'[' or upper(SQL_FULLTEXT) like upper(']'||p_sql_search_str||q'[')
+                ) ]' || case when p_result_limit = 0 then null else ' where rownum <= '||p_result_limit end || q'[ order by nn#]';
+    end if;
+  end;
+
+  function get_sql_qry_txt(p_srcdb varchar2, p_sql_id varchar2) return clob AS
+    --l_txt    varchar2(4000);
+    l_dbid   number;
+    l_sql    varchar2(32765);
+    l_output clob;
+    l_dblink varchar2(512);
+    pragma autonomous_transaction;
+  BEGIN
+coremod_log.log(p_srcdb);
+    if p_sql_id = upper('<UNKNOWN SQL>') then
+      return 'Unknown sql_id.';
+    else
+      select sql_text into l_output from opas_qry_cache where sql_id=p_sql_id;
+      set_sql_cache_hit(p_sql_id,10);
+      commit;
+      return l_output;
+    end if;
+  exception
+    when no_data_found then
+      begin
+        begin
+          select sql_text into l_output from dba_hist_sqltext where sql_id=p_sql_id and rownum=1;
+        exception
+          when no_data_found then null;
+        end;
+
+        if l_output is null and p_srcdb is not null and p_srcdb <> '$LOCAL$' then
+          l_dblink := COREMOD_API.get_ora_dblink(p_srcdb);
+          execute immediate 'select dbid from v$database@'||l_dblink into l_dbid;
+
+          l_sql := q'[select sql_text into l_out from dba_hist_sqltext where sql_id=']'||p_sql_id||q'[' and dbid=]'||l_dbid||q'[ and rownum<2;]';
+          COREMOD_REPORT_UTILS.get_clob_remotelly
+            (  P_SQL => l_sql,
+               P_DBLINK => l_dblink,
+               P_OUTPUT => l_output) ;
+          --begin
+          --  l_sql := 'select txt from (select cast(substr(sql_text,1,4000) as varchar2(4000)) txt from dba_hist_sqltext@'||l_dblink||' a where sql_id=:p_sql_id and dbid=:p_dbid) where rownum<2';
+          --  execute immediate l_sql into l_txt using p_sql_id, l_dbid;
+          --exception
+          --  when no_data_found then null;
+          --end;
+
+          if l_output is null and p_srcdb is not null and p_srcdb <> '$LOCAL$' then
+            --begin
+            --  l_sql := 'select txt from (select cast(substr(SQL_FULLTEXT,1,4000) as varchar2(4000)) txt from gv$sql@'||l_dblink||' a where sql_id=:p_sql_id) where rownum<2';
+            --  execute immediate l_sql into l_txt using p_sql_id;
+            --exception
+            --  when no_data_found then null;
+            --end;
+            l_sql := q'[select SQL_FULLTEXT into l_out from gv$sql where sql_id=']'||p_sql_id||q'['  and rownum<2;]';
+            COREMOD_REPORT_UTILS.get_clob_remotelly
+              (  P_SQL => l_sql,
+                 P_DBLINK => l_dblink,
+                 P_OUTPUT => l_output) ;
+          end if;
+        end if;
+
+        if l_output is null then
+          l_output := 'No sql text found.';
+        else
+          INSERT INTO opas_qry_cache (sql_id,sql_text,created)
+               VALUES (p_sql_id,l_output,default);
+          commit;
+        end if;
+        commit;
+        return l_output;
+      end;
+  END get_sql_qry_txt;
 
 end;
 /

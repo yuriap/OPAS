@@ -8,6 +8,8 @@ INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','IN
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','LOGGING','LOGGING_LEVEL','INFO','Current logging level. INFO|DEBUG');
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','TASKEXEC','MAXTHREADS',4,'Max number of simultaneously running tasks');
 
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RETENTION','SQLCACHERETENTION', 30,'Retention time in days for SQL Cache.');
+
 insert into opas_groups (group_id,group_name,group_descr) values (0, 'Administrators','Full set of rights');
 insert into opas_groups (group_id,group_name,group_descr) values (1, 'Reas-write users','All application functions');
 insert into opas_groups (group_id,group_name,group_descr) values (2, 'Read-only users','Read-only functions');
@@ -20,14 +22,14 @@ declare
 begin
   l_script := 
 q'[
-@@../scripts/opasawr.css
+@../modules/core/scripts/opasawr.css
 ]';
   delete from opas_scripts where script_id='PROC_AWRCSS';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRCSS','~MODNM.',l_script);  
   
   l_script := 
 q'^
-@../scripts/__prn_tbl_html.sql
+@../modules/core/scripts/__prn_tbl_html.sql
 ^';
   delete from opas_scripts where script_id='PROC_PRNHTMLTBL';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_PRNHTMLTBL','~MODNM.',l_script);  
@@ -35,7 +37,7 @@ q'^
   
   l_script := 
 q'^
-@@../scripts/__getftxt.sql
+@../modules/core/scripts/__getftxt.sql
 ^';
   delete from opas_scripts where script_id='PROC_GETGTXT';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_GETGTXT','~MODNM.',l_script);
@@ -43,7 +45,7 @@ q'^
   
   l_script := 
 q'^
-@@../scripts/__nonshared1.sql
+@../modules/core/scripts/__nonshared1.sql
 ^';
   delete from opas_scripts where script_id='PROC_NON_SHARED';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_NON_SHARED','~MODNM.',l_script);
@@ -51,7 +53,7 @@ q'^
 
   l_script := 
 q'^
-@@../scripts/__vsql_stat.sql
+@../modules/core/scripts/__vsql_stat.sql
 ^';
   delete from opas_scripts where script_id='PROC_VSQL_STAT';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_VSQL_STAT','~MODNM.',l_script);
@@ -59,7 +61,7 @@ q'^
 
   l_script := 
 q'^
-@@../scripts/__offload_percent1.sql
+@../modules/core/scripts/__offload_percent1.sql
 ^';
   delete from opas_scripts where script_id='PROC_OFFLOAD_PCT1';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_OFFLOAD_PCT1','~MODNM.',l_script);
@@ -67,7 +69,7 @@ q'^
   
   l_script := 
 q'^
-@@../scripts/__offload_percent2.sql
+@../modules/core/scripts/__offload_percent2.sql
 ^';
   delete from opas_scripts where script_id='PROC_OFFLOAD_PCT2';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_OFFLOAD_PCT2','~MODNM.',l_script);
@@ -75,7 +77,7 @@ q'^
   
   l_script := 
 q'^
-@@../scripts/__sqlmon1.sql
+@../modules/core/scripts/__sqlmon1.sql
 ^';
   delete from opas_scripts where script_id='PROC_SQLMON';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_SQLMON','~MODNM.',l_script);
@@ -83,7 +85,7 @@ q'^
   
   l_script := 
 q'^
-@@../scripts/__sqlwarea.sql
+@../modules/core/scripts/__sqlwarea.sql
 ^';
   delete from opas_scripts where script_id='PROC_SQLWORKAREA';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_SQLWORKAREA','~MODNM.',l_script);
@@ -91,7 +93,7 @@ q'^
 
   l_script := 
 q'^
-@@../scripts/__optenv.sql
+@../modules/core/scripts/__optenv.sql
 ^';
   delete from opas_scripts where script_id='PROC_OPTENV';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_OPTENV','~MODNM.',l_script);
@@ -99,7 +101,7 @@ q'^
   
   l_script := 
 q'^
-@@../scripts/__rac_plans.sql
+@../modules/core/scripts/__rac_plans.sql
 ^';
   delete from opas_scripts where script_id='PROC_RACPLAN';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_RACPLAN','~MODNM.',l_script);
@@ -107,7 +109,7 @@ q'^
   
   l_script := 
 q'^
-@@../scripts/__sqlmon_hist.sql
+@../modules/core/scripts/__sqlmon_hist.sql
 ^';
   delete from opas_scripts where script_id='PROC_SQLMON_HIST';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_SQLMON_HIST','~MODNM.',l_script);
@@ -115,7 +117,7 @@ q'^
   
   l_script := 
 q'[
-@@../scripts/__ash_p3
+@../modules/core/scripts/__ash_p3
 ]';
   delete from opas_scripts where script_id='PROC_AWRASHP3';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRASHP3','~MODNM.',l_script);
@@ -129,7 +131,7 @@ declare
 begin
   l_script :=
 q'{
-@@../scripts/__sqlstat.sql
+@../modules/core/scripts/__sqlstat.sql
 }';
   delete from opas_scripts where script_id='PROC_AWRSQLSTAT';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRSQLSTAT','~MODNM.',l_script);
@@ -137,7 +139,7 @@ q'{
   
   l_script := 
 q'[
-@@../scripts/__ash_summ
+@../modules/core/scripts/__ash_summ
 ]';
   delete from opas_scripts where script_id='PROC_AWRASHSUMM';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRASHSUMM','~MODNM.',l_script);
@@ -145,7 +147,7 @@ q'[
   
   l_script := 
 q'[
-@@../scripts/__ash_p1
+@../modules/core/scripts/__ash_p1
 ]';
   delete from opas_scripts where script_id='PROC_AWRASHP1';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRASHP1','~MODNM.',l_script);
@@ -153,7 +155,7 @@ q'[
   
   l_script := 
 q'[
-@@../scripts/__ash_p1_1
+@../modules/core/scripts/__ash_p1_1
 ]';
   delete from opas_scripts where script_id='PROC_AWRASHP1_1';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRASHP1_1','~MODNM.',l_script);
@@ -161,7 +163,7 @@ q'[
   
   l_script := 
 q'[
-@@../scripts/__ash_p2
+@../modules/core/scripts/__ash_p2
 ]';
   delete from opas_scripts where script_id='PROC_AWRASHP2';
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRASHP2','~MODNM.',l_script);

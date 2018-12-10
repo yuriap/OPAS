@@ -40,6 +40,8 @@ PACKAGE COREMOD_REPORT_UTILS AS
 
   procedure execute_plsql_remotelly(p_sql varchar2, p_dblink varchar2, p_output out clob, p_is_output boolean default true);
   procedure execute_plsql_remotelly(p_sql varchar2, p_dblink varchar2, p_output out t_output_lines);
+  procedure get_clob_remotelly(p_sql varchar2, p_dblink varchar2, p_output out clob);
+
   procedure print_table_html_remotelly(p_query in varchar2,
                                        p_width number,
                                        p_summary varchar2,
@@ -98,5 +100,11 @@ PACKAGE COREMOD_REPORT_UTILS AS
   procedure init_lo_report(p_op_name varchar2, p_target_desc varchar2, p_units varchar2, p_totalwork number);
   procedure start_lo_section(p_module_name varchar2, p_action_name varchar2);
   function  end_lo_section(p_is_finished boolean default false) return varchar2;
+
+  -- query cache
+  procedure CLEANUP_CACHE;
+  function get_sql_qry_txt(p_srcdb varchar2, p_sql_id varchar2) return clob;
+  function get_sql_search_query(p_srcdb varchar2, p_sql_search_str varchar2, p_use_cache varchar2 default 'N', p_result_limit number default 0) return varchar2;
+
 end;
 /

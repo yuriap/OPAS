@@ -1,4 +1,4 @@
-rem create bigfile tablespace &tblspc_name. datafile size 100m autoextend on next 100m maxsize 1000m;
+create bigfile tablespace &tblspc_name. datafile size 100m autoextend on next 100m maxsize 1000m;
 
 create user &localscheme. identified by &localscheme.
 default tablespace &tblspc_name.
@@ -21,6 +21,7 @@ grant update on apex_180100.WWV_FLOW_TEMP_FILES to &localscheme.;
 grant select on v_$session to &localscheme.;
 grant select on gv_$session to &localscheme.;
 grant select on v_$parameter to &localscheme.;
+grant select on dba_hist_sqltext to &localscheme.;
 
 
 begin

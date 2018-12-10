@@ -60,7 +60,7 @@ end;
 begin
   coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUP_ASH_ANALYZER',
                                             P_MODNAME => '&MODNM.',
-                                            p_task_body => 'begin ASHA_PROJ_API.cleanup_projects; ASHA_CUBE_API.CLEANUP_CUBE; end;');
+                                            p_task_body => 'begin ASHA_PROJ_API.cleanup_projects; end;');
 end;
 /
 commit;

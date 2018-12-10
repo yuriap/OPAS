@@ -30,21 +30,6 @@ end retention
 from asha_cube_projects x
 where owner=decode(owner,'PUBLIC',owner,decode(is_public,'Y',owner,nvl(V('APP_USER'),'~^')));
 
-create table asha_cube_reports(
-    proj_id          NUMBER NOT NULL REFERENCES asha_cube_projects ( proj_id )   on delete cascade,
-	report_id        NUMBER NOT NULL REFERENCES opas_reports       ( report_id ) on delete cascade,
-	sess_id          number references asha_cube_sess(sess_id) on delete set null,
-	report_retention number,
-	report_note      varchar2(4000),
-	created          timestamp default systimestamp
-);
-
-rem report_retention: null - default project retention, 0 - keep forever, N - keep days
-
-create unique index idx_asha_cube_reports_proj on asha_cube_reports(proj_id, report_id);
-create index idx_asha_cube_reports_rep  on asha_cube_reports(report_id);
-create index idx_asha_cube_reports_sess  on asha_cube_reports(sess_id);
-
 create table asha_cube_sess_tmpl (
 tmpl_id             NUMBER GENERATED ALWAYS AS IDENTITY primary key,
 tmpl_proj_id        number references asha_cube_projects(proj_id) on delete cascade,
@@ -81,6 +66,8 @@ from v$metricname where metric_name in (
 'Network Traffic Volume Per Sec',
 'User Calls Per Sec');
 
+create unique index asha_cube_metrics_dic_id on asha_cube_metrics_dic(group_id,metric_id);
+
 --=====================================================================================
 --=====================================================================================
 --=====================================================================================
@@ -92,13 +79,6 @@ inst_id     number,
 created     timestamp default systimestamp);
 
 create index idx_asha_cube_rac_cache_src on asha_cube_racnodes_cache(src_dblink);
-
-create table asha_cube_qry_cache (
-sql_id      varchar2(128),
-sql_text    clob,
-created     timestamp default systimestamp);
-
-alter table asha_cube_qry_cache add constraint xpk_asha_cube_qry_cache primary key(sql_id);
 
 --=====================================================================================
 --=====================================================================================
@@ -113,13 +93,14 @@ sess_status         varchar2(30),
 sess_tq_id          number,
 sess_tq_id_snap     number,
 sess_description    varchar2(4000),
-parent_id           number references asha_cube_sess(sess_id) on delete cascade;
+parent_id           number);
 
 rem sess_retention_days: null - default project retention, 0 - keep forever, N - keep days
 
 create unique index xpk_asha_cube_sess on asha_cube_sess(sess_id);
 alter table asha_cube_sess add constraint xpk_asha_cube_sess primary key(sess_id);
 create unique index xpk_asha_cube_parsess on asha_cube_sess(parent_id);
+alter table asha_cube_sess add constraint fk_asha_cube_sess_prnt foreign key(sess_id) references asha_cube_sess(sess_id) on delete cascade;
 
 create table asha_cube_sess_pars (
 sess_id      number references asha_cube_sess(sess_id) on delete cascade,
@@ -245,3 +226,18 @@ alter table asha_cube_snap_ash add constraint fk_snap_sess foreign key (sess_id)
 --statistic#       number, 
 --value            number)
 --on commit preserve rows;
+
+create table asha_cube_reports(
+    proj_id          NUMBER NOT NULL REFERENCES asha_cube_projects ( proj_id )   on delete cascade,
+	report_id        NUMBER NOT NULL REFERENCES opas_reports       ( report_id ) on delete cascade,
+	sess_id          number references asha_cube_sess(sess_id) on delete set null,
+	report_retention number,
+	report_note      varchar2(4000),
+	created          timestamp default systimestamp
+);
+
+rem report_retention: null - default project retention, 0 - keep forever, N - keep days
+
+create unique index idx_asha_cube_reports_proj on asha_cube_reports(proj_id, report_id);
+create index idx_asha_cube_reports_rep  on asha_cube_reports(report_id);
+create index idx_asha_cube_reports_sess  on asha_cube_reports(sess_id);
