@@ -147,7 +147,7 @@ package body COREMOD_API as
           l_domain varchar2(128);
         begin
           select value into l_domain from v$parameter where name like '%domain%';
-          execute immediate 'drop database link '||p_db_link_name||'.'||l_domain;
+          execute immediate 'drop database link ' || case when l_domain is null then p_db_link_name else p_db_link_name ||'.'|| l_domain end;
         exception
           when others then
             COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
@@ -172,11 +172,11 @@ package body COREMOD_API as
     else
       --select * into l_dblink from opas_db_links where DB_LINK_NAME = upper(p_db_link_name) for update nowait;
       select value into l_domain from v$parameter where name like '%domain%';
-      select count(1) into l_cnt from user_db_links where db_link=upper(p_db_link_name)||'.'||l_domain;
+      select count(1) into l_cnt from user_db_links where db_link = case when l_domain is null then p_db_link_name else p_db_link_name ||'.'|| l_domain end;
       if l_cnt>0 then
         begin
           update opas_db_links set STATUS='TODELETE' where DB_LINK_NAME=upper(p_db_link_name);
-          execute immediate 'drop database link '||p_db_link_name||'.'||l_domain;
+          execute immediate 'drop database link ' || case when l_domain is null then p_db_link_name else p_db_link_name ||'.'|| l_domain end;
         exception
           when others then
             COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_STACK);

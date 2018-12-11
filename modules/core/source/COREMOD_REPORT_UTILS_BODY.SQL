@@ -999,7 +999,6 @@ end;]';
     l_dblink varchar2(512);
     pragma autonomous_transaction;
   BEGIN
-coremod_log.log(p_srcdb);
     if p_sql_id = upper('<UNKNOWN SQL>') then
       return 'Unknown sql_id.';
     else

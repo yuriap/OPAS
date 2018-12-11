@@ -45,8 +45,9 @@ package body COREMOD_SEC as
         delete from OPAS_GROUPS2APEXUSR
          where apex_user=p_apex_user
            and modname=p_modname_lst(i);
-
-        insert into OPAS_GROUPS2APEXUSR (group_id, modname, apex_user) values (p_group_id_lst(i),p_modname_lst(i), p_apex_user);
+        if p_group_id_lst(i) is not null then
+          insert into OPAS_GROUPS2APEXUSR (group_id, modname, apex_user) values (p_group_id_lst(i),p_modname_lst(i), p_apex_user);
+        end if;
       end loop;
       COREMOD_API.release_resource(l_handle);
     end if;

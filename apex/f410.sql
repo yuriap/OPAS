@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   15:19 Monday December 10, 2018
+--   Date and Time:   12:00 Tuesday December 11, 2018
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -126,7 +126,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181210151732'
+,p_last_upd_yyyymmddhh24miss=>'20181211115440'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -12010,8 +12010,9 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(11329277092276266)
 ,p_dialog_width=>'1000'
+,p_dialog_chained=>'N'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181119153357'
+,p_last_upd_yyyymmddhh24miss=>'20181211114603'
 );
 wwv_flow_api.create_report_region(
  p_id=>wwv_flow_api.id(11419032588936987)
@@ -16482,7 +16483,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(10417456972725136)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181208192211'
+,p_last_upd_yyyymmddhh24miss=>'20181211115440'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(26561984883064379)
@@ -16969,6 +16970,7 @@ wwv_flow_api.create_page_button(
 ,p_button_template_id=>wwv_flow_api.id(11870518977539690)
 ,p_button_image_alt=>'Save'
 ,p_button_position=>'BELOW_BOX'
+,p_button_alignment=>'LEFT'
 ,p_button_condition=>'ASHA_PROJ_LCC.project_check_action(:P301_PROJ_ID,ASHA_PROJ_LCC.c_project_edit)'
 ,p_button_condition_type=>'PLSQL_EXPRESSION'
 ,p_security_scheme=>wwv_flow_api.id(10417766677725137)
@@ -17393,7 +17395,7 @@ wwv_flow_api.create_page_process(
 '       p_is_public    => nvl(:P301_IS_PUBLIC,''N''));',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_api.id(6287625287499255)
+,p_process_when_button_id=>wwv_flow_api.id(10432232354858598)
 ,p_process_success_message=>'Security attributes saved'
 ,p_security_scheme=>wwv_flow_api.id(10417766677725137)
 );
@@ -17423,7 +17425,7 @@ wwv_flow_api.create_page_process(
 '  ASHA_PROJ_API.lock_project(:P301_PROJ_ID);',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_api.id(6255539655097115)
+,p_process_when_button_id=>wwv_flow_api.id(10428770490858581)
 ,p_process_success_message=>'Project locked'
 ,p_security_scheme=>wwv_flow_api.id(10417766677725137)
 );
