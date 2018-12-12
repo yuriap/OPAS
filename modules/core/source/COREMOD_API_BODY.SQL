@@ -100,7 +100,7 @@ package body COREMOD_API as
       (DB_LINK_NAME,DISPLAY_NAME,OWNER,STATUS,is_public,username,password,connstr)
     values
       (upper(p_db_link_name), p_db_link_displ_name, upper(p_owner),
-       'NEW', case when upper(p_owner)='PUBLIC' then 'Y' else case when p_is_public = 'Y' then 'Y' else 'N' end end, p_username,p_password,p_connectstring);
+       dblNEW, case when upper(p_owner)='PUBLIC' then 'Y' else case when p_is_public = 'Y' then 'Y' else 'N' end end, p_username,p_password,p_connectstring);
   end;
 
   procedure edit_dblink    (p_db_link_name varchar2,
@@ -119,7 +119,7 @@ package body COREMOD_API as
        nvl(p_connectstring,'~^')<>nvl(l_dblink.connstr,'~^')
     then
       update opas_db_links set
-             STATUS = 'MODIFIED',
+             STATUS = dblMODIFIED,
              DISPLAY_NAME = p_db_link_displ_name,
              is_public = case when upper(owner)='PUBLIC' then 'Y' else case when p_is_public = 'Y' then 'Y' else 'N' end end,
              username = p_username,
@@ -156,12 +156,12 @@ package body COREMOD_API as
         end;
       end if;
         execute immediate q'[CREATE DATABASE LINK ]'||l_dblink.db_link_name||q'[ CONNECT TO ]'||l_dblink.username||q'[ IDENTIFIED BY ]'||l_dblink.password||q'[ USING ']'||l_dblink.connstr||q'[']';
-      update opas_db_links set STATUS='CREATED' where DB_LINK_NAME=upper(p_db_link_name);
+      update opas_db_links set STATUS=dblCREATED where DB_LINK_NAME=upper(p_db_link_name);
       commit;
     end if;
   end;
 
-  procedure drop_dblink(p_db_link_name varchar2)
+  procedure drop_dblink(p_db_link_name varchar2, p_suspend boolean default false)
   is
     l_domain varchar2(128);
     l_cnt number;
@@ -172,10 +172,14 @@ package body COREMOD_API as
     else
       --select * into l_dblink from opas_db_links where DB_LINK_NAME = upper(p_db_link_name) for update nowait;
       select value into l_domain from v$parameter where name like '%domain%';
-      select count(1) into l_cnt from user_db_links where db_link = case when l_domain is null then p_db_link_name else p_db_link_name ||'.'|| l_domain end;
+      select count(1) into l_cnt from user_db_links where db_link = upper(case when l_domain is null then p_db_link_name else p_db_link_name ||'.'|| l_domain end);
       if l_cnt>0 then
         begin
-          update opas_db_links set STATUS='TODELETE' where DB_LINK_NAME=upper(p_db_link_name);
+          if p_suspend then
+            update opas_db_links set STATUS=dblSUSPENDED where DB_LINK_NAME=upper(p_db_link_name);
+          else
+            update opas_db_links set STATUS=dblTODELETE where DB_LINK_NAME=upper(p_db_link_name);
+          end if;
           execute immediate 'drop database link ' || case when l_domain is null then p_db_link_name else p_db_link_name ||'.'|| l_domain end;
         exception
           when others then
@@ -185,7 +189,9 @@ package body COREMOD_API as
             raise;
         end;
       end if;
-      delete from opas_db_links where DB_LINK_NAME=upper(p_db_link_name);
+      if not p_suspend then
+        delete from opas_db_links where DB_LINK_NAME=upper(p_db_link_name);
+      end if;
       commit;
     end if;
   end;
@@ -193,10 +199,17 @@ package body COREMOD_API as
   procedure test_dblink(p_db_link_name varchar2)
   is
     l_dblink varchar2(512);
+    l_status OPAS_DB_LINKS.status%type;
     a number;
   begin
-    select ora_db_link into l_dblink from V$OPAS_DB_LINKS where db_link_name=upper(p_db_link_name);
-    execute immediate 'select 1 from dual@'||l_dblink into a;
+    select ora_db_link, status into l_dblink, l_status from V$OPAS_DB_LINKS where db_link_name=upper(p_db_link_name);
+    if l_status = dblSUSPENDED then raise_application_error(-20999, 'DB Link: '||p_db_link_name||' is suspended');end if;
+    begin
+      execute immediate 'select 1 from dual@'||l_dblink into a;
+    exception
+      when others then drop_dblink(p_db_link_name, p_suspend => true);
+      raise;
+    end;
   end;
 
   function get_ora_dblink(p_db_link_name varchar2) return varchar2

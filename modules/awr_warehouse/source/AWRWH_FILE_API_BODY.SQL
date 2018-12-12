@@ -38,15 +38,16 @@ PACKAGE BODY AWRWH_FILE_API AS
 
     if l_dmp_file.filename is not null then
 
-      l_file := COREFILE_API.create_file(P_MODNAME => gMODNAME,
-                                         P_FILE_TYPE => 'Extended SQL Trace',
+      l_file := COREFILE_API.create_file(P_MODNAME => AWRWH_API.gMODNAME,
+                                         P_FILE_TYPE => 'AWR Dump',
                                          P_FILE_NAME => l_dmp_file.filename,
-                                         P_MIMETYPE => 'TXT',
+                                         P_MIMETYPE => 'bin',
                                          P_OWNER => l_dmp_file.OWNER);
 
       COREFILE_API.get_locator(l_file,l_file_content);
       if p_file is null then
-
+        null;
+        /*
         if l_dmp_file.file_source is null then raise_application_error(-20000,'File source and file name are empty.'); end if;
 
         if l_dmp_file.file_source = '$LOCAL$' then
@@ -61,6 +62,7 @@ PACKAGE BODY AWRWH_FILE_API AS
             l_file_content:=l_file_content||l_line;
           end loop;
         end if;
+        */
       else
         DBMS_LOB.CONVERTTOCLOB(
           dest_lob       => l_file_content,
@@ -76,34 +78,35 @@ PACKAGE BODY AWRWH_FILE_API AS
       COREFILE_API.store_content(l_file,l_file_content);
 
       UPDATE awrwh_dumps
-         SET file_content = l_file
+         SET filebody = l_file
        WHERE dump_id = p_dump_id;
 
-	  AWRWH_FILE_LCC.trcfile_exec_action(l_dmp_file,AWRWH_FILE_LCC.c_dmpfile_load);
+	  --AWRWH_FILE_LCC.trcfile_exec_action(l_dmp_file,AWRWH_FILE_LCC.c_dmpfile_load);
     end if;
   end;
 
   procedure register_dump_file (p_proj_id         awrwh_dumps.proj_id%type,
                                 p_owner           awrwh_dumps.owner%type,
                                 p_filename        awrwh_dumps.filename%type,
-                                p_file_source     awrwh_dumps.file_source%type,
                                 p_store_file      boolean,
                                 p_dump_id out awrwh_dumps.dump_id%type)
   is
-    l_db_source awrwh_dumps.file_source%type;
+    --l_db_source awrwh_dumps.file_source%type;
   begin
+    /*
     if nvl(p_file_source,'$LOCAL$') = '$LOCAL$' then
       l_db_source := p_file_source;
     else
       select DB_LINK_NAME into l_db_source from v$opas_db_links where ORA_DB_LINK=p_file_source;
     end if;
+    */
+    --INSERT INTO awrwh_dumps (proj_id, filename, owner, loading_date, status) VALUES (p_proj_id,p_filename, nvl(p_owner,COREMOD_API.gDefaultOwner), default, AWRWH_FILE_LCC.c_dmpfilestate_new) returning dump_id into p_dump_id;
 
-    INSERT INTO awrwh_dumps (proj_id, filename, owner, created, status, file_source) VALUES (p_proj_id,p_filename, nvl(p_owner,COREMOD_API.gDefaultOwner), default, AWRWH_FILE_LCC.c_dmpfilestate_new, l_db_source) returning dump_id into p_dump_id;
-
-	AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_create);
-    if not p_store_file then
-      AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_load);
-    end if;
+	--AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_create);
+    --if not p_store_file then
+    --  AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_load);
+    --end if;
+    null;
   end;
 
   procedure set_file_security
@@ -113,7 +116,7 @@ PACKAGE BODY AWRWH_FILE_API AS
                          p_parsed_keep_forever awrwh_dumps.parsed_keep_forever%type)
   is
   begin
-    AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_edit);
+    --AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_edit);
     UPDATE awrwh_dumps
        SET owner = nvl(p_owner,owner),
            source_keep_forever = decode(p_source_keep_forever,'Y','Y','N','N','N'),
@@ -127,15 +130,15 @@ PACKAGE BODY AWRWH_FILE_API AS
   begin
     coremod_log.log('TRC_FILE_API.remove_source_data_i: '||p_dump_id,'DEBUG');
     l_dmp_file:=get_file(p_dump_id,true);
-    update awrwh_dumps set file_content=null where dump_id=p_dump_id;
-    COREFILE_API.delete_file(l_dmp_file.file_content);
+    update awrwh_dumps set filebody=null where dump_id=p_dump_id;
+    --COREFILE_API.delete_file(l_dmp_file.file_content);
   end;
 
   procedure remove_parsed_data_i(p_dump_id awrwh_dumps.dump_id%type)
   is
   begin
     coremod_log.log('TRC_FILE_API.remove_parsed_data_i: '||p_dump_id,'DEBUG');
-    delete from trc_stat where dump_id=p_dump_id;
+    /*delete from trc_stat where dump_id=p_dump_id;
     delete from trc_wait where dump_id=p_dump_id;
     delete from trc_binds where dump_id=p_dump_id;
     delete from trc_call where dump_id=p_dump_id;
@@ -143,7 +146,8 @@ PACKAGE BODY AWRWH_FILE_API AS
     delete from trc_client_identity where dump_id=p_dump_id;
     delete from trc_trans where dump_id=p_dump_id;
     delete from trc_session where dump_id=p_dump_id;
-    update awrwh_dumps set parsed=null where dump_id=p_dump_id;
+    */
+    --update awrwh_dumps set parsed=null where dump_id=p_dump_id;
   end;
 
   procedure remove_report_i(p_dump_id awrwh_dumps.dump_id%type)
@@ -152,8 +156,8 @@ PACKAGE BODY AWRWH_FILE_API AS
   begin
     coremod_log.log('TRC_FILE_API.remove_report_i: '||p_dump_id,'DEBUG');
     l_dmp_file:=get_file(p_dump_id,true);
-    update awrwh_dumps set report_content=null where dump_id=p_dump_id;
-    COREFILE_API.delete_file(l_dmp_file.report_content);
+    --update awrwh_dumps set report_content=null where dump_id=p_dump_id;
+    --COREFILE_API.delete_file(l_dmp_file.report_content);
   end;
 
   procedure cleanup_files(p_proj_id awrwh_projects.proj_id%type, p_mode number, p_use_retention boolean)
@@ -161,6 +165,7 @@ PACKAGE BODY AWRWH_FILE_API AS
     l_errmsg varchar2(1000);
   begin
     coremod_log.log('TRC_FILE_API.cleanup_files: '||p_proj_id||';'||p_mode||';'||COREMOD_LOG.bool2str(p_use_retention)||';','DEBUG');
+    /*
     for i in (select x.*, systimestamp - created src_duration, systimestamp - parsed prsd_duration from awrwh_dumps x where proj_id = p_proj_id) loop
       begin
         if p_mode in (AWRWH_PROJ_LCC.c_ALL, AWRWH_PROJ_LCC.c_SOURCEDATA) then
@@ -188,6 +193,7 @@ PACKAGE BODY AWRWH_FILE_API AS
           raise_application_error(-20000,l_errmsg);
       end;
     end loop;
+    */
   end;
 
   procedure cleanup_for_reparse(p_dump_id awrwh_dumps.dump_id%type,
@@ -197,7 +203,7 @@ PACKAGE BODY AWRWH_FILE_API AS
   begin
     coremod_log.log('TRC_FILE_API.cleanup_for_reparse: '||p_dump_id,'DEBUG');
 
-    AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_reparse);
+    --AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_reparse);
 	if not P_KEEP_PARSED then remove_parsed_data_i(p_dump_id); end if;
 	if not P_KEEP_REPORT then remove_report_i     (p_dump_id); end if;
   end;
@@ -226,7 +232,7 @@ PACKAGE BODY AWRWH_FILE_API AS
   is
   begin
     coremod_log.log('TRC_FILE_API.compress_file: '||p_dump_id,'DEBUG');
-    AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_compress);
+    --AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_compress);
 	remove_source_data_i(p_dump_id);
   end;
 
@@ -234,7 +240,7 @@ PACKAGE BODY AWRWH_FILE_API AS
   is
   begin
     coremod_log.log('TRC_FILE_API.archive_file: '||p_dump_id,'DEBUG');
-    AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_archive);
+    --AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_archive);
 
 	remove_source_data_i(p_dump_id);
 	remove_parsed_data_i(p_dump_id);
@@ -247,14 +253,14 @@ PACKAGE BODY AWRWH_FILE_API AS
     coremod_log.log('TRC_FILE_API.drop_file: '||p_dump_id,'DEBUG');
     l_dmp_file:=get_file(p_dump_id,true);
 
-    AWRWH_FILE_LCC.trcfile_exec_action(l_dmp_file,AWRWH_FILE_LCC.c_dmpfile_drop);
+    --AWRWH_FILE_LCC.trcfile_exec_action(l_dmp_file,AWRWH_FILE_LCC.c_dmpfile_drop);
 
     remove_source_data_i(p_dump_id);
 	remove_parsed_data_i(p_dump_id);
 	remove_report_i    (p_dump_id);
 	delete from awrwh_dumps where dump_id = p_dump_id;
   end;
-
+/*
   procedure set_note(p_dump_id  awrwh_dumps.dump_id%type,
                      p_note         awrwh_dumps.file_note%type)
   is
@@ -264,12 +270,12 @@ PACKAGE BODY AWRWH_FILE_API AS
 
     update awrwh_dumps set file_note=p_note where dump_id=p_dump_id;
   end;
-
+*/
   procedure parse_file_async(p_dump_id awrwh_dumps.dump_id%type, p_tq_id out opas_task_queue.tq_id%type)
   is
     L_TASKNAME VARCHAR2(128) := 'TRC_PARSEFILE';
   begin
-    AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_inparsequeue);
+    --AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_inparsequeue);
     p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME) ;
     COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_dump_id);
     COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id ) ;
@@ -290,7 +296,7 @@ PACKAGE BODY AWRWH_FILE_API AS
   begin
     coremod_log.log('TRC_FILE_API.parse_file: '||p_dump_id,'DEBUG');
     l_dmp_file:=get_file(p_dump_id,false);
-
+/*
     if l_dmp_file.parsed is null or l_dmp_file.report_content is null then
     begin
       AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_startparse);	 --autonomous
@@ -311,9 +317,9 @@ PACKAGE BODY AWRWH_FILE_API AS
         AWRWH_FILE_LCC.trcfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_failparse);
         raise_application_error(-20000,'parse_file exception: '||sqlerrm);
     end;
-    end if;
+    end if;*/
   end;
-  
+
   /*import dump utility*/
   procedure load_dump_from_file(p_proj_id          awrwh_dumps.proj_id%type,
                                 p_filename         awrwh_dumps.filename%type,
@@ -327,12 +333,14 @@ PACKAGE BODY AWRWH_FILE_API AS
                                 p_db_description   awrwh_dumps.db_description%type default null,
                                 p_dump_name        awrwh_dumps.dump_name%type default null)
   is
-    l_filebody AWRDUMPS_FILES.filebody%type;
+    --l_filebody AWRDUMPS_FILES.filebody%type;
     l_d_off number := 1;
     l_s_off number := 1;
-    l_bfile bfile := BFILENAME(awrtools_api.getconf('WORKDIR'), p_filename);
+    --l_bfile bfile := BFILENAME(awrtools_api.getconf('WORKDIR'), p_filename);
     l_dump_id number;
   begin
+  null;
+  /*
     DBMS_LOB.CREATETEMPORARY(l_filebody, false);
     DBMS_LOB.fileopen(l_bfile, DBMS_LOB.file_readonly);
     DBMS_LOB.LOADBLOBFROMFILE (
@@ -355,7 +363,7 @@ PACKAGE BODY AWRWH_FILE_API AS
       db_description = p_db_description,
 	  dump_name = p_dump_name
      WHERE dump_id =l_dump_id;
-	 
+*/
    end;
 
 END AWRWH_FILE_API;

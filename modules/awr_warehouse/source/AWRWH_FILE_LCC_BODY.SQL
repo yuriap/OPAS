@@ -51,12 +51,15 @@ package body AWRWH_FILE_LCC as
   procedure dmpfile_set_status(p_dump_id awrwh_dumps.dump_id%type, p_status awrwh_dumps.status%type)
   is
   begin
+  null;
+  /*
     UPDATE awrwh_dumps set
 	  status = p_status,
 	  parsed = case p_status
 	             when c_dmpfilestate_parsed then systimestamp
 				 else parsed end
 	where dump_id = p_dump_id;
+    */
   end;
 
   procedure dmpfile_set_status_a(p_dump_id awrwh_dumps.dump_id%type, p_status awrwh_dumps.status%type)

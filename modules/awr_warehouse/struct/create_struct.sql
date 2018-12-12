@@ -27,33 +27,44 @@ where owner=decode(owner,'PUBLIC',owner,decode(is_public,'Y',owner,nvl(V('APP_US
 
 
 create table awrwh_dumps (
-    dump_id NUMBER GENERATED ALWAYS AS IDENTITY primary key,
-    proj_id NUMBER NOT NULL REFERENCES awrwh_projects ( proj_id ) on delete cascade,
-    loading_date date default sysdate,
-    filename varchar2(512),
-    status varchar2(30), /* default 'NEW' check (status in ('NEW','LOADED','UNLOADED','COMPRESSED')), */
-    dbid number,
-    min_snap_id number,
-    max_snap_id number,
-    min_snap_dt timestamp(3),
-    max_snap_dt timestamp(3),
-    is_remote varchar2(10) default 'NO' NOT NULL check (is_remote in ('YES','NO')),
-    db_description varchar2(1000),
+    dump_id          NUMBER GENERATED ALWAYS AS IDENTITY primary key,
+    proj_id          NUMBER NOT NULL REFERENCES awrwh_projects ( proj_id ) on delete cascade,
+    loading_date     date default sysdate,
+    filename         varchar2(512),
+    status           varchar2(30), /* default 'NEW' check (status in ('NEW','LOADED','UNLOADED','COMPRESSED')), */
+    dbid             number,
+    min_snap_id      number,
+    max_snap_id      number,
+    min_snap_dt      timestamp(3),
+    max_snap_dt      timestamp(3),
+    is_remote        varchar2(10) default 'NO' NOT NULL check (is_remote in ('YES','NO')),
+    db_description   varchar2(1000),
     dump_description varchar2(4000),
-    dump_name varchar2(100),
-    filebody number REFERENCES opas_files ( file_id )
+    dump_name        varchar2(100),
+    filebody         number REFERENCES opas_files ( file_id ),
+	source_keep_forever number default 0,
+	parsed_keep_forever number default 0,
+	owner            varchar2(128) not null
 );
 
 create index idx1_awrwh_dumps_proj on awrwh_dumps(proj_id);
 
-
 create table awrwh_reports(
-    proj_id        NUMBER NOT NULL REFERENCES awrwh_projects ( proj_id )   on delete cascade,
-    report_id      NUMBER NOT NULL REFERENCES opas_reports   ( report_id ) on delete cascade
+    proj_id          NUMBER NOT NULL REFERENCES asha_cube_projects ( proj_id )   on delete cascade,
+	report_id        NUMBER NOT NULL REFERENCES opas_reports       ( report_id ) on delete cascade,
+	dump_id          number references awrwh_dumps(dump_id) on delete set null,
+	dump_id_2        number references awrwh_dumps(dump_id) on delete set null,
+	report_retention number,
+	report_note      varchar2(4000),
+	created          timestamp default systimestamp
 );
 
-create index idx_awrwh_reports_proj on awrwh_reports(proj_id);
+rem report_retention: null - default project retention, 0 - keep forever, N - keep days
+
+create unique index idx_awrwh_reports_proj on awrwh_reports(proj_id, report_id);
 create index idx_awrwh_reports_rep  on awrwh_reports(report_id);
+create index idx_awrwh_reports_dump  on awrwh_reports(dump_id);
+
   
 create or replace synonym awrwh_dumps_rem for awrwh_dumps@&DBLINK.;
 

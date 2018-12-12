@@ -1,13 +1,17 @@
 -- Module list installation
 
 --Core
-@..\modules\core\install\install.sql
+rem @..\modules\core\install\install.sql
 
 --SQL Trace
-@..\modules\sql_trace\install\install.sql
+rem @..\modules\sql_trace\install\install.sql
 
 --ASH Analyzer
-@..\modules\ash_analyzer\install\install.sql
+rem @..\modules\ash_analyzer\install\install.sql
+
+--AWR WareHouse
+@..\modules\awr_warehouse\install\install.sql
+
 
 conn &localscheme./&localscheme.@&localdb.
 set pages 999

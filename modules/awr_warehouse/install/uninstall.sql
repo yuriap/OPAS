@@ -9,7 +9,7 @@ set serveroutput on
 
 drop database link &DBLINK.;
 
-@..\..\core\install\cleanup_common.sql
+@..\modules\core\install\cleanup_common.sql
 
 commit;
 

@@ -6,6 +6,15 @@ package COREMOD_API as
 
    gMODNAME       constant varchar2(32) := 'OPASCORE';
 
+   exDBLinkSuspended exception;
+   pragma exception_init(exDBLinkSuspended, -20999);
+
+   dblNEW        constant varchar2(32) := 'NEW';
+   dblMODIFIED   constant varchar2(32) := 'MODIFIED';
+   dblCREATED    constant varchar2(32) := 'CREATED';
+   dblSUSPENDED  constant varchar2(32) := 'SUSPENDED';
+   dblTODELETE   constant varchar2(32) := 'TODELETE';
+
    function getconf(p_key varchar2, p_module opas_modules.modname%type) return varchar2 RESULT_CACHE;
    function getscript(p_script_id varchar2) return clob;
 
@@ -23,7 +32,7 @@ package COREMOD_API as
                              p_password varchar2,
                              p_connectstring varchar2);
    procedure create_dblink(p_db_link_name varchar2, p_recreate boolean default false);
-   procedure drop_dblink(p_db_link_name varchar2);
+   procedure drop_dblink(p_db_link_name varchar2, p_suspend boolean default false);
    procedure test_dblink(p_db_link_name varchar2);
    function get_ora_dblink(p_db_link_name varchar2) return varchar2;
 

@@ -6,23 +6,32 @@ PACKAGE BODY ASHA_CUBE_API AS
   procedure refresh_dictionaries
   is
     l_dblink varchar2(100);
+    invalid_password exception;
+    pragma exception_init(invalid_password,-1017);
   begin
     --coremod_log.log('Reloading RAC node dictionary');
     for i in (select *
                 from (select p2l.src_dblink, min(created) min_created
-                        from asha_cube_srcdblink2projects p2l, asha_cube_racnodes_cache c
-                       where p2l.src_dblink=c.src_dblink(+)
+                        from asha_cube_srcdblink2projects p2l, asha_cube_racnodes_cache c, v$opas_db_links l
+                       where p2l.src_dblink=c.src_dblink(+) and p2l.src_dblink=l.db_link_name and l.status=COREMOD_API.dblCREATED
                        group by p2l.src_dblink)
                where (min_created is null or min_created < (systimestamp - to_number(COREMOD_API.getconf('DICRETENTION',gMODNAME)))))
     loop
       coremod_log.log('Reloading RAC node dictionary for: '||i.src_dblink||'('||COREMOD_API.get_ora_dblink(i.src_dblink)||')');
-      delete from asha_cube_racnodes_cache where src_dblink=i.src_dblink;
-      execute immediate
+      begin
+        COREMOD_API.test_dblink(i.src_dblink);
+        delete from asha_cube_racnodes_cache where src_dblink=i.src_dblink;
+        execute immediate
 q'[insert into asha_cube_racnodes_cache (src_dblink, inst_name, inst_id)
 select :p_src_dblink, instance_name||' (Node'||inst_id||')', inst_id from gv$instance@]'||COREMOD_API.get_ora_dblink(i.src_dblink)||q'[
 union all
 select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_dblink;
-      commit;
+        commit;
+      exception
+        when others then
+          COREMOD_API.drop_dblink(i.src_dblink, p_suspend => true);
+          coremod_log.log('DB Link: '||i.src_dblink||' has been suspended due to: '||sqlerrm);
+      end;
     end loop;
   exception
     when others then rollback;dbms_output.put_line(sqlerrm);coremod_log.log('ASHA_CUBE_API.refresh_dictionaries error: '||sqlerrm);

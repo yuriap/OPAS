@@ -143,7 +143,7 @@ package body coremod_tasks as
       for i in 1..least(l_freeslots,l_tasks.count) loop
         l_2run.extend;
         l_2run(l_2run.count):=l_tasks(i);
-        l_2run(l_2run.count).job_name:=gJOBNMPREF||'_'||upper(l_2run(l_2run.count).taskname)||'_'||to_char(systimestamp,'FF6');
+        l_2run(l_2run.count).job_name:=gJOBNMPREF||'_'||upper(l_2run(l_2run.count).taskname)||'_'||DBMS_RANDOM.STRING('X',6);
         set_task_started(l_tasks(i).tq_id, l_2run(l_2run.count).job_name);
       end loop;
     end if;

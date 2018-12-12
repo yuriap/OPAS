@@ -5,6 +5,9 @@ define MODVER="4.0.0"
 conn sys/&remotesys.@&remotedb. as sysdba
 
 @@scheme_setup_remote
+
+conn &remotescheme./&remotescheme.@&remotedb.
+
 @..\modules\awr_warehouse\struct\create_struct_remote
 @..\modules\awr_warehouse\source\create_stored_remote
 
@@ -12,8 +15,13 @@ conn sys/&remotesys.@&remotedb. as sysdba
 conn sys/&localsys.@&localdb. as sysdba
 
 @@scheme_setup.sql
+
+conn &localscheme./&localscheme.@&localdb.
+
 @..\modules\awr_warehouse\struct\create_struct.sql
 @..\modules\awr_warehouse\source\create_stored.sql
+
+
 
 exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Oracle Performance Analytic Suite AWR WareHouse module', p_modver => '&MODVER.', p_installed => sysdate);
 

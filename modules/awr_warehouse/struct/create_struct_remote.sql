@@ -25,7 +25,7 @@ from table(dbms_xplan.display_workload_repository(sql_id          => SYS_CONTEXT
                                                   dbid            => SYS_CONTEXT('rem_&remotescheme._ctx', 'dbid'), 
                                                   con_dbid        => SYS_CONTEXT('rem_&remotescheme._ctx', 'dbid'), 
                                                   format          => 'ADVANCED -ALIAS',
-                                                  awr_location=>'AWR_PDB')
+                                                  awr_location    => 'AWR_PDB')
                                                   );
 show errors
 

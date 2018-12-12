@@ -4,7 +4,6 @@ PACKAGE AWRWH_FILE_API AS
   procedure register_dump_file (p_proj_id         awrwh_dumps.proj_id%type,
                                 p_owner           awrwh_dumps.owner%type,
                                 p_filename        awrwh_dumps.filename%type,
-                                p_file_source     awrwh_dumps.file_source%type,
                                 p_store_file      boolean,
                                 p_dump_id     out awrwh_dumps.dump_id%type);
 
@@ -16,8 +15,8 @@ PACKAGE AWRWH_FILE_API AS
 
   procedure cleanup_files(p_proj_id awrwh_projects.proj_id%type, p_mode number, p_use_retention boolean);
 
-  procedure set_note(p_dump_id  awrwh_dumps.dump_id%type,
-                     p_note     awrwh_dumps.file_note%type);
+  --procedure set_note(p_dump_id  awrwh_dumps.dump_id%type,
+  --                   p_note     awrwh_dumps.file_note%type);
 
   function get_file(p_dump_id awrwh_dumps.dump_id%type, p_lock boolean default false) return awrwh_dumps%rowtype;
 
@@ -34,7 +33,7 @@ PACKAGE AWRWH_FILE_API AS
 
   procedure parse_file_async(p_dump_id awrwh_dumps.dump_id%type, p_tq_id out opas_task_queue.tq_id%type);
   procedure parse_file(p_dump_id awrwh_dumps.dump_id%type);
-  
+
   /*import dump utility*/
   procedure load_dump_from_file(p_proj_id          awrwh_dumps.proj_id%type,
                                 p_filename         awrwh_dumps.filename%type,

@@ -980,13 +980,13 @@ end;]';
                  where (sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'[')) and 'Y'=']'||p_use_cache||q'['
                 union all
                 select 2 nn#, 'Local AWR repository' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,4000) as varchar2(4000)) sql_text from dba_hist_sqltext
-                 where sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'[')
+                 where sql_text not like '%Local AWR repository%' and (sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'['))
                 union all
                 select 3 nn#, 'Remote AWR repository' source_tab, ']'||p_srcdb||q'[' source_db, sql_id, cast(substr(sql_text,1,4000) as varchar2(4000)) sql_text from dba_hist_sqltext@]'||p_srcdb||q'[
-                 where sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'[')
+                 where sql_text not like '%Remote AWR repository%' and sql_text not like '%Remote V$SQL%' and (sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'['))
                 union all
                 select 4 nn#, 'Remote V$SQL' source_tab, ']'||p_srcdb||q'[' source_db, sql_id, cast(substr(SQL_FULLTEXT,1,4000) as varchar2(4000)) sql_text from gv$sql@]'||p_srcdb||q'[
-                 where SQL_FULLTEXT like ']'||p_sql_search_str||q'[' or upper(SQL_FULLTEXT) like upper(']'||p_sql_search_str||q'[')
+                 where SQL_FULLTEXT not like '%Remote AWR repository%' and sql_text not like '%Remote V$SQL%' and (SQL_FULLTEXT like ']'||p_sql_search_str||q'[' or upper(SQL_FULLTEXT) like upper(']'||p_sql_search_str||q'['))
                 ) ]' || case when p_result_limit = 0 then null else ' where rownum <= '||p_result_limit end || q'[ order by nn#]';
     end if;
   end;

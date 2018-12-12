@@ -21,7 +21,7 @@ package AWRWH_FILE_LCC as
   c_dmpfilestate_awrloaded      constant awrwh_dumps.status%type := 'LOADED INTO AWR';  --file parsed
   c_dmpfilestate_compressed     constant awrwh_dumps.status%type := 'COMPRESSED'; --source data removed, parsed is available
   c_dmpfilestate_archived       constant awrwh_dumps.status%type := 'ARCHIVED';   --source and parsed data removed
-  
+
   --Dump file life-cycle set state
   procedure dmpfile_exec_action(p_awrwh_dumps awrwh_dumps%rowtype, p_action varchar2);
   procedure dmpfile_exec_action(p_dump_id awrwh_dumps.dump_id%type, p_action varchar2);
