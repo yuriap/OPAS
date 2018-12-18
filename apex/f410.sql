@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   15:15 Wednesday December 12, 2018
+--   Date and Time:   15:52 Friday December 14, 2018
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -37,7 +37,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 
 -- Application Statistics:
 --   Pages:                     37
---     Items:                  186
+--     Items:                  187
 --     Computations:             4
 --     Validations:              2
 --     Processes:               67
@@ -126,7 +126,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181212145655'
+,p_last_upd_yyyymmddhh24miss=>'20181214155053'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -13062,7 +13062,7 @@ wwv_flow_api.create_page(
 ,p_dialog_height=>'600'
 ,p_dialog_width=>'1200'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181206141037'
+,p_last_upd_yyyymmddhh24miss=>'20181213180524'
 );
 wwv_flow_api.create_report_region(
  p_id=>wwv_flow_api.id(11319819086221542)
@@ -13124,7 +13124,7 @@ wwv_flow_api.create_report_region(
 ,p_query_type=>'SQL'
 ,p_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT',
-'    opname,pct_done,pct_done pct_done_n,msg',
+'    opname,pct_done,pct_done pct_done_n,msg, module||case when module||action is not null then ''/'' else null end ||action module',
 'FROM',
 '    v$opas_task_queue_longops',
 'where tq_id=:P121_TQ_ID;'))
@@ -13180,6 +13180,17 @@ wwv_flow_api.create_report_columns(
 ,p_column_alias=>'MSG'
 ,p_column_display_sequence=>4
 ,p_column_heading=>'Message'
+,p_use_as_row_header=>'N'
+,p_disable_sort_column=>'N'
+,p_derived_column=>'N'
+,p_include_in_export=>'Y'
+);
+wwv_flow_api.create_report_columns(
+ p_id=>wwv_flow_api.id(29541189431461445)
+,p_query_column_id=>5
+,p_column_alias=>'MODULE'
+,p_column_display_sequence=>5
+,p_column_heading=>'Module'
 ,p_use_as_row_header=>'N'
 ,p_disable_sort_column=>'N'
 ,p_derived_column=>'N'
@@ -16480,7 +16491,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(10417456972725136)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181212122119'
+,p_last_upd_yyyymmddhh24miss=>'20181214155025'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(26561984883064379)
@@ -16683,7 +16694,7 @@ wwv_flow_api.create_page_plug(
 '  from asha_cube_reports arep,',
 '       opas_reports orep,',
 '       opas_files   ofil',
-'where arep.report_id = orep.report_id',
+'where arep.report_id = orep.report_id(+)',
 'and orep.report_content=ofil.file_id(+)',
 'and arep.proj_id=:P301_PROJ_ID',
 'order by arep.created desc;'))
@@ -16746,7 +16757,7 @@ wwv_flow_api.create_worksheet_column(
 ,p_display_order=>20
 ,p_column_identifier=>'A'
 ,p_column_label=>'Properties'
-,p_column_link=>'f?p=&APP_ID.:306:&SESSION.::&DEBUG.:RP:P306_REPORT_ID:#REPORT_ID#'
+,p_column_link=>'f?p=&APP_ID.:306:&SESSION.::&DEBUG.:RP:P306_REPORT_ID,P306_BEFORE_PAGE:#REPORT_ID#,301'
 ,p_column_linktext=>'<img src="#IMAGE_PREFIX#app_ui/img/icons/apex-edit-page.png" class="apex-edit-page" alt="">'
 ,p_column_type=>'NUMBER'
 );
@@ -17654,7 +17665,7 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(10418699612748713)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181212145049'
+,p_last_upd_yyyymmddhh24miss=>'20181214155053'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(10517291006226238)
@@ -17708,7 +17719,7 @@ wwv_flow_api.create_page_plug(
 '  from asha_cube_reports arep,',
 '       opas_reports orep,',
 '       opas_files   ofil',
-'where arep.report_id = orep.report_id',
+'where arep.report_id = orep.report_id(+)',
 'and orep.report_content=ofil.file_id(+)',
 'and arep.proj_id=:P303_PROJ_ID and arep.sess_id = :P303_SESS_ID',
 'order by arep.created desc;'))
@@ -17772,7 +17783,7 @@ wwv_flow_api.create_worksheet_column(
 ,p_display_order=>20
 ,p_column_identifier=>'A'
 ,p_column_label=>'Properties'
-,p_column_link=>'f?p=&APP_ID.:306:&SESSION.::&DEBUG.:RP:P306_REPORT_ID:#REPORT_ID#'
+,p_column_link=>'f?p=&APP_ID.:306:&SESSION.::&DEBUG.:RP:P306_REPORT_ID,P306_BEFORE_PAGE:#REPORT_ID#,303'
 ,p_column_linktext=>'<img src="#IMAGE_PREFIX#app_ui/img/icons/apex-edit-page.png" class="apex-edit-page" alt="">'
 ,p_column_type=>'NUMBER'
 );
@@ -22961,7 +22972,7 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(10418699612748713)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181207114517'
+,p_last_upd_yyyymmddhh24miss=>'20181214154940'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(29368498021949109)
@@ -23018,10 +23029,24 @@ wwv_flow_api.create_page_button(
 );
 wwv_flow_api.create_page_branch(
  p_id=>wwv_flow_api.id(29369256755949117)
+,p_branch_name=>'Go To Page 301'
 ,p_branch_action=>'f?p=&APP_ID.:301:&SESSION.::&DEBUG.:RP::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'
 ,p_branch_sequence=>10
+,p_branch_condition_type=>'VAL_OF_ITEM_IN_COND_EQ_COND2'
+,p_branch_condition=>'P306_BEFORE_PAGE'
+,p_branch_condition_text=>'301'
+);
+wwv_flow_api.create_page_branch(
+ p_id=>wwv_flow_api.id(29541373223461447)
+,p_branch_action=>'f?p=&APP_ID.:303:&SESSION.::&DEBUG.:RP::&success_msg=#SUCCESS_MSG#'
+,p_branch_point=>'AFTER_PROCESSING'
+,p_branch_type=>'REDIRECT_URL'
+,p_branch_sequence=>20
+,p_branch_condition_type=>'VAL_OF_ITEM_IN_COND_EQ_COND2'
+,p_branch_condition=>'P306_BEFORE_PAGE'
+,p_branch_condition_text=>'303'
 );
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(29368524871949110)
@@ -23068,6 +23093,14 @@ wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(29417482402626203)
 ,p_name=>'P306_PROJ_ID'
 ,p_item_sequence=>3
+,p_item_plug_id=>wwv_flow_api.id(29368498021949109)
+,p_display_as=>'NATIVE_HIDDEN'
+,p_attribute_01=>'Y'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(29541289312461446)
+,p_name=>'P306_BEFORE_PAGE'
+,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_api.id(29368498021949109)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_attribute_01=>'Y'

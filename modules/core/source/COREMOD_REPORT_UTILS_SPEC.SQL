@@ -9,11 +9,20 @@ PACKAGE COREMOD_REPORT_UTILS AS
   gSQL_AWR_REPORT          constant varchar2(32) := 'SQL_AWR_REPORT';
   --gparDBLINK, gparSQLID, gparOWNER,gparREP_LIMIT
 
+  --standard AWR reports
+  qAWRRPT                  constant varchar2(32) := 'AWR_REPORT';
+  --gparDBID, gparMIN_SNAP, gparMAX_SNAP, gparINSTANCE_NUM
+
   --params
-  gparDBLINK                  constant varchar2(32) := 'PAR_DBLINK';
-  gparSQLID                   constant varchar2(32) := 'PAR_SQLID';
-  gparOWNER                   constant varchar2(32) := 'PAR_OWNER';
-  gparREP_LIMIT               constant varchar2(32) := 'PAR_REPORT_LIMIT';
+  gparDBLINK               constant varchar2(32) := 'PAR_DBLINK';
+  gparSQLID                constant varchar2(32) := 'PAR_SQLID';
+  gparOWNER                constant varchar2(32) := 'PAR_OWNER';
+  gparREP_LIMIT            constant varchar2(32) := 'PAR_REPORT_LIMIT';
+
+  gparDBID                 constant varchar2(32) := 'PAR_DBID';
+  gparMIN_SNAP             constant varchar2(32) := 'PAR_MIN_SNAP';
+  gparMAX_SNAP             constant varchar2(32) := 'PAR_MAX_SNAP';
+  gparINSTANCE_NUM         constant varchar2(32) := 'PAR_INSTANCE_NUM';
 
   procedure init_report(p_modname opas_reports.modname%type, p_report_id out opas_reports.report_id%type, p_parent_report opas_reports.report_id%type default null);
   procedure set_report_type(p_report_id opas_reports.report_id%type, p_report_type varchar2);

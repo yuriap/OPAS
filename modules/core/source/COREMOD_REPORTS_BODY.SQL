@@ -1,6 +1,41 @@
 CREATE OR REPLACE
 package body coremod_reports
 as
+
+  function queue_report_awrrpt(p_modname varchar2, p_owner varchar2, p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number default 1) return opas_reports.report_id%type
+  is
+    l_report_id opas_reports.report_id%type;
+  begin
+    coremod_report_utils.init_report(p_modname,l_report_id, null);
+    coremod_report_utils.set_report_type (l_report_id, coremod_report_utils.qAWRRPT);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparOWNER,       p_owner);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBID,        p_dbid);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMIN_SNAP,    p_min_snap);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMAX_SNAP,    p_max_snap);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparINSTANCE_NUM,p_instance_num);
+    coremod_report_utils.queue_report(l_report_id);
+    return l_report_id;
+  end;
+
+  function getreport_awrrpt(p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number default 1) return coremod_report_utils.t_output_lines
+  is
+    l_report coremod_report_utils.t_output_lines;
+  begin
+    for i in (select min(INSTANCE_NUMBER) INSTANCE_NUMBER, min(snap_id) mis, max(snap_id) mas
+                from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap and INSTANCE_NUMBER = p_instance_num)
+    loop
+      begin
+        for j in (select rownum rn, output from table(dbms_workload_repository.awr_report_html(p_dbid,i.INSTANCE_NUMBER,i.mis,i.mas)))
+        loop
+          l_report(j.rn):=j.output;
+        end loop;
+      exception
+        when others then l_report(1):=sqlerrm;
+      end;
+    end loop;
+    return l_report;
+  end;
+
   function queue_report_sql_memory_stats_i(p_modname varchar2, p_owner varchar2, p_sql_id varchar2, p_dblink varchar2, p_parent number) return opas_reports.report_id%type
   is
     l_report_id opas_reports.report_id%type;

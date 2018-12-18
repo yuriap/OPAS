@@ -5,6 +5,7 @@ package AWRWH_PROJ_API as
   c_ALL         constant number :=1;
   c_SOURCEDATA  constant number :=2;
   c_PARSEDDATA  constant number :=3;
+  c_REPORTS     constant number :=4;
 
   --project
   procedure create_project(p_proj_name    awrwh_projects.proj_name%type,

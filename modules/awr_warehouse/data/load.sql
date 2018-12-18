@@ -1,5 +1,8 @@
-INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RETENTION','PROJECTRETENTION',    30,'Retention time in days for AWR WareHouse projects.');
-INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RETENTION','REPORTRETENTION',     10,'Retention time in days for AWR WareHouse reports.');
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RETENTION', 'PROJECTRETENTION',     30,'Default retention time in days for AWR WareHouse projects.');
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RETENTION', 'DUMPETENTION',         10,'Default retention time in days for AWR WareHouse dump.');
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RETENTION', 'AWRPARSEDRETENTION',   30,'Default retention time in days for AWR WareHouse parsed dump.');
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RETENTION', 'REPORTRETENTION',      10,'Default retention time in days for AWR WareHouse reports.');
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','PROCESSING','FILEPROCESSTIMEOUT', 3600,'Default timeout for file processing operations.');
 
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','WAREHOUSE','WORKDIR',     upper('&dirname.'),'Oracle directory for loading AWR dumps');
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','WAREHOUSE','AWRSTGUSER',  '&AWRSTG.','Staging user for AWR Load package');

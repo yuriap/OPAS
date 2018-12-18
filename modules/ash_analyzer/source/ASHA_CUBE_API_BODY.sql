@@ -71,9 +71,9 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
   begin
     l_proj:=ASHA_PROJ_API.getproject(p_proj_id,true);
 
-    if p_report_type = gREPORT_SQL_MEMORY then
+    if p_report_type = COREMOD_REPORT_UTILS.gSQL_MEMORY_REPORT then
       l_report_id := coremod_reports.queue_report_sql_memory_stats(p_modname => gMODNAME, p_owner => l_proj.owner, p_sql_id => p_sql_id, p_dblink => p_dblink);
-    elsif p_report_type = gREPORT_SQL_AWR then
+    elsif p_report_type = COREMOD_REPORT_UTILS.gSQL_AWR_REPORT then
       l_report_id := coremod_reports.queue_report_sql_awr_stats(p_modname => gMODNAME, p_owner => l_proj.owner, p_sql_id => p_sql_id, p_dblink => p_dblink, p_report_limit => p_limit);
     else
       raise_application_error(-20000,'Unsupported report type: '||p_report_type);

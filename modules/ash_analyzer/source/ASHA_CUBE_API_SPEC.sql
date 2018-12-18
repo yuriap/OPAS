@@ -3,9 +3,6 @@ PACKAGE ASHA_CUBE_API AS
 
   gMODNAME            constant varchar2(32) := 'ASH_ANALYZER';
 
-  gREPORT_SQL_MEMORY  constant varchar2(32) := 'REPORT_SQL_MEMORY';
-  gREPORT_SQL_AWR     constant varchar2(32) := 'REPORT_SQL_AWR';
-
   function  getMODNAME return varchar2;
 
   procedure refresh_dictionaries;

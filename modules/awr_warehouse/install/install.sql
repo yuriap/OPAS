@@ -27,13 +27,13 @@ exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Oracle Performance 
 
 @..\modules\awr_warehouse\data\load.sql
 
---begin
---  COREMOD_TASKS.create_task (  p_taskname  => 'TRC_PARSEFILE',
---                               p_modname   => '&MODNM.',
---                               p_is_public => 'Y', 
---                               p_task_body => 'begin TRC_FILE_API.parse_file (P_TRC_FILE_ID => <B1>) ; end;');
---end;
---/
+begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'AWRWH_EXECFILEACTION',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin AWRWH_FILE_API.exec_file_action (p_dump_id => <B1>, p_action => <B2>) ; end;');
+end;
+/
 
 begin
   coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUP_AWRWH',

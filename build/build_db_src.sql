@@ -300,6 +300,18 @@ prompt CREATE OR REPLACE
 select text from user_source where name='AWRWH_PROJ_LCC' and type='PACKAGE BODY' order by line;
 prompt /
 spool off
+
+
+spool &COREMODPATH.\AWRWH_REPORT_API_SPEC.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='AWRWH_REPORT_API' and type='PACKAGE' order by line;
+prompt /
+spool off
+spool &COREMODPATH.\AWRWH_REPORT_API_BODY.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='AWRWH_REPORT_API' and type='PACKAGE BODY' order by line;
+prompt /
+spool off
 --=============================================================================================
 --=============================================================================================
 --=============================================================================================

@@ -31,9 +31,9 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
   procedure set_report_type(p_report_id opas_reports.report_id%type, p_report_type varchar2)
   is
   begin
-    if p_report_type not in (gSQL_MEMORY_REPORT, gSQL_AWR_REPORT) then
-      raise_application_error(-20000,'Unknowm report type: '||p_report_type);
-    end if;
+    --if p_report_type not in (gSQL_MEMORY_REPORT, gSQL_AWR_REPORT) then
+    --  raise_application_error(-20000,'Unknowm report type: '||p_report_type);
+    --end if;
     --set_report_param(p_report_id,gparReportType,p_report_type);
     update opas_reports set report_type=p_report_type where report_id=p_report_id;
   end;
@@ -120,6 +120,8 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     --l_report_type:=get_reppar_c(p_report_id,gparReportType);
     select modname, report_type into l_modname, l_report_type from opas_reports where report_id=p_report_id;
 
+    coremod_tasks.log('Creating report: '||l_report_type,coremod_tasks.get_curr_tq_id);
+
     if l_report_type = gSQL_MEMORY_REPORT then
       l_file_type := 'SQL Memory stats report';
       l_file_name := 'opas_sql_'||get_reppar_c(p_report_id,gparSQLID)||'.html';
@@ -135,6 +137,15 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
       l_report := coremod_reports.getreport_sql_awr_stats(get_reppar_c(p_report_id,gparSQLID),
                                                           COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)),
                                                           get_reppar_n(p_report_id,gparREP_LIMIT));
+    elsif l_report_type = qAWRRPT then
+      l_file_type := 'AWR report';
+      l_file_name := 'opas_awr_'||get_reppar_n(p_report_id,gparDBID)||'_'||get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||get_reppar_n(p_report_id,gparMAX_SNAP)||'_'||get_reppar_n(p_report_id,gparINSTANCE_NUM)||'.html';
+      l_mime := 'HTML';
+      l_displ_params := 'DBID: '||get_reppar_n(p_report_id,gparDBID)||'; SNAPS: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||get_reppar_n(p_report_id,gparMAX_SNAP)||'; INST: '||get_reppar_n(p_report_id,gparINSTANCE_NUM);
+      l_report := coremod_reports.getreport_awrrpt(get_reppar_n(p_report_id,gparDBID),
+                                                   get_reppar_n(p_report_id,gparMIN_SNAP),
+                                                   get_reppar_n(p_report_id,gparMAX_SNAP),
+                                                   get_reppar_n(p_report_id,gparINSTANCE_NUM));
     end if;
 
     l_file := COREFILE_API.create_file(P_MODNAME => l_modname,
@@ -983,10 +994,12 @@ end;]';
                  where sql_text not like '%Local AWR repository%' and (sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'['))
                 union all
                 select 3 nn#, 'Remote AWR repository' source_tab, ']'||p_srcdb||q'[' source_db, sql_id, cast(substr(sql_text,1,4000) as varchar2(4000)) sql_text from dba_hist_sqltext@]'||p_srcdb||q'[
-                 where sql_text not like '%Remote AWR repository%' and sql_text not like '%Remote V$SQL%' and (sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'['))
+                 where sql_text not like '%Remote AWR repository%' and sql_text not like '%Remote V$SQL%' and sql_text not like '%l_rc:=UTL_COMPRESS.LZ_COMPRESS%'
+                   and (sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'['))
                 union all
                 select 4 nn#, 'Remote V$SQL' source_tab, ']'||p_srcdb||q'[' source_db, sql_id, cast(substr(SQL_FULLTEXT,1,4000) as varchar2(4000)) sql_text from gv$sql@]'||p_srcdb||q'[
-                 where SQL_FULLTEXT not like '%Remote AWR repository%' and sql_text not like '%Remote V$SQL%' and (SQL_FULLTEXT like ']'||p_sql_search_str||q'[' or upper(SQL_FULLTEXT) like upper(']'||p_sql_search_str||q'['))
+                 where SQL_FULLTEXT not like '%Remote AWR repository%' and SQL_FULLTEXT not like '%Remote V$SQL%' and SQL_FULLTEXT not like '%l_rc:=UTL_COMPRESS.LZ_COMPRESS%'
+                   and (SQL_FULLTEXT like ']'||p_sql_search_str||q'[' or upper(SQL_FULLTEXT) like upper(']'||p_sql_search_str||q'['))
                 ) ]' || case when p_result_limit = 0 then null else ' where rownum <= '||p_result_limit end || q'[ order by nn#]';
     end if;
   end;
