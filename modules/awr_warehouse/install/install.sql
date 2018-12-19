@@ -36,6 +36,14 @@ end;
 /
 
 begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'AWRWH_AWRCOMPRPT',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin AWRWH_REPORT_API.report_awrcomp (p_report_id => <B1>) ; end;');
+end;
+/
+
+begin
   coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUP_AWRWH',
                                             P_MODNAME => '&MODNM.',
                                             p_task_body => 'begin AWRWH_PROJ_API.cleanup_projects; end;');

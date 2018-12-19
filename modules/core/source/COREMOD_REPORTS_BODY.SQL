@@ -2,7 +2,7 @@ CREATE OR REPLACE
 package body coremod_reports
 as
 
-  function queue_report_awrrpt(p_modname varchar2, p_owner varchar2, p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number default 1) return opas_reports.report_id%type
+  function queue_report_awrrpt(p_modname varchar2, p_owner varchar2, p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number, p_dblink varchar2) return opas_reports.report_id%type
   is
     l_report_id opas_reports.report_id%type;
   begin
@@ -13,28 +13,341 @@ as
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMIN_SNAP,    p_min_snap);
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMAX_SNAP,    p_max_snap);
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparINSTANCE_NUM,p_instance_num);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBLINK,      p_dblink);
     coremod_report_utils.queue_report(l_report_id);
     return l_report_id;
   end;
 
-  function getreport_awrrpt(p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number default 1) return coremod_report_utils.t_output_lines
+  function getreport_awrrpt(p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number) return coremod_report_utils.t_output_lines
   is
     l_report coremod_report_utils.t_output_lines;
+    l_inst_lst    AWRRPT_INSTANCE_LIST_TYPE;
+    l_mis         number;
+    l_mas         number;
   begin
-    for i in (select min(INSTANCE_NUMBER) INSTANCE_NUMBER, min(snap_id) mis, max(snap_id) mas
-                from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap and INSTANCE_NUMBER = p_instance_num)
-    loop
+    if p_instance_num is null then
+      select unique INSTANCE_NUMBER bulk collect into l_inst_lst from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap;
+      select min(snap_id) mis, max(snap_id) mas into l_mis, l_mas from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap;
       begin
-        for j in (select rownum rn, output from table(dbms_workload_repository.awr_report_html(p_dbid,i.INSTANCE_NUMBER,i.mis,i.mas)))
+        for j in (select rownum rn, output from table(dbms_workload_repository.awr_global_report_html(p_dbid,l_inst_lst,l_mis,l_mas)))
         loop
           l_report(j.rn):=j.output;
         end loop;
       exception
         when others then l_report(1):=sqlerrm;
       end;
-    end loop;
+    else
+      select min(snap_id) mis, max(snap_id) mas into l_mis, l_mas
+        from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap and INSTANCE_NUMBER = p_instance_num;
+      begin
+        for j in (select rownum rn, output from table(dbms_workload_repository.awr_report_html(p_dbid,p_instance_num,l_mis,l_mas)))
+        loop
+          l_report(j.rn):=j.output;
+        end loop;
+      exception
+        when others then l_report(1):=sqlerrm;
+      end;
+    end if;
     return l_report;
   end;
+
+  function getreport_awrrpt(p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number, p_dblink varchar2) return clob
+  is
+    l_out clob;
+    l_sql varchar2(4000) := q'[
+declare
+l_mis number; l_mas number; l_inst_lst AWRRPT_INSTANCE_LIST_TYPE;
+begin
+  select unique INSTANCE_NUMBER bulk collect into l_inst_lst from dba_hist_snapshot x where dbid=<DBID> and SNAP_ID between <MIS> and <MAS>;
+  select min(snap_id), max(snap_id) into l_mis, l_mas from dba_hist_snapshot x where dbid=<DBID> and SNAP_ID between <MIS> and <MAS> <INST>;
+  begin
+    for j in (select output from table(dbms_workload_repository.<FNC>(<DBID>,<INSTLST>,l_mis,l_mas)))
+    loop
+      l_out:=l_out||j.output||chr(10);
+    end loop;
+  exception
+    when others then l_out:=sqlerrm;
+  end;
+end;]';
+  begin
+    l_sql := replace(replace(replace(l_sql,'<DBID>',p_dbid),'<MIS>',p_min_snap),'<MAS>',p_max_snap);
+    if p_instance_num is null then
+      l_sql := replace(replace(replace(l_sql,'<FNC>','awr_global_report_html'),'<INSTLST>','l_inst_lst'),'<INST>',null);
+    else
+      l_sql := replace(replace(replace(l_sql,'<FNC>','awr_report_html'),'<INSTLST>',p_instance_num),'<INST>','and INSTANCE_NUMBER='||p_instance_num);
+    end if;
+    coremod_log.log('Remote AWR Report: '||l_sql,'DEBUG');
+    coremod_log.log('Remote AWR Report DB Link: '||p_dblink,'DEBUG');
+    COREMOD_REPORT_UTILS.get_clob_remotelly(l_sql,p_dblink,l_out);
+    return l_out;
+  end;
+
+--  =============================================================================================================================================
+--  =============================================================================================================================================
+--  =============================================================================================================================================
+
+  function queue_report_sqawrrpt(p_modname varchar2, p_owner varchar2, p_sql_id varchar2, p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number, p_dblink varchar2) return opas_reports.report_id%type
+  is
+    l_report_id opas_reports.report_id%type;
+  begin
+    coremod_report_utils.init_report(p_modname,l_report_id, null);
+    coremod_report_utils.set_report_type (l_report_id, coremod_report_utils.qSQAWRRPT);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparOWNER,       p_owner);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparSQLID,       p_sql_id);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBID,        p_dbid);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMIN_SNAP,    p_min_snap);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMAX_SNAP,    p_max_snap);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparINSTANCE_NUM,p_instance_num);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBLINK,      p_dblink);
+    coremod_report_utils.queue_report(l_report_id);
+    return l_report_id;
+  end;
+
+  function getreport_sqawrrpt(p_sql_id varchar2, p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number) return coremod_report_utils.t_output_lines
+  is
+    l_report coremod_report_utils.t_output_lines;
+    l_mis         number;
+    l_mas         number;
+  begin
+    select min(snap_id) mis, max(snap_id) mas into l_mis, l_mas
+      from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap and INSTANCE_NUMBER = p_instance_num;
+    begin
+      for j in (select rownum rn, output from table(dbms_workload_repository.awr_sql_report_html(p_dbid,p_instance_num,l_mis,l_mas,p_sql_id)))
+      loop
+        l_report(j.rn):=j.output;
+      end loop;
+    exception
+      when others then l_report(1):=sqlerrm;
+    end;
+    return l_report;
+  end;
+
+  function getreport_sqawrrpt(p_sql_id varchar2, p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number, p_dblink varchar2) return clob
+  is
+    l_out clob;
+    l_sql varchar2(4000) := q'[
+declare
+l_mis number; l_mas number;
+begin
+  select min(snap_id), max(snap_id) into l_mis, l_mas from dba_hist_snapshot x where dbid=<DBID> and SNAP_ID between <MIS> and <MAS> and INSTANCE_NUMBER = <INST>;
+  begin
+    for j in (select output from table(dbms_workload_repository.awr_sql_report_html(<DBID>,<INST>,l_mis,l_mas,'<SQLID>')))
+    loop
+      l_out:=l_out||j.output||chr(10);
+    end loop;
+  exception
+    when others then l_out:=sqlerrm;
+  end;
+end;]';
+  begin
+    l_sql := replace(replace(replace(replace(replace(l_sql,'<DBID>',p_dbid),'<MIS>',p_min_snap),'<MAS>',p_max_snap),'<INST>',p_instance_num),'<SQLID>',p_sql_id);
+    coremod_tasks.log('Remote AWR SQL Report: '||l_sql,coremod_tasks.get_curr_tq_id);
+    coremod_tasks.log('Remote AWR SQL Report DB Link: '||p_dblink,coremod_tasks.get_curr_tq_id);
+    coremod_log.log('Remote AWR SQL Report: '||l_sql,'DEBUG');
+    coremod_log.log('Remote AWR SQL Report DB Link: '||p_dblink,'DEBUG');
+    COREMOD_REPORT_UTILS.get_clob_remotelly(l_sql,p_dblink,l_out);
+    return l_out;
+  end;
+
+--  =============================================================================================================================================
+--  =============================================================================================================================================
+--  =============================================================================================================================================
+
+  function queue_report_diffrpt(p_modname varchar2, p_owner varchar2,
+                                p_dbid1 number, p_min_snap1 number, p_max_snap1 number, p_instance_num1 number,
+                                p_dbid2 number, p_min_snap2 number, p_max_snap2 number, p_instance_num2 number, p_dblink varchar2) return opas_reports.report_id%type
+  is
+    l_report_id opas_reports.report_id%type;
+  begin
+    coremod_report_utils.init_report(p_modname,l_report_id, null);
+    coremod_report_utils.set_report_type (l_report_id, coremod_report_utils.qAWRDIFF);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparOWNER,       p_owner);
+
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBID,        p_dbid1);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMIN_SNAP,    p_min_snap1);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMAX_SNAP,    p_max_snap1);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparINSTANCE_NUM,p_instance_num1);
+
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBID,        p_dbid2);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMIN_SNAP,    p_min_snap2);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMAX_SNAP,    p_max_snap2);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparINSTANCE_NUM,p_instance_num2);
+
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBLINK,      p_dblink);
+    coremod_report_utils.queue_report(l_report_id);
+    return l_report_id;
+  end;
+
+  function getreport_diffrpt(p_dbid1 number, p_min_snap1 number, p_max_snap1 number, p_instance_num1 number,
+                             p_dbid2 number, p_min_snap2 number, p_max_snap2 number, p_instance_num2 number) return coremod_report_utils.t_output_lines
+  is
+    l_report coremod_report_utils.t_output_lines;
+    l_inst_lst1    AWRRPT_INSTANCE_LIST_TYPE;
+    l_inst_lst2    AWRRPT_INSTANCE_LIST_TYPE;
+    l_mis1         number;
+    l_mas1         number;
+    l_mis2         number;
+    l_mas2         number;
+  begin
+    if p_instance_num1 is null or p_instance_num2 is null then
+      select unique INSTANCE_NUMBER bulk collect into l_inst_lst1 from dba_hist_snapshot x where dbid=p_dbid1 and SNAP_ID between p_min_snap1 and p_max_snap1;
+      select unique INSTANCE_NUMBER bulk collect into l_inst_lst2 from dba_hist_snapshot x where dbid=p_dbid2 and SNAP_ID between p_min_snap2 and p_max_snap2;
+      select min(snap_id) mis, max(snap_id) mas into l_mis1, l_mas1 from dba_hist_snapshot x where dbid=p_dbid1 and SNAP_ID between p_min_snap1 and p_max_snap1;
+      select min(snap_id) mis, max(snap_id) mas into l_mis2, l_mas2 from dba_hist_snapshot x where dbid=p_dbid2 and SNAP_ID between p_min_snap2 and p_max_snap2;
+      begin
+        for j in (select rownum rn, output from table(dbms_workload_repository.awr_global_diff_report_text(p_dbid1,l_inst_lst1,l_mis1,l_mas1,p_dbid2,l_inst_lst2,l_mis2,l_mas2)))
+        loop
+          l_report(j.rn):=j.output;
+        end loop;
+      exception
+        when others then l_report(1):=sqlerrm;
+      end;
+    else
+      select min(snap_id) mis, max(snap_id) mas into l_mis1, l_mas1 from dba_hist_snapshot x where dbid=p_dbid1 and SNAP_ID between p_min_snap1 and p_max_snap1 and INSTANCE_NUMBER = p_instance_num1;
+      select min(snap_id) mis, max(snap_id) mas into l_mis2, l_mas2 from dba_hist_snapshot x where dbid=p_dbid2 and SNAP_ID between p_min_snap2 and p_max_snap2 and INSTANCE_NUMBER = p_instance_num2;
+      begin
+        for j in (select rownum rn, output from table(dbms_workload_repository.awr_diff_report_html(p_dbid1,p_instance_num1,l_mis1,l_mas1,p_dbid2,p_instance_num2,l_mis2,l_mas2)))
+        loop
+          l_report(j.rn):=j.output;
+        end loop;
+      exception
+        when others then l_report(1):=sqlerrm;
+      end;
+    end if;
+    return l_report;
+  end;
+
+  function getreport_diffrpt(p_dbid1 number, p_min_snap1 number, p_max_snap1 number, p_instance_num1 number,
+                             p_dbid2 number, p_min_snap2 number, p_max_snap2 number, p_instance_num2 number, p_dblink varchar2) return clob
+  is
+    l_out clob;
+    l_sql varchar2(4000) := q'[
+declare
+l_mis1 number; l_mas1 number; l_inst_lst1 AWRRPT_INSTANCE_LIST_TYPE;
+l_mis2 number; l_mas2 number; l_inst_lst2 AWRRPT_INSTANCE_LIST_TYPE;
+begin
+  select unique INSTANCE_NUMBER bulk collect into l_inst_lst1 from dba_hist_snapshot x where dbid=<DBID1> and SNAP_ID between <MIS1> and <MAS1>;
+  select unique INSTANCE_NUMBER bulk collect into l_inst_lst2 from dba_hist_snapshot x where dbid=<DBID2> and SNAP_ID between <MIS2> and <MAS2>;
+  select min(snap_id), max(snap_id) into l_mis1, l_mas1 from dba_hist_snapshot x where dbid=<DBID1> and SNAP_ID between <MIS1> and <MAS1> <INST1>;
+  select min(snap_id), max(snap_id) into l_mis2, l_mas2 from dba_hist_snapshot x where dbid=<DBID2> and SNAP_ID between <MIS2> and <MAS2> <INST2>;
+  begin
+    for j in (select output from table(dbms_workload_repository.<FNC>(<DBID1>,<INSTLST1>,l_mis1,l_mas1,<DBID2>,<INSTLST2>,l_mis2,l_mas2)))
+    loop
+      l_out:=l_out||j.output||chr(10);
+    end loop;
+  exception
+    when others then l_out:=sqlerrm;
+  end;
+end;]';
+  begin
+    l_sql := replace(replace(replace(l_sql,'<DBID1>',p_dbid1),'<MIS1>',p_min_snap1),'<MAS1>',p_max_snap1);
+    l_sql := replace(replace(replace(l_sql,'<DBID2>',p_dbid2),'<MIS2>',p_min_snap2),'<MAS2>',p_max_snap2);
+    if p_instance_num1 is null or p_instance_num2 is null then
+      l_sql := replace(replace(replace(l_sql,'<FNC>','awr_global_diff_report_text'),'<INSTLST1>','l_inst_lst1'),'<INST1>',null);
+      l_sql := replace(replace(l_sql,'<INSTLST2>','l_inst_lst2'),'<INST2>',null);
+    else
+      l_sql := replace(replace(replace(l_sql,'<FNC>','awr_diff_report_html'),'<INSTLST1>',p_instance_num1),'<INST1>','and INSTANCE_NUMBER='||p_instance_num1);
+      l_sql := replace(replace(l_sql,'<INSTLST2>',p_instance_num2),'<INST2>','and INSTANCE_NUMBER='||p_instance_num2);
+    end if;
+    coremod_log.log('Remote AWR Diff Report: '||l_sql,'DEBUG');
+    coremod_log.log('Remote AWR Diff Report DB Link: '||p_dblink,'DEBUG');
+    coremod_tasks.log('Remote AWR Diff Report: '||l_sql,coremod_tasks.get_curr_tq_id);
+    coremod_tasks.log('Remote AWR Diff Report DB Link: '||p_dblink,coremod_tasks.get_curr_tq_id);
+    COREMOD_REPORT_UTILS.get_clob_remotelly(l_sql,p_dblink,l_out);
+    return l_out;
+  end;
+--  =============================================================================================================================================
+--  =============================================================================================================================================
+--  =============================================================================================================================================
+
+  function queue_report_ashrpt(p_modname varchar2, p_owner varchar2, p_dbid number, p_btime date, p_etime date, p_instance_num number, p_dblink varchar2) return opas_reports.report_id%type
+  is
+    l_report_id opas_reports.report_id%type;
+  begin
+    coremod_report_utils.init_report(p_modname,l_report_id, null);
+    coremod_report_utils.set_report_type (l_report_id, coremod_report_utils.qASHRPT);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparOWNER,       p_owner);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBID,        p_dbid);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparBTIME,       p_btime);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparETIME,       p_etime);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparINSTANCE_NUM,p_instance_num);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBLINK,      p_dblink);
+    coremod_report_utils.queue_report(l_report_id);
+    return l_report_id;
+  end;
+
+  function getreport_ashrpt(p_dbid number, p_btime date, p_etime date, p_instance_num number) return coremod_report_utils.t_output_lines
+  is
+    l_report coremod_report_utils.t_output_lines;
+    l_inst_lst    varchar2(256);
+  begin
+    if p_instance_num is null then
+      for i in (select unique INSTANCE_NUMBER from dba_hist_snapshot x where dbid=p_dbid and end_interval_time between p_btime - 1.5/24 and p_etime + 1.5/24)
+      loop
+        l_inst_lst:=l_inst_lst||i.INSTANCE_NUMBER||',';
+      end loop;
+      l_inst_lst:=rtrim(l_inst_lst,',');
+
+      begin
+        for j in (select rownum rn, output from table(dbms_workload_repository.ash_global_report_html(p_dbid,l_inst_lst,p_btime,p_etime)))
+        loop
+          l_report(j.rn):=j.output;
+        end loop;
+      exception
+        when others then l_report(1):=sqlerrm;
+      end;
+    else
+      begin
+        for j in (select rownum rn, output from table(dbms_workload_repository.ash_report_html(p_dbid,p_instance_num,p_btime,p_etime)))
+        loop
+          l_report(j.rn):=j.output;
+        end loop;
+      exception
+        when others then l_report(1):=sqlerrm;
+      end;
+    end if;
+    return l_report;
+  end;
+
+  function getreport_ashrpt(p_dbid number, p_btime date, p_etime date, p_instance_num number, p_dblink varchar2) return clob
+  is
+    l_out clob;
+    l_sql varchar2(4000) := q'[
+declare
+l_inst_lst    varchar2(256);
+begin
+  for i in (select unique INSTANCE_NUMBER from dba_hist_snapshot x where dbid=<DBID> and end_interval_time between to_date('<btime>','<dtfmt>') - 1.5/24 and to_date('<etime>','<dtfmt>') + 1.5/24)
+    loop
+      l_inst_lst:=l_inst_lst||i.INSTANCE_NUMBER||',';
+    end loop;
+    l_inst_lst:=rtrim(l_inst_lst,',');
+  begin
+    for j in (select output from table(dbms_workload_repository.<FNC>(<DBID>,<INSTLST>,to_date('<btime>','<dtfmt>'),to_date('<etime>','<dtfmt>'))))
+    loop
+      l_out:=l_out||j.output||chr(10);
+    end loop;
+  exception
+    when others then l_out:=sqlerrm;
+  end;
+end;]';
+  begin
+    l_sql := replace(replace(replace(replace(l_sql,'<DBID>',p_dbid),'<btime>',to_char(p_btime,COREMOD_REPORT_UTILS.gDTFMT)),'<etime>',to_char(p_etime,COREMOD_REPORT_UTILS.gDTFMT)),'<dtfmt>',COREMOD_REPORT_UTILS.gDTFMT);
+    if p_instance_num is null then
+      l_sql := replace(replace(l_sql,'<FNC>','ash_global_report_html'),'<INSTLST>','l_inst_lst');
+    else
+      l_sql := replace(replace(l_sql,'<FNC>','ash_report_html'),'<INSTLST>',p_instance_num);
+    end if;
+    coremod_log.log('Remote ASH Report: '||l_sql,'DEBUG');
+    coremod_log.log('Remote ASH Report DB Link: '||p_dblink,'DEBUG');
+    coremod_tasks.log('Remote ASH Report: '||l_sql,coremod_tasks.get_curr_tq_id);
+    coremod_tasks.log('Remote ASH Report DB Link: '||p_dblink,coremod_tasks.get_curr_tq_id);
+    COREMOD_REPORT_UTILS.get_clob_remotelly(l_sql,p_dblink,l_out);
+    return l_out;
+  end;
+
+--  =============================================================================================================================================
+--  =============================================================================================================================================
+--  =============================================================================================================================================
 
   function queue_report_sql_memory_stats_i(p_modname varchar2, p_owner varchar2, p_sql_id varchar2, p_dblink varchar2, p_parent number) return opas_reports.report_id%type
   is

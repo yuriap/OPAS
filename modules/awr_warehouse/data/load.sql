@@ -10,6 +10,23 @@ INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','WA
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','WAREHOUSE','AWRSTGTMP',   'TEMP','Temporary tablespace for AWR staging user');
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','WAREHOUSE','DBLINK',      '&DBLINK.','DB link name for remote AWR repository');
 
+
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','AWRCOMP_SORTORDR','ELAPSED_TIME_DELTA','Sort by Elapsed Time','ela_tot',null,null,1);
+           
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','AWRCOMP_SORTORDR','DISK_READS_DELTA','Sort by Disk Reads','reads_tot',null,null,2);
+           
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','AWRCOMP_SORTORDR','CPU_TIME_DELTA','Sort by CPU time','cpu_tot',null,null,3);
+           
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','AWRCOMP_SORTORDR','BUFFER_GETS_DELTA','Sort by LIO','lio_tot',null,null,4);
+		   
 commit;
 
 set define off

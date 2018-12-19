@@ -3,6 +3,9 @@ PACKAGE COREMOD_REPORT_UTILS AS
 
   type t_output_lines is table of varchar2(32767) index by pls_integer;
 
+  gDTFMT                   constant varchar2(32) := 'YYYYMMDDHH24MISS';
+  gShortDTFMT              constant varchar2(32) := 'YYYYMMDDHH24MI';
+
   --custom reports
   gSQL_MEMORY_REPORT       constant varchar2(32) := 'SQL_MEMORY_REPORT';
   --gparDBLINK, gparSQLID, gparOWNER
@@ -11,7 +14,13 @@ PACKAGE COREMOD_REPORT_UTILS AS
 
   --standard AWR reports
   qAWRRPT                  constant varchar2(32) := 'AWR_REPORT';
-  --gparDBID, gparMIN_SNAP, gparMAX_SNAP, gparINSTANCE_NUM
+  --gparDBID, gparMIN_SNAP, gparMAX_SNAP, gparINSTANCE_NUM, gparDBLINK
+  qSQAWRRPT                constant varchar2(32) := 'AWR_SQL_REPORT';
+  --gparSQLID, gparDBID, gparMIN_SNAP, gparMAX_SNAP, gparINSTANCE_NUM, gparDBLINK
+  qAWRDIFF                 constant varchar2(32) := 'AWR_DIFF';
+  --gparDBID, gparMIN_SNAP, gparMAX_SNAP, gparINSTANCE_NUM, gparDBID2, gparMIN_SNAP2, gparMAX_SNAP2, gparINSTANCE_NUM2, gparDBLINK
+  qASHRPT                  constant varchar2(32) := 'ASH_REPORT';
+  --gparDBID, gparBTIME, gparETIME, gparINSTANCE_NUM, gparDBLINK
 
   --params
   gparDBLINK               constant varchar2(32) := 'PAR_DBLINK';
@@ -24,12 +33,24 @@ PACKAGE COREMOD_REPORT_UTILS AS
   gparMAX_SNAP             constant varchar2(32) := 'PAR_MAX_SNAP';
   gparINSTANCE_NUM         constant varchar2(32) := 'PAR_INSTANCE_NUM';
 
+  gparDBID2                constant varchar2(32) := 'PAR_DBID2';
+  gparMIN_SNAP2            constant varchar2(32) := 'PAR_MIN_SNAP2';
+  gparMAX_SNAP2            constant varchar2(32) := 'PAR_MAX_SNAP2';
+  gparINSTANCE_NUM2        constant varchar2(32) := 'PAR_INSTANCE_NUM2';
+
+  gparBTIME                constant varchar2(32) := 'PAR_BTIME';
+  gparETIME                constant varchar2(32) := 'PAR_ETIME';
+
   procedure init_report(p_modname opas_reports.modname%type, p_report_id out opas_reports.report_id%type, p_parent_report opas_reports.report_id%type default null);
   procedure set_report_type(p_report_id opas_reports.report_id%type, p_report_type varchar2);
 
   procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_num_par number);
   procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_varchar_par varchar2);
   procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_date_par date);
+
+  function get_reppar_n(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type) return number result_cache;
+  function get_reppar_c(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type) return varchar2 result_cache;
+  function get_reppar_d(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type) return date result_cache;
 
   procedure queue_report(p_report_id opas_reports.report_id%type);
   --for task
