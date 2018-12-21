@@ -228,7 +228,7 @@ PACKAGE BODY AWRWH_REPORT_API AS
     l_proj:=AWRWH_PROJ_API.getproject(p_proj_id,false);
 
     coremod_report_utils.init_report(AWRWH_API.gMODNAME,l_report_id, null);
-    coremod_report_utils.set_report_type (l_report_id,'AWRCOMP');
+    coremod_report_utils.set_report_type (l_report_id,gCUST_AWRCOMP);
     coremod_report_utils.set_report_param(l_report_id,'OWNER',     l_proj.owner);
     coremod_report_utils.set_report_param(l_report_id,'DUMP1',     p_dump_id1);
     coremod_report_utils.set_report_param(l_report_id,'DUMP2',     p_dump_id2);
@@ -358,6 +358,7 @@ PACKAGE BODY AWRWH_REPORT_API AS
                           p_report_id          awrwh_reports.report_id%type)
   is
   begin
+    coremod_log.log('Report for removal: '||p_proj_id||':'||p_report_id);
     coremod_report_utils.drop_report(p_report_id);
     delete from awrwh_reports where report_id=p_report_id and proj_id=p_proj_id;
   end;

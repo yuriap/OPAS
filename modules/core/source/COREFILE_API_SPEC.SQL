@@ -11,6 +11,9 @@ PACKAGE COREFILE_API AS
   procedure  get_locator(p_file_id opas_files.file_id%type, p_locator out opas_files.file_contentb%type);
   procedure  get_locator(p_file_id opas_files.file_id%type, p_locator out opas_files.file_contentc%type);
 
+  procedure  get_locator_for_storage(p_file_id opas_files.file_id%type, p_locator out opas_files.file_contentb%type);
+  procedure  get_locator_for_storage(p_file_id opas_files.file_id%type, p_locator out opas_files.file_contentc%type);
+
   procedure store_content(p_file_id opas_files.file_id%type,
                           p_content opas_files.file_contentb%type);
 
@@ -21,6 +24,7 @@ PACKAGE COREFILE_API AS
 
   function get_filec_size(p_file_id opas_files.file_id%type) return number;
   function get_fileb_size(p_file_id opas_files.file_id%type) return number;
+  function get_file_size(p_file_id opas_files.file_id%type) return number;
 
 END COREFILE_API;
 /

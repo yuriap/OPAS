@@ -11,6 +11,7 @@ PACKAGE BODY AWRWH_API AS
     l_pos       INTEGER := 1;
     l_blob_len  INTEGER;
   BEGIN
+    coremod_log.log('AWRWH_API.put_file_to_fs: '||p_filename||';'||p_dir,'DEBUG');
     l_blob_len := DBMS_LOB.getlength(p_blob);
 
     -- Open the destination file.
@@ -40,6 +41,7 @@ PACKAGE BODY AWRWH_API AS
                                 p_dir varchar2)
   is
   begin
+    coremod_log.log('AWRWH_API.remove_file_from_fs: '||p_filename||';'||p_dir,'DEBUG');
     UTL_FILE.FREMOVE (
      location => p_dir,
      filename => p_filename);
@@ -58,6 +60,7 @@ PACKAGE BODY AWRWH_API AS
                             p_db_description out varchar2)
   is
   begin
+    coremod_log.log('AWRWH_API.remote_awr_load','DEBUG');
     delete from awrwh_dumps_rem;
     commit;
     awrwh_remote.awr_load (
@@ -69,8 +72,9 @@ PACKAGE BODY AWRWH_API AS
     select
         DBID,MIN_SNAP_ID,MAX_SNAP_ID,MIN_SNAP_DT,MAX_SNAP_DT,DB_DESCRIPTION
         into p_dbid,p_min_snap_id,p_max_snap_id,p_min_snap_dt,p_max_snap_dt,p_db_description
-      from awrwh_dumps;
+      from awrwh_dumps_rem;
     delete from awrwh_dumps_rem;
+    coremod_log.log('AWRWH_API.remote_awr_load finished','DEBUG');
   end;
 
   procedure local_awr_load(p_stg_user varchar2,
@@ -89,6 +93,7 @@ PACKAGE BODY AWRWH_API AS
     l_user number;
     l_cnt number;
   begin
+    coremod_log.log('AWRWH_API.local_awr_load','DEBUG');
     select count(1) into l_user from dba_users where username=upper(p_stg_user);
     if l_user=1 then execute immediate 'drop user '||p_stg_user||' cascade'; end if;
      execute immediate
@@ -135,20 +140,24 @@ PACKAGE BODY AWRWH_API AS
     if l_cnt>0 then
       raise_application_error(-20000,'Some snapshots are already loaded for DBID: '||p_dbid||' and snapshot range: '||p_min_snap_id||'-'||p_max_snap_id);
     end if;
+    coremod_log.log('AWRWH_API.local_awr_load finished','DEBUG');
   end;
 
-  procedure unload_awr_ranges_for_dump
-                                (p_is_remote varchar2,
-                                 p_snap_min number,
-                                 p_snap_max number,
-                                 p_dbid number)
+  procedure unload_awr_ranges(p_is_remote varchar2,
+                              p_snap_min number,
+                              p_snap_max number,
+                              p_dbid number)
   is
   begin
+    coremod_log.log('AWRWH_API.unload_awr_ranges: '||p_is_remote||':'||p_snap_min||':'||p_snap_max||':'||p_dbid,'DEBUG');
     if p_is_remote='YES' then
-      awrwh_remote.drop_snapshot_range(low_snap_id => p_snap_min,high_snap_id => p_snap_max,dbid => p_dbid);
+      coremod_log.log('AWRWH_API.unload_awr_ranges REMOTE','DEBUG');
+      awrwh_remote.drop_snapshot_range(low_snap_id => p_snap_min, high_snap_id => p_snap_max, dbid => p_dbid);
     else
+      coremod_log.log('AWRWH_API.unload_awr_ranges LOCAL','DEBUG');
       dbms_workload_repository.drop_snapshot_range(low_snap_id => p_snap_min,high_snap_id => p_snap_max,dbid => p_dbid);
     end if;
+    coremod_log.log('AWRWH_API.unload_awr_ranges finished','DEBUG');
   end;
 
 END AWRWH_API;

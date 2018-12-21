@@ -16,8 +16,9 @@ PACKAGE AWRWH_FILE_API AS
                          p_source_retention    awrwh_dumps.source_retention%type,
                          p_parsed_retention    awrwh_dumps.parsed_retention%type);
 
-  procedure set_note(p_dump_id  awrwh_dumps.dump_id%type,
-                     p_description     awrwh_dumps.dump_description%type);
+  procedure set_note(p_dump_id         awrwh_dumps.dump_id%type,
+                     p_description     awrwh_dumps.dump_description%type,
+                     p_dump_name       awrwh_dumps.dump_name%type);
 
   procedure set_awr_dest(p_dump_id  awrwh_dumps.dump_id%type,
                          p_remote_dest varchar2);
@@ -30,7 +31,7 @@ PACKAGE AWRWH_FILE_API AS
     AWRWH_FILE_LCC.c_dmpfile_dropfile
   */
   procedure exec_file_action_async(p_dump_id awrwh_dumps.dump_id%type, p_action varchar2, p_tq_id out opas_task_queue.tq_id%type);
-  procedure exec_file_action      (p_dump_id awrwh_dumps.dump_id%type, p_action varchar2);
+  procedure exec_file_action      (p_dump_id awrwh_dumps.dump_id%type, p_action varchar2, p_start_state varchar2);
 
   /*import dump utility*/
   procedure load_dump_from_file(p_proj_id          awrwh_dumps.proj_id%type,

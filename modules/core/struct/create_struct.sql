@@ -140,7 +140,7 @@ create index idx_opas_task_created on opas_log(created);
 
 CREATE OR REPLACE FORCE VIEW V$OPAS_TASK_QUEUE AS 
 select
-  t.taskname, t.modname, t.is_public, q.tq_id, q.queued, q.started, q.finished, q.cpu_time, q.elapsed_time, q.status, q.owner, q.sid, q.serial#, q.inst_id , q.job_name
+  t.taskname, t.modname, t.is_public, q.tq_id, q.queued, q.started, q.finished, q.cpu_time, nvl(q.elapsed_time,round((sysdate-(q.started+0))*3600*24)) elapsed_time, q.status, q.owner, q.sid, q.serial#, q.inst_id , q.job_name
 from opas_task t left outer join opas_task_queue q on (t.taskname = q.taskname and q.owner=decode(t.is_public,'Y',q.owner,nvl(V('APP_USER'),'~^')))
 where 1=decode(t.is_public,'Y',1, COREMOD_SEC.is_role_assigned_n(t.modname,'Reas-write users'))
 ;

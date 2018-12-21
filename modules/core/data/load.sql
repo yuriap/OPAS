@@ -15,6 +15,26 @@ insert into opas_groups (group_id,group_name,group_descr) values (1, 'Reas-write
 insert into opas_groups (group_id,group_name,group_descr) values (2, 'Read-only users','Read-only functions');
 insert into opas_groups (group_id,group_name,group_descr) values (3, 'No access users','No access to any functionality');
 
+		   
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','CUST_SQL_AWR_REPORT'    ,'AWR SQL report (custom)'                  ,151,null,null,10);
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','CUST_SQL_MEM_REPORT'    ,'SQL memory report (custom)'               ,152,null,null,20);		   
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','AWR_REPORT'             ,'AWR report (standard)'                    ,153,null,null,30);
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','AWR_SQL_REPORT'         ,'AWR SQL report (standard)'                ,154,null,null,40);
+INSERT INTO  
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','AWR_DIFF'               ,'AWR diff (standard)'                      ,155,null,null,50);
+INSERT INTO     
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','ASH_REPORT'             ,'ASH report (standard)'                    ,156,null,null,60);
+
 set define ~
 
 declare

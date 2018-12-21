@@ -7,9 +7,9 @@ PACKAGE COREMOD_REPORT_UTILS AS
   gShortDTFMT              constant varchar2(32) := 'YYYYMMDDHH24MI';
 
   --custom reports
-  gSQL_MEMORY_REPORT       constant varchar2(32) := 'SQL_MEMORY_REPORT';
+  gSQL_MEMORY_REPORT       constant varchar2(32) := 'CUST_SQL_MEM_REPORT';
   --gparDBLINK, gparSQLID, gparOWNER
-  gSQL_AWR_REPORT          constant varchar2(32) := 'SQL_AWR_REPORT';
+  gSQL_AWR_REPORT          constant varchar2(32) := 'CUST_SQL_AWR_REPORT';
   --gparDBLINK, gparSQLID, gparOWNER,gparREP_LIMIT
 
   --standard AWR reports

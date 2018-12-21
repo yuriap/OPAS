@@ -45,7 +45,8 @@ create table awrwh_dumps (
 	parsed_retention number,
 	loaded           timestamp,
 	parsed           timestamp,
-	owner            varchar2(128) not null
+	owner            varchar2(128) not null,
+	tq_id            number
 );
 
 create index idx1_awrwh_dumps_proj on awrwh_dumps(proj_id);

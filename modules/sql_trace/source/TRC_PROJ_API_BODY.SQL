@@ -113,20 +113,20 @@ package body TRC_PROJ_API as
 	  if p.keep_forever='N' and p.duration > TO_DSINTERVAL(nvl(COREMOD_API.getconf('PROJECTRETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00') then
         begin
           drop_project_i(p_proj_id=>p.proj_id, p_is_purge => true);
-          coremod_log.log('Project removed: '||p.proj_id||' : '||p.proj_name);
+          coremod_log.log('TRC Project removed: '||p.proj_id||' : '||p.proj_name);
         exception
           when others then
-            coremod_log.log('Removing project '||p.proj_id||' error: '||sqlerrm);
+            coremod_log.log('Removing TRC project '||p.proj_id||' error: '||sqlerrm);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
         end;
       else
         begin
           cleanup_project(p_proj_id=>p.proj_id, p_mode => c_ALL, p_use_retention => true);
-          coremod_log.log('Project cleaned: '||p.proj_id||' : '||p.proj_name);
+          coremod_log.log('TRC Project cleaned: '||p.proj_id||' : '||p.proj_name);
         exception
           when others then
-            coremod_log.log('Cleanup project '||p.proj_id||' components error: '||sqlerrm);
+            coremod_log.log('Cleanup TRC project '||p.proj_id||' components error: '||sqlerrm);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
         end;

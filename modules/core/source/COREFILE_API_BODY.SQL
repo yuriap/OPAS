@@ -16,9 +16,19 @@ PACKAGE BODY COREFILE_API AS
 
   procedure  get_locator(p_file_id opas_files.file_id%type, p_locator out opas_files.file_contentb%type) is
   begin
+    select file_contentb into p_locator from opas_files where file_id=p_file_id;
+  end;
+
+  procedure  get_locator(p_file_id opas_files.file_id%type, p_locator out opas_files.file_contentc%type) is
+  begin
+    select file_contentc into p_locator from opas_files where file_id=p_file_id;
+  end;
+
+  procedure  get_locator_for_storage(p_file_id opas_files.file_id%type, p_locator out opas_files.file_contentb%type) is
+  begin
     update opas_files set file_contentb=empty_blob() where file_id=p_file_id returning file_contentb into p_locator;
   end;
-  procedure  get_locator(p_file_id opas_files.file_id%type, p_locator out opas_files.file_contentc%type) is
+  procedure  get_locator_for_storage(p_file_id opas_files.file_id%type, p_locator out opas_files.file_contentc%type) is
   begin
     update opas_files set file_contentc=empty_clob() where file_id=p_file_id returning file_contentc into p_locator;
   end;
@@ -45,7 +55,7 @@ PACKAGE BODY COREFILE_API AS
   is
     l_size number;
   begin
-    select dbms_lob.getlength(file_contentc) into l_size from opas_files where file_id=p_file_id;
+    select nvl(dbms_lob.getlength(file_contentc),0) into l_size from opas_files where file_id=p_file_id;
     return l_size;
   end;
 
@@ -53,7 +63,15 @@ PACKAGE BODY COREFILE_API AS
   is
     l_size number;
   begin
-    select dbms_lob.getlength(file_contentb) into l_size from opas_files where file_id=p_file_id;
+    select nvl(dbms_lob.getlength(file_contentb),0) into l_size from opas_files where file_id=p_file_id;
+    return l_size;
+  end;
+
+  function get_file_size(p_file_id opas_files.file_id%type) return number
+  is
+    l_size number;
+  begin
+    select nvl(dbms_lob.getlength(file_contentb),0)+nvl(dbms_lob.getlength(file_contentc),0) into l_size from opas_files where file_id=p_file_id;
     return l_size;
   end;
 

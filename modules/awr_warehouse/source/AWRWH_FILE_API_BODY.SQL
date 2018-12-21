@@ -30,15 +30,15 @@ PACKAGE BODY AWRWH_FILE_API AS
     l_file := COREFILE_API.create_file(P_MODNAME => AWRWH_API.gMODNAME,
                                        P_FILE_TYPE => AWRWH_API.gDUMPFILETYPE,
                                        P_FILE_NAME => l_dmp_file.filename,
-                                       P_MIMETYPE => 'bin',
+                                       P_MIMETYPE => 'BIN',
                                        P_OWNER => l_dmp_file.OWNER);
 
-    COREFILE_API.get_locator(l_file,l_file_content);
+    COREFILE_API.get_locator_for_storage(l_file,l_file_content);
     l_file_content:=p_file;
     COREFILE_API.store_content(l_file,l_file_content);
 
     UPDATE awrwh_dumps
-       SET filebody = l_file
+       SET filebody = l_file, loaded = systimestamp
      WHERE dump_id = p_dump_id;
 
     AWRWH_FILE_LCC.dmpfile_exec_action(l_dmp_file,AWRWH_FILE_LCC.c_dmpfile_loadfile);
@@ -68,26 +68,27 @@ PACKAGE BODY AWRWH_FILE_API AS
     AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_editfile);
     UPDATE awrwh_dumps
        SET owner = nvl(p_owner,owner),
-           source_retention = p_source_retention,
-           parsed_retention = p_parsed_retention
+           source_retention = decode(p_source_retention,-1,null,p_source_retention),
+           parsed_retention = decode(p_parsed_retention,-1,null,p_parsed_retention)
      WHERE dump_id = p_dump_id;
   end;
 
-  procedure set_note(p_dump_id  awrwh_dumps.dump_id%type,
-                     p_description     awrwh_dumps.dump_description%type)
+  procedure set_note(p_dump_id         awrwh_dumps.dump_id%type,
+                     p_description     awrwh_dumps.dump_description%type,
+                     p_dump_name       awrwh_dumps.dump_name%type)
   is
     l_dmp_file         awrwh_dumps%rowtype;
   begin
 	AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_editfile);
 
-    update awrwh_dumps set dump_description=p_description where dump_id=p_dump_id;
+    update awrwh_dumps set dump_description=p_description, dump_name=p_dump_name where dump_id=p_dump_id;
   end;
 
   procedure set_awr_dest(p_dump_id  awrwh_dumps.dump_id%type,
                          p_remote_dest varchar2)
   is
   begin
-    update awrwh_dumps set is_remote = p_remote_dest where dump_id   = p_dump_id;
+    update awrwh_dumps set is_remote = decode(p_remote_dest,'N','NO','Y','YES',p_remote_dest) where dump_id   = p_dump_id;
   end;
 
   procedure remove_source_data_i(p_dump_id awrwh_dumps.dump_id%type)
@@ -96,7 +97,7 @@ PACKAGE BODY AWRWH_FILE_API AS
   begin
     coremod_log.log('AWRWH_FILE_API.remove_source_data_i: '||p_dump_id,'DEBUG');
     l_dmp_file:=get_file(p_dump_id,true);
-    update awrwh_dumps set filebody=null where dump_id=p_dump_id;
+    update awrwh_dumps set filebody=null,loaded=null where dump_id=p_dump_id;
     COREFILE_API.delete_file(l_dmp_file.filebody);
   end;
 
@@ -107,12 +108,13 @@ PACKAGE BODY AWRWH_FILE_API AS
     coremod_log.log('AWRWH_FILE_API.remove_parsed_data_i: '||p_dump_id,'DEBUG');
 
     l_dmp_file:=get_file(p_dump_id,true);
-    AWRWH_API.unload_awr_ranges_for_dump
+    if l_dmp_file.min_snap_id is not null and l_dmp_file.max_snap_id is not null and l_dmp_file.dbid is not null then
+      AWRWH_API.unload_awr_ranges
                          (p_is_remote => l_dmp_file.is_remote,
                           p_snap_min => l_dmp_file.min_snap_id,
                           p_snap_max => l_dmp_file.max_snap_id,
                           p_dbid => l_dmp_file.dbid);
-
+      end if;
     update awrwh_dumps set parsed=null where dump_id=p_dump_id;
   end;
 
@@ -150,7 +152,7 @@ PACKAGE BODY AWRWH_FILE_API AS
     l_file             blob;
   begin
     coremod_log.log('AWRWH_FILE_API.load_dump_to_awr_repository_i: '||p_dump_id,'DEBUG');
-    l_dmp_file:=get_file(p_dump_id,true);
+    l_dmp_file:=get_file(p_dump_id,false);
 
     COREFILE_API.get_locator(l_dmp_file.filebody, l_file);
     AWRWH_API.put_file_to_fs(l_file ,l_dmp_file.filename,COREMOD_API.getconf('WORKDIR',AWRWH_API.gMODNAME));
@@ -188,27 +190,21 @@ PACKAGE BODY AWRWH_FILE_API AS
         max_snap_id    = l_dmp_file.max_snap_id,
         min_snap_dt    = l_dmp_file.min_snap_dt,
         max_snap_dt    = l_dmp_file.max_snap_dt,
-        db_description = l_dmp_file.db_description
+        db_description = l_dmp_file.db_description,
+        parsed         = systimestamp
      where dump_id   = p_dump_id;
 
     AWRWH_API.remove_file_from_fs(l_dmp_file.filename,COREMOD_API.getconf('WORKDIR',AWRWH_API.gMODNAME));
   exception
     when others then
-      raise_application_error(-20000,'load_dump_to_awr_repository exception: '||sqlerrm);
+      raise_application_error(-20000,'load_dump_to_awr_repository exception: '||sqlerrm||chr(10)||DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
   end;
 
   procedure unload_dump_from_awr_repository_i       (p_dump_id awrwh_dumps.dump_id%type)
   is
-    l_dmp_file         awrwh_dumps%rowtype;
   begin
     coremod_log.log('AWRWH_FILE_API.unload_dump_from_awr_repository: '||p_dump_id,'DEBUG');
-    l_dmp_file:=get_file(p_dump_id,false);
-
-    AWRWH_API.unload_awr_ranges_for_dump (
-      P_IS_REMOTE => l_dmp_file.IS_REMOTE,
-      P_SNAP_MIN  => l_dmp_file.min_snap_id,
-      P_SNAP_MAX  => l_dmp_file.max_snap_id,
-      P_DBID      => l_dmp_file.DBID) ;
+    remove_parsed_data_i(p_dump_id);
   end;
 
   --============================================================================================================================
@@ -218,16 +214,20 @@ PACKAGE BODY AWRWH_FILE_API AS
   procedure exec_file_action_async(p_dump_id awrwh_dumps.dump_id%type, p_action varchar2, p_tq_id out opas_task_queue.tq_id%type)
   is
     L_TASKNAME VARCHAR2(128) := 'AWRWH_EXECFILEACTION';
+    l_dmp_file         awrwh_dumps%rowtype;
   begin
+    l_dmp_file:=get_file(p_dump_id,false);
     AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_putinqueue);
     p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME) ;
+    update awrwh_dumps set tq_id=p_tq_id where dump_id=p_dump_id;
     COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_dump_id);
     COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B2', p_varchar_par => p_action);
+    COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B3', p_varchar_par => l_dmp_file.status);
     COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id ) ;
     commit;
   end;
 
-  procedure exec_file_action      (p_dump_id awrwh_dumps.dump_id%type, p_action varchar2)
+  procedure exec_file_action      (p_dump_id awrwh_dumps.dump_id%type, p_action varchar2, p_start_state varchar2)
   is
     l_dmp_file         awrwh_dumps%rowtype;
   begin
@@ -237,15 +237,16 @@ PACKAGE BODY AWRWH_FILE_API AS
       raise_application_error(-20000,'Invalid action: '||p_action||'; p_dump_id='||p_dump_id);
     end if;
 
+    AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_startprocess);
+
     COREMOD_API.lock_resource (
       P_RESOURCE_NAME => 'OPASAWRWHFILEPROCESSING',
       P_MODE => DBMS_LOCK.X_MODE,
       P_TIMEOUT => COREMOD_API.getconf('FILEPROCESSTIMEOUT',AWRWH_API.gMODNAME),
       P_RELEASE_ON_COMMIT => false) ;
 
-    l_dmp_file:=get_file(p_dump_id,true);
+    l_dmp_file:=get_file(p_dump_id,false);
 
-    AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_startprocess);
     case
       when p_action = AWRWH_FILE_LCC.c_dmpfile_awrload   then load_dump_to_awr_repository_i(p_dump_id);
       when p_action = AWRWH_FILE_LCC.c_dmpfile_awrunload then unload_dump_from_awr_repository_i(p_dump_id);
@@ -253,11 +254,20 @@ PACKAGE BODY AWRWH_FILE_API AS
       when p_action = AWRWH_FILE_LCC.c_dmpfile_archive   then archive_file_i(p_dump_id);
       when p_action = AWRWH_FILE_LCC.c_dmpfile_dropfile  then drop_file_i(p_dump_id);
     end case;
-    AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_finishprocess,p_action);
+
+    if p_action != AWRWH_FILE_LCC.c_dmpfile_dropfile then
+      AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_finishprocess,p_action);
+    end if;
+
+    commit;
+
+    COREMOD_API.release_resource;
   exception
     when others then
-      AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_failprocess,p_action);
+      rollback;
+      AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_failprocess,p_action,p_start_state);
       coremod_log.log('AWRWH_FILE_API.exec_file_action'||chr(10)||sqlerrm||chr(10)||DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+      COREMOD_API.release_resource;
       raise_application_error(-20000,'AWRWH_FILE_API.exec_file_action'||chr(10)||sqlerrm);
   end;
 

@@ -86,7 +86,7 @@ package body ASHA_PROJ_API as
          and (sess_created+nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME)/24))<sysdate
          and nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME))>0
          and parent_id is null;
-      coremod_log.log('Sessions: '||sql%rowcount||' removed');
+      coremod_log.log('ASHA Sessions: '||sql%rowcount||' removed');
 
       for i in (select * from asha_cube_reports
                  where proj_id = p_proj_id
@@ -98,7 +98,7 @@ package body ASHA_PROJ_API as
         ASHA_CUBE_API.delete_report(p_proj_id, i.report_id);
         l_done:=l_done+1;
       end loop;
-      coremod_log.log('Repors: '||l_done||' removed');
+      coremod_log.log('ASHA Reports: '||l_done||' removed');
 
     elsif not p_use_retention then
 
@@ -143,20 +143,20 @@ package body ASHA_PROJ_API as
       if p.keep_forever='N' and p.duration > TO_DSINTERVAL(nvl(COREMOD_API.getconf('PROJECTRETENTION',ASHA_CUBE_API.gMODNAME),8)||' 00:00:00') then
         begin
           drop_project_i(p_proj_id=>p.proj_id, p_is_purge => true);
-          coremod_log.log('Project removed: '||p.proj_id||' : '||p.proj_name);
+          coremod_log.log('ASHA Project removed: '||p.proj_id||' : '||p.proj_name);
         exception
           when others then
-            coremod_log.log('Removing project '||p.proj_id||' error: '||sqlerrm);
+            coremod_log.log('Removing ASHA project '||p.proj_id||' error: '||sqlerrm);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
         end;
       else
         begin
           cleanup_project(p_proj_id=>p.proj_id, p_mode => c_ALL, p_use_retention => true);
-          coremod_log.log('Project cleaned: '||p.proj_id||' : '||p.proj_name);
+          coremod_log.log('ASHA Project cleaned: '||p.proj_id||' : '||p.proj_name);
         exception
           when others then
-            coremod_log.log('Cleanup project '||p.proj_id||' components error: '||sqlerrm);
+            coremod_log.log('Cleanup ASNA project '||p.proj_id||' components error: '||sqlerrm);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
         end;

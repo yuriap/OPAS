@@ -1,6 +1,10 @@
 CREATE OR REPLACE
 PACKAGE AWRWH_REPORT_API AS
 
+  --custom reports
+  gCUST_AWRCOMP            constant varchar2(32) := 'CUST_AWRCOMP';
+  gCUST_SQLMULTIPLAN       constant varchar2(32) := 'CUST_SQLMULTIPLAN';
+
   procedure create_report_awrrpt(p_proj_id      awrwh_reports.proj_id%type,
                                  p_dbid         number,
                                  p_min_snap     number,

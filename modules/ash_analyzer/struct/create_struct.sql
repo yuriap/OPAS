@@ -100,7 +100,7 @@ rem sess_retention_days: null - default project retention, 0 - keep forever, N -
 create unique index xpk_asha_cube_sess on asha_cube_sess(sess_id);
 alter table asha_cube_sess add constraint xpk_asha_cube_sess primary key(sess_id);
 create unique index xpk_asha_cube_parsess on asha_cube_sess(parent_id);
-alter table asha_cube_sess add constraint fk_asha_cube_sess_prnt foreign key(sess_id) references asha_cube_sess(sess_id) on delete cascade;
+alter table asha_cube_sess add constraint fk_asha_cube_sess_prnt foreign key(parent_id) references asha_cube_sess(sess_id) on delete cascade;
 
 create table asha_cube_sess_pars (
 sess_id      number references asha_cube_sess(sess_id) on delete cascade,

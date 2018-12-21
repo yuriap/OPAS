@@ -80,42 +80,41 @@ package body AWRWH_PROJ_API as
 	l_done    number := 0;
   begin
     l_curproj:=getproject(p_proj_id, true);
-
     if p_use_retention and p_mode in (c_ALL, c_SOURCEDATA, c_PARSEDDATA) then
 
-      for i in (select dump_id, loaded,parsed, source_retention, parsed_retention from awrwh_dumps where proj_id=p_proj_id) loop
+      for i in (select dump_id, loaded,parsed, source_retention, parsed_retention,status from awrwh_dumps where proj_id=p_proj_id) loop
         if p_mode in (c_ALL, c_SOURCEDATA) then
-          if i.source_retention <> 0 and (i.loaded+nvl(i.source_retention,COREMOD_API.getconf('DUMPETENTION',AWRWH_API.gMODNAME)))<sysdate then
-            AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_compress);
+          if nvl(i.source_retention,-1) <> 0 and (i.loaded+nvl(i.source_retention,COREMOD_API.getconf('DUMPETENTION',AWRWH_API.gMODNAME)))<sysdate then
+            AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_compress,i.status);
             coremod_log.log('Dump file removed: '||i.dump_id);
           end if;
         end if;
 
         if p_mode in (c_ALL, c_PARSEDDATA) then
-          if i.parsed_retention <> 0 and (i.parsed+nvl(i.parsed_retention,COREMOD_API.getconf('AWRPARSEDRETENTION',AWRWH_API.gMODNAME)))<sysdate then
-            AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_awrunload);
+          if nvl(i.parsed_retention,-1) <> 0 and (i.parsed+nvl(i.parsed_retention,COREMOD_API.getconf('AWRPARSEDRETENTION',AWRWH_API.gMODNAME)))<sysdate then
+            AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_awrunload,i.status);
             coremod_log.log('AWR data removed: '||i.dump_id);
           end if;
         end if;
 
       end loop;
 
-      for i in (select report_id,created,report_retention from awrwh_reports where proj_id=p_proj_id) loop
-        if p_mode in (c_ALL, c_REPORTS) then
-          if i.report_retention <> 0 and (i.created+nvl(i.report_retention,COREMOD_API.getconf('REPORTRETENTION',AWRWH_API.gMODNAME)))<sysdate then
+      if p_mode in (c_ALL, c_REPORTS) then
+        for i in (select report_id,created,report_retention from awrwh_reports where proj_id=p_proj_id) loop
+          if nvl(i.report_retention,-1) <> 0 and (i.created+nvl(i.report_retention,COREMOD_API.getconf('REPORTRETENTION',AWRWH_API.gMODNAME)))<sysdate then
             AWRWH_REPORT_API.delete_report(p_proj_id,i.report_id);
             coremod_log.log('Report removed: '||i.report_id);
           end if;
-        end if;
-      end loop;
+        end loop;
+      end if;
 
     elsif not p_use_retention then
 
-      for i in (select dump_id, loaded,parsed, source_retention, parsed_retention from awrwh_dumps where proj_id=p_proj_id) loop
-        AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_compress);
+      for i in (select dump_id, loaded,parsed, source_retention, parsed_retention,status from awrwh_dumps where proj_id=p_proj_id) loop
+        AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_compress,i.status);
         coremod_log.log('Dump file removed: '||i.dump_id);
 
-        AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_awrunload);
+        AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_awrunload,i.status);
         coremod_log.log('AWR data removed: '||i.dump_id);
       end loop;
       for i in (select report_id,created,report_retention from awrwh_reports where proj_id=p_proj_id) loop
@@ -156,20 +155,20 @@ package body AWRWH_PROJ_API as
 	  if p.keep_forever='N' and p.duration > TO_DSINTERVAL(nvl(COREMOD_API.getconf('PROJECTRETENTION',AWRWH_API.gMODNAME),8)||' 00:00:00') then
         begin
           drop_project_i(p_proj_id=>p.proj_id, p_is_purge => true);
-          coremod_log.log('Project removed: '||p.proj_id||' : '||p.proj_name);
+          coremod_log.log('AWRWH Project removed: '||p.proj_id||' : '||p.proj_name);
         exception
           when others then
-            coremod_log.log('Removing project '||p.proj_id||' error: '||sqlerrm);
+            coremod_log.log('Removing AWRWH project '||p.proj_id||' error: '||sqlerrm);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
         end;
       else
         begin
           cleanup_project(p_proj_id=>p.proj_id, p_mode => c_ALL, p_use_retention => true);
-		  coremod_log.log('Project cleaned: '||p.proj_id||' : '||p.proj_name);
+		  coremod_log.log('AWRWH Project cleaned: '||p.proj_id||' : '||p.proj_name);
         exception
           when others then
-            coremod_log.log('Cleanup project '||p.proj_id||' components error: '||sqlerrm);
+            coremod_log.log('Cleanup AWRWH project '||p.proj_id||' components error: '||sqlerrm);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
             coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
         end;

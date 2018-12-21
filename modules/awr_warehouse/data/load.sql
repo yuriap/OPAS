@@ -11,6 +11,36 @@ INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','WA
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','WAREHOUSE','DBLINK',      '&DBLINK.','DB link name for remote AWR repository');
 
 
+--Report types
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','CUST_AWRCOMP'           ,'AWR query plan compare report (custom)'   ,457,'$LOCAL$',null,10);
+
+INSERT INTO    
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','CUST_SQLMULTIPLAN'      ,'Analyze SQLs with multiple plans (custom)',458,'$LOCAL$',null,20);
+
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','CUST_SQL_AWR_REPORT'    ,'AWR SQL report (custom)'                  ,451,'$LOCAL$',null,30);
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','CUST_SQL_MEM_REPORT'    ,'SQL memory report (custom)'               ,452,'$LOCAL$',null,40);		   
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','AWR_REPORT'             ,'AWR report (standard)'                    ,453,'$LOCAL$',null,50);
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','AWR_SQL_REPORT'         ,'AWR SQL report (standard)'                ,454,'$LOCAL$',null,60);
+INSERT INTO  
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','AWR_DIFF'               ,'AWR diff (standard)'                      ,455,'$LOCAL$',null,70);
+INSERT INTO     
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','ASH_REPORT'             ,'ASH report (standard)'                    ,456,'$LOCAL$',null,80);
+
+		   
+--Sort orders for AWRCOMP
 INSERT INTO 
   opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
            VALUES ('&MODNM.','AWRCOMP_SORTORDR','ELAPSED_TIME_DELTA','Sort by Elapsed Time','ela_tot',null,null,1);

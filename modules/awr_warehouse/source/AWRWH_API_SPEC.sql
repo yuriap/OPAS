@@ -38,11 +38,10 @@ PACKAGE AWRWH_API AS
                                  p_max_snap_dt out timestamp,
                                  p_db_description out varchar2);
 
-  procedure unload_awr_ranges_for_dump
-                                (p_is_remote varchar2,
-                                 p_snap_min number,
-                                 p_snap_max number,
-                                 p_dbid number);
+  procedure unload_awr_ranges(p_is_remote varchar2,
+                              p_snap_min number,
+                              p_snap_max number,
+                              p_dbid number);
 
 END AWRWH_API;
 /

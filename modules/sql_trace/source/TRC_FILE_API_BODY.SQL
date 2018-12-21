@@ -46,7 +46,7 @@ PACKAGE BODY TRC_FILE_API AS
                                          P_MIMETYPE => 'TXT',
                                          P_OWNER => l_trc_file.OWNER);
 
-      COREFILE_API.get_locator(l_file,l_file_content);
+      COREFILE_API.get_locator_for_storage(l_file,l_file_content);
       if p_file is null then
 
         if l_trc_file.file_source is null then raise_application_error(-20000,'File source and file name are empty.'); end if;
