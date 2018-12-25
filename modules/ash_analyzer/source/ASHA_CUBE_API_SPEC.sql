@@ -26,5 +26,43 @@ PACKAGE ASHA_CUBE_API AS
 
   procedure delete_report(p_proj_id          asha_cube_reports.proj_id%type,
                           p_report_id          asha_cube_reports.report_id%type);
+
+--=============================================================================================================================================
+  procedure create_report_awrrpt(p_proj_id      asha_cube_reports.proj_id%type,
+                                 p_dbid         number,
+                                 p_min_snap     number,
+                                 p_max_snap     number,
+                                 p_instance_num number,
+                                 p_dblink       varchar2 default null,
+                                 p_sess_id      asha_cube_reports.sess_id%type default null);
+--=============================================================================================================================================
+  procedure create_report_sqawrrpt(p_proj_id      asha_cube_reports.proj_id%type,
+                                   p_sql_id       varchar2,
+                                   p_dbid         number,
+                                   p_min_snap     number,
+                                   p_max_snap     number,
+                                   p_instance_num number,
+                                   p_dblink       varchar2 default null,
+                                   p_sess_id      asha_cube_reports.sess_id%type default null);
+--=============================================================================================================================================
+  procedure create_report_diffrpt(p_proj_id       asha_cube_reports.proj_id%type,
+                                  p_dbid1         number,
+                                  p_min_snap1     number,
+                                  p_max_snap1     number,
+                                  p_instance_num1 number,
+                                  p_dbid2         number,
+                                  p_min_snap2     number,
+                                  p_max_snap2     number,
+                                  p_instance_num2 number,
+                                  p_dblink        varchar2 default null,
+                                  p_sess_id       asha_cube_reports.sess_id%type default null);
+--=============================================================================================================================================
+  procedure create_report_ashrpt(p_proj_id      asha_cube_reports.proj_id%type,
+                                 p_dbid         number,
+                                 p_bdate        date,
+                                 p_edate        date,
+                                 p_instance_num number,
+                                 p_dblink       varchar2 default null,
+                                 p_sess_id      asha_cube_reports.sess_id%type default null);
 END ASHA_CUBE_API;
 /

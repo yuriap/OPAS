@@ -2,7 +2,7 @@ CREATE OR REPLACE
 package body coremod_reports
 as
 
-  function queue_report_awrrpt(p_modname varchar2, p_owner varchar2, p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number, p_dblink varchar2) return opas_reports.report_id%type
+  function queue_report_awrrpt(p_modname varchar2, p_owner varchar2, p_dbid number, p_min_snap number, p_max_snap number, p_instance_num varchar2, p_dblink varchar2) return opas_reports.report_id%type
   is
     l_report_id opas_reports.report_id%type;
   begin
@@ -18,15 +18,23 @@ as
     return l_report_id;
   end;
 
-  function getreport_awrrpt(p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number) return coremod_report_utils.t_output_lines
+  function getreport_awrrpt(p_dbid number, p_min_snap number, p_max_snap number, p_instance_num varchar2, p_filename out varchar2, p_displ_params out varchar2) return coremod_report_utils.t_output_lines
   is
     l_report coremod_report_utils.t_output_lines;
     l_inst_lst    AWRRPT_INSTANCE_LIST_TYPE;
     l_mis         number;
     l_mas         number;
   begin
-    if p_instance_num is null then
+    if instr(p_instance_num,'-1')=0 then
+      l_inst_lst := COREMOD_REPORT_UTILS.get_inst_list(p_instance_num);
+    else
       select unique INSTANCE_NUMBER bulk collect into l_inst_lst from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap;
+    end if;
+
+    p_filename := 'opas_awr_'||p_dbid||'_'||p_min_snap||'_'||p_max_snap||case when l_inst_lst.count>1 then '_rac' else  p_instance_num end || '.html';
+    p_displ_params := 'DBID: '||p_dbid||'; SNAPS: '||p_min_snap||':'||p_max_snap||'; INST: '||case when l_inst_lst.count>1 then 'RAC' else  p_instance_num end;
+
+    if l_inst_lst.count>1 then
       select min(snap_id) mis, max(snap_id) mas into l_mis, l_mas from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap;
       begin
         for j in (select rownum rn, output from table(dbms_workload_repository.awr_global_report_html(p_dbid,l_inst_lst,l_mis,l_mas)))
@@ -40,7 +48,7 @@ as
       select min(snap_id) mis, max(snap_id) mas into l_mis, l_mas
         from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap and INSTANCE_NUMBER = p_instance_num;
       begin
-        for j in (select rownum rn, output from table(dbms_workload_repository.awr_report_html(p_dbid,p_instance_num,l_mis,l_mas)))
+        for j in (select rownum rn, output from table(dbms_workload_repository.awr_report_html(p_dbid,l_inst_lst(1),l_mis,l_mas)))
         loop
           l_report(j.rn):=j.output;
         end loop;
@@ -51,14 +59,16 @@ as
     return l_report;
   end;
 
-  function getreport_awrrpt(p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number, p_dblink varchar2) return clob
+  function getreport_awrrpt(p_dbid number, p_min_snap number, p_max_snap number, p_instance_num varchar2, p_dblink varchar2, p_filename out varchar2, p_displ_params out varchar2) return clob
   is
     l_out clob;
+    l_inst_lst    AWRRPT_INSTANCE_LIST_TYPE := AWRRPT_INSTANCE_LIST_TYPE();
+    l_instance_num varchar2(1000) := '0';
     l_sql varchar2(4000) := q'[
 declare
 l_mis number; l_mas number; l_inst_lst AWRRPT_INSTANCE_LIST_TYPE;
 begin
-  select unique INSTANCE_NUMBER bulk collect into l_inst_lst from dba_hist_snapshot x where dbid=<DBID> and SNAP_ID between <MIS> and <MAS>;
+  select unique INSTANCE_NUMBER bulk collect into l_inst_lst from dba_hist_snapshot x where dbid=<DBID> and SNAP_ID between <MIS> and <MAS> <INST>;
   select min(snap_id), max(snap_id) into l_mis, l_mas from dba_hist_snapshot x where dbid=<DBID> and SNAP_ID between <MIS> and <MAS> <INST>;
   begin
     for j in (select output from table(dbms_workload_repository.<FNC>(<DBID>,<INSTLST>,l_mis,l_mas)))
@@ -70,15 +80,34 @@ begin
   end;
 end;]';
   begin
-    l_sql := replace(replace(replace(l_sql,'<DBID>',p_dbid),'<MIS>',p_min_snap),'<MAS>',p_max_snap);
-    if p_instance_num is null then
-      l_sql := replace(replace(replace(l_sql,'<FNC>','awr_global_report_html'),'<INSTLST>','l_inst_lst'),'<INST>',null);
+    if instr(p_instance_num,'-1')=0 then
+      l_inst_lst := COREMOD_REPORT_UTILS.get_inst_list(p_instance_num);
     else
-      l_sql := replace(replace(replace(l_sql,'<FNC>','awr_report_html'),'<INSTLST>',p_instance_num),'<INST>','and INSTANCE_NUMBER='||p_instance_num);
+      execute immediate replace(
+                        replace(
+                        replace(
+                        replace('select unique INSTANCE_NUMBER from dba_hist_snapshot@<DBLINK> x where dbid=<DBID> and SNAP_ID between <MIS> and <MAS>'
+                          ,'<DBID>'  ,p_dbid)
+                          ,'<MIS>'   ,p_min_snap)
+                          ,'<MAS>'   ,p_max_snap)
+                          ,'<DBLINK>',COREMOD_API.get_ora_dblink(p_dblink))
+        bulk collect into l_inst_lst;
+    end if;
+
+    if l_inst_lst.count = 1 and instr(p_instance_num,'-1')>0 then l_instance_num:=l_inst_lst(1); end if;
+
+    p_filename := 'opas_awr_'||p_dbid||'_'||p_min_snap||'_'||p_max_snap||'_'||case when l_inst_lst.count>1 then 'rac' else l_instance_num end || '_' || p_dblink || '.html';
+    p_displ_params := 'DBID: '||p_dbid||'; SNAPS: '||p_min_snap||':'||p_max_snap||'; INST: '||case when l_inst_lst.count>1 then 'RAC' else l_instance_num end || '; DB_LINK: '||p_dblink;
+
+    l_sql := replace(replace(replace(l_sql,'<DBID>',p_dbid),'<MIS>',p_min_snap),'<MAS>',p_max_snap);
+    if l_inst_lst.count>1 then
+      l_sql := replace(replace(replace(l_sql,'<FNC>','awr_global_report_html'),'<INSTLST>','l_inst_lst'),'<INST>',COREMOD_REPORT_UTILS.get_inst_list(l_inst_lst,'INSTANCE_NUMBER'));
+    else
+      l_sql := replace(replace(replace(l_sql,'<FNC>','awr_report_html'),'<INSTLST>',l_instance_num),'<INST>','and INSTANCE_NUMBER='||l_instance_num);
     end if;
     coremod_log.log('Remote AWR Report: '||l_sql,'DEBUG');
-    coremod_log.log('Remote AWR Report DB Link: '||p_dblink,'DEBUG');
-    COREMOD_REPORT_UTILS.get_clob_remotelly(l_sql,p_dblink,l_out);
+    coremod_log.log('Remote AWR Report DB Link: '||COREMOD_API.get_ora_dblink(p_dblink),'DEBUG');
+    COREMOD_REPORT_UTILS.get_clob_remotelly(l_sql,COREMOD_API.get_ora_dblink(p_dblink),l_out);
     return l_out;
   end;
 
@@ -97,7 +126,7 @@ end;]';
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBID,        p_dbid);
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMIN_SNAP,    p_min_snap);
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMAX_SNAP,    p_max_snap);
-    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparINSTANCE_NUM,p_instance_num);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparINSTANCE_NUM, case when p_instance_num = -1 then 1 else p_instance_num end);
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBLINK,      p_dblink);
     coremod_report_utils.queue_report(l_report_id);
     return l_report_id;
@@ -189,7 +218,7 @@ end;]';
     l_mis2         number;
     l_mas2         number;
   begin
-    if p_instance_num1 is null or p_instance_num2 is null then
+    if p_instance_num1 is null or p_instance_num2 is null or p_instance_num1 = -1 or p_instance_num2 = -1 then
       select unique INSTANCE_NUMBER bulk collect into l_inst_lst1 from dba_hist_snapshot x where dbid=p_dbid1 and SNAP_ID between p_min_snap1 and p_max_snap1;
       select unique INSTANCE_NUMBER bulk collect into l_inst_lst2 from dba_hist_snapshot x where dbid=p_dbid2 and SNAP_ID between p_min_snap2 and p_max_snap2;
       select min(snap_id) mis, max(snap_id) mas into l_mis1, l_mas1 from dba_hist_snapshot x where dbid=p_dbid1 and SNAP_ID between p_min_snap1 and p_max_snap1;
@@ -242,7 +271,7 @@ end;]';
   begin
     l_sql := replace(replace(replace(l_sql,'<DBID1>',p_dbid1),'<MIS1>',p_min_snap1),'<MAS1>',p_max_snap1);
     l_sql := replace(replace(replace(l_sql,'<DBID2>',p_dbid2),'<MIS2>',p_min_snap2),'<MAS2>',p_max_snap2);
-    if p_instance_num1 is null or p_instance_num2 is null then
+    if p_instance_num1 is null or p_instance_num2 is null or p_instance_num1 = -1 or p_instance_num2 = -1 then
       l_sql := replace(replace(replace(l_sql,'<FNC>','awr_global_diff_report_text'),'<INSTLST1>','l_inst_lst1'),'<INST1>',null);
       l_sql := replace(replace(l_sql,'<INSTLST2>','l_inst_lst2'),'<INST2>',null);
     else
@@ -281,7 +310,7 @@ end;]';
     l_report coremod_report_utils.t_output_lines;
     l_inst_lst    varchar2(256);
   begin
-    if p_instance_num is null then
+    if p_instance_num is null or p_instance_num = -1 then
       for i in (select unique INSTANCE_NUMBER from dba_hist_snapshot x where dbid=p_dbid and end_interval_time between p_btime - 1.5/24 and p_etime + 1.5/24)
       loop
         l_inst_lst:=l_inst_lst||i.INSTANCE_NUMBER||',';
@@ -332,7 +361,7 @@ begin
 end;]';
   begin
     l_sql := replace(replace(replace(replace(l_sql,'<DBID>',p_dbid),'<btime>',to_char(p_btime,COREMOD_REPORT_UTILS.gDTFMT)),'<etime>',to_char(p_etime,COREMOD_REPORT_UTILS.gDTFMT)),'<dtfmt>',COREMOD_REPORT_UTILS.gDTFMT);
-    if p_instance_num is null then
+    if p_instance_num is null or p_instance_num = -1 then
       l_sql := replace(replace(l_sql,'<FNC>','ash_global_report_html'),'<INSTLST>','l_inst_lst');
     else
       l_sql := replace(replace(l_sql,'<FNC>','ash_report_html'),'<INSTLST>',p_instance_num);

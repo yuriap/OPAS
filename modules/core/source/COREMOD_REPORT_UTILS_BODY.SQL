@@ -95,6 +95,64 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     when no_data_found then raise_application_error(-20000,'Parameter: '||p_name||' for report_id: '||p_report_id||' is not defined (get_reppar_d).');
   end;
 
+  function get_inst_list(p_list varchar2, p_col_nm varchar2) return varchar2
+  is
+    l_list varchar2(1000);
+  begin
+    if instr(p_list,'-1')>0 then
+      return q'[ 1=1 ]';
+    else
+      l_list := replace(replace(p_list,';',','),':',',');
+      return p_col_nm||' in ('||nvl(l_list,'0')||')';
+    end if;
+  end;
+
+  function get_inst_list(p_list AWRRPT_INSTANCE_LIST_TYPE, p_col_nm varchar2) return varchar2
+  is
+    l_list varchar2(1000);
+  begin
+    l_list := p_col_nm||' in (';
+    for i in 1..p_list.count loop
+      l_list:=l_list||p_list(i)||',';
+    end loop;
+    l_list:=rtrim(l_list,',');
+    return l_list||')';
+  end;
+
+  function get_inst_list(p_list varchar2) return AWRRPT_INSTANCE_LIST_TYPE
+  is
+    l_res  AWRRPT_INSTANCE_LIST_TYPE := AWRRPT_INSTANCE_LIST_TYPE ();
+    l_list  varchar2(1000);
+    l_token varchar2(100);
+    l_delim varchar2(1):=',';
+    l_cnt   number := 0;
+  begin
+    if instr(p_list,'-1')=0 then
+      l_list:=replace(replace(p_list,';',l_delim),':',l_delim)||l_delim;
+      loop
+        l_token:=substr(l_list,1,instr(l_list,l_delim)-1);
+        l_res.extend;l_res(l_res.count):=l_token;
+        l_list:=ltrim(l_list,l_token||l_delim);
+        l_cnt:=l_cnt+1;
+        exit when  l_list is null or l_cnt>1000;
+      end loop;
+    end if;
+    return l_res;
+  end;
+
+  function get_inst_lst_for_nm(p_list varchar2,p_pref varchar2 default null) return varchar2
+  is
+  begin
+    coremod_log.log(p_list||':'||p_pref);
+    if instr(p_list,'-1')>0 then
+      return p_pref||'RAC';
+    elsif get_inst_list(p_list).count>1 then
+      return p_pref||'RAC';
+    else
+      return p_pref||p_list;
+    end if;
+  end;
+
   procedure queue_report(p_report_id opas_reports.report_id%type)
   is
     l_tq_id opas_task_queue.tq_id%type;
@@ -139,40 +197,57 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
                                                           COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)),
                                                           get_reppar_n(p_report_id,gparREP_LIMIT));
     elsif l_report_type = qAWRRPT then
+--coremod_log.log('get_reppar_c(p_report_id,gparINSTANCE_NUM:'||get_reppar_c(p_report_id,gparINSTANCE_NUM));
       l_file_type := 'AWR report';
-      l_mime := 'HTML';
+      l_mime := 'HTML';/*
+      l_file_name := 'opas_awr_'||get_reppar_n(p_report_id,gparDBID)||'_'||
+                                  get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||
+                                  get_reppar_n(p_report_id,gparMAX_SNAP)||
+                                  get_inst_lst_for_nm(get_reppar_c(p_report_id,gparINSTANCE_NUM),'_') ||
+                                  case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '_'|| get_reppar_c(p_report_id,gparDBLINK) end ||
+                                  '.html';
+      l_displ_params := 'DBID: '||get_reppar_n(p_report_id,gparDBID)||
+                     '; SNAPS: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||
+                                  get_reppar_n(p_report_id,gparMAX_SNAP)||
+                      '; INST: '||get_inst_lst_for_nm(get_reppar_c(p_report_id,gparINSTANCE_NUM)) ||
+                                 case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '; DB_LINK: '||get_reppar_c(p_report_id,gparDBLINK) end;*/
       if get_reppar_c(p_report_id,gparDBLINK) is null then
-        l_file_name := 'opas_awr_'||get_reppar_n(p_report_id,gparDBID)||'_'||get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||get_reppar_n(p_report_id,gparMAX_SNAP)||'_'||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0)||'.html';
-        l_displ_params := 'DBID: '||get_reppar_n(p_report_id,gparDBID)||'; SNAPS: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||get_reppar_n(p_report_id,gparMAX_SNAP)||'; INST: '||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0);
+
         l_report := coremod_reports.getreport_awrrpt(get_reppar_n(p_report_id,gparDBID),
                                                      get_reppar_n(p_report_id,gparMIN_SNAP),
                                                      get_reppar_n(p_report_id,gparMAX_SNAP),
-                                                     get_reppar_n(p_report_id,gparINSTANCE_NUM));
+                                                     get_reppar_c(p_report_id,gparINSTANCE_NUM),l_file_name,l_displ_params);
       else
-        l_file_name := 'opas_awr_'||get_reppar_n(p_report_id,gparDBID)||'_'||get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||get_reppar_n(p_report_id,gparMAX_SNAP)||'_'||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0)||'_'||get_reppar_c(p_report_id,gparDBLINK)||'.html';
-        l_displ_params := 'DBID: '||get_reppar_n(p_report_id,gparDBID)||'; SNAPS: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||get_reppar_n(p_report_id,gparMAX_SNAP)||'; INST: '||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0)
-                          ||'DB_LINK: '||get_reppar_c(p_report_id,gparDBLINK);
         l_report_clob := coremod_reports.getreport_awrrpt(get_reppar_n(p_report_id,gparDBID),
                                                           get_reppar_n(p_report_id,gparMIN_SNAP),
                                                           get_reppar_n(p_report_id,gparMAX_SNAP),
-                                                          get_reppar_n(p_report_id,gparINSTANCE_NUM),
-                                                          COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)));
+                                                          get_reppar_c(p_report_id,gparINSTANCE_NUM),
+                                                          get_reppar_c(p_report_id,gparDBLINK),l_file_name,l_displ_params);
       end if;
     elsif l_report_type = qSQAWRRPT then
       l_file_type := 'SQL AWR report';
       l_mime := 'HTML';
+      l_file_name := 'opas_sql_'||get_reppar_c(p_report_id,gparSQLID)||'_'||
+                                  get_reppar_n(p_report_id,gparDBID)||'_'||
+                                  get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||
+                                  get_reppar_n(p_report_id,gparMAX_SNAP)||
+                                  case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then '_1' else '_'|| to_char(get_reppar_n(p_report_id,gparINSTANCE_NUM)) end ||
+                                  case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '_'|| get_reppar_c(p_report_id,gparDBLINK) end ||
+                                  '.html';
+      l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||
+                        '; DBID: '||get_reppar_n(p_report_id,gparDBID)||
+                        '; SNAPS: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||
+                                     get_reppar_n(p_report_id,gparMAX_SNAP)||
+                        '; INST: '||case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then '1' else to_char(get_reppar_n(p_report_id,gparINSTANCE_NUM)) end ||
+                                    case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '; DB_LINK: '||get_reppar_c(p_report_id,gparDBLINK) end;
+
       if get_reppar_c(p_report_id,gparDBLINK) is null then
-        l_file_name := 'opas_sql_'||get_reppar_c(p_report_id,gparSQLID)||'_'||get_reppar_n(p_report_id,gparDBID)||'_'||get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||get_reppar_n(p_report_id,gparMAX_SNAP)||'_'||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0)||'.html';
-        l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBID: '||get_reppar_n(p_report_id,gparDBID)||'; SNAPS: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||get_reppar_n(p_report_id,gparMAX_SNAP)||'; INST: '||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0);
         l_report := coremod_reports.getreport_sqawrrpt(get_reppar_c(p_report_id,gparSQLID),
                                                        get_reppar_n(p_report_id,gparDBID),
                                                        get_reppar_n(p_report_id,gparMIN_SNAP),
                                                        get_reppar_n(p_report_id,gparMAX_SNAP),
                                                        get_reppar_n(p_report_id,gparINSTANCE_NUM));
       else
-        l_file_name := 'opas_sql_'||get_reppar_c(p_report_id,gparSQLID)||'_'||get_reppar_n(p_report_id,gparDBID)||'_'||get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||get_reppar_n(p_report_id,gparMAX_SNAP)||'_'||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0)||'_'||get_reppar_c(p_report_id,gparDBLINK)||'.html';
-        l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBID: '||get_reppar_n(p_report_id,gparDBID)||'; SNAPS: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||get_reppar_n(p_report_id,gparMAX_SNAP)||'; INST: '||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0)
-                          ||'DB_LINK: '||get_reppar_c(p_report_id,gparDBLINK);
         l_report_clob := coremod_reports.getreport_sqawrrpt(get_reppar_c(p_report_id,gparSQLID),
                                                             get_reppar_n(p_report_id,gparDBID),
                                                             get_reppar_n(p_report_id,gparMIN_SNAP),
@@ -183,10 +258,22 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     elsif l_report_type = qAWRDIFF then
       l_file_type := 'AWR Diff report';
       l_mime := 'HTML';
+      l_file_name := 'opas_awrdiff_'||get_reppar_n(p_report_id,gparDBID)||'_'||
+                                      get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||
+                                      get_reppar_n(p_report_id,gparMIN_SNAP2)||
+                                      case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then '_rac' else null end ||
+                                      case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '_'|| get_reppar_c(p_report_id,gparDBLINK) end ||
+                                      '.html';
+      l_displ_params := 'DBID1: '||get_reppar_n(p_report_id,gparDBID)||
+                     '; SNAPS1: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||
+                                   get_reppar_n(p_report_id,gparMAX_SNAP)||
+                     '; INST1: '||case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then 'RAC' else to_char(get_reppar_n(p_report_id,gparINSTANCE_NUM)) end||
+                     '; DBID2: '||get_reppar_n(p_report_id,gparDBID)||
+                     '; SNAPS2: '||get_reppar_n(p_report_id,gparMIN_SNAP2)||':'||
+                                   get_reppar_n(p_report_id,gparMAX_SNAP2)||
+                     '; INST2: '||case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then 'RAC' else to_char(get_reppar_n(p_report_id,gparINSTANCE_NUM2)) end||
+                                  case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '; DB_LINK: '||get_reppar_c(p_report_id,gparDBLINK) end;
       if get_reppar_c(p_report_id,gparDBLINK) is null then
-        l_file_name := 'opas_awrdiff_'||get_reppar_n(p_report_id,gparDBID)||'_'||get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||get_reppar_n(p_report_id,gparMIN_SNAP2)||'.html';
-        l_displ_params := 'DBID1: '||get_reppar_n(p_report_id,gparDBID)||'; SNAPS1: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||get_reppar_n(p_report_id,gparMAX_SNAP)||'; INST1: '||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0)||
-                          'DBID2: '||get_reppar_n(p_report_id,gparDBID)||'; SNAPS2: '||get_reppar_n(p_report_id,gparMIN_SNAP2)||':'||get_reppar_n(p_report_id,gparMAX_SNAP2)||'; INST2: '||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM2),0);
         l_report := coremod_reports.getreport_diffrpt(get_reppar_n(p_report_id,gparDBID),
                                                       get_reppar_n(p_report_id,gparMIN_SNAP),
                                                       get_reppar_n(p_report_id,gparMAX_SNAP),
@@ -196,10 +283,6 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
                                                       get_reppar_n(p_report_id,gparMAX_SNAP2),
                                                       get_reppar_n(p_report_id,gparINSTANCE_NUM2));
       else
-        l_file_name := 'opas_awrdiff_'||get_reppar_n(p_report_id,gparDBID)||'_'||get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||get_reppar_n(p_report_id,gparMIN_SNAP2)||'.html';
-        l_displ_params := 'DBID1: '||get_reppar_n(p_report_id,gparDBID)||'; SNAPS1: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||get_reppar_n(p_report_id,gparMAX_SNAP)||'; INST1: '||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0)||
-                          'DBID2: '||get_reppar_n(p_report_id,gparDBID)||'; SNAPS2: '||get_reppar_n(p_report_id,gparMIN_SNAP2)||':'||get_reppar_n(p_report_id,gparMAX_SNAP2)||'; INST2: '||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM2),0)
-                          ||'DB_LINK: '||get_reppar_c(p_report_id,gparDBLINK);
         l_report_clob := coremod_reports.getreport_diffrpt(get_reppar_n(p_report_id,gparDBID),
                                                            get_reppar_n(p_report_id,gparMIN_SNAP),
                                                            get_reppar_n(p_report_id,gparMAX_SNAP),
@@ -213,17 +296,23 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     elsif l_report_type = qASHRPT then
       l_file_type := 'ASH report';
       l_mime := 'HTML';
+      l_file_name := 'opas_ash_'||get_reppar_n(p_report_id,gparDBID)||'_'||
+                                  to_char(get_reppar_d(p_report_id,gparBTIME),gShortDTFMT)||'_'||
+                                  to_char(get_reppar_d(p_report_id,gparETIME),gShortDTFMT)||
+                                  case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then '_rac' else null end||
+                                  case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '_'|| get_reppar_c(p_report_id,gparDBLINK) end||
+                                  '.html';
+      l_displ_params := 'DBID: '||get_reppar_n(p_report_id,gparDBID)||
+                     '; DATES: '||to_char(get_reppar_d(p_report_id,gparBTIME),gShortDTFMT)||':'||
+                                  to_char(get_reppar_d(p_report_id,gparETIME),gShortDTFMT)||
+                      '; INST: '||case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then 'RAC' else to_char(get_reppar_n(p_report_id,gparINSTANCE_NUM)) end||
+                                  case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '; DB_LINK: '||get_reppar_c(p_report_id,gparDBLINK) end;
       if get_reppar_c(p_report_id,gparDBLINK) is null then
-        l_file_name := 'opas_ash_'||get_reppar_n(p_report_id,gparDBID)||'_'||to_char(get_reppar_d(p_report_id,gparBTIME),gShortDTFMT)||'_'||to_char(get_reppar_d(p_report_id,gparETIME),gShortDTFMT)||'_'||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0)||'.html';
-        l_displ_params := 'DBID: '||get_reppar_n(p_report_id,gparDBID)||'; DATES: '||to_char(get_reppar_d(p_report_id,gparBTIME),gShortDTFMT)||':'||to_char(get_reppar_d(p_report_id,gparETIME),gShortDTFMT)||'; INST: '||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0);
         l_report := coremod_reports.getreport_ashrpt(get_reppar_n(p_report_id,gparDBID),
                                                      get_reppar_d(p_report_id,gparBTIME),
                                                      get_reppar_d(p_report_id,gparETIME),
                                                      get_reppar_n(p_report_id,gparINSTANCE_NUM));
       else
-        l_file_name := 'opas_ash_'||get_reppar_n(p_report_id,gparDBID)||'_'||to_char(get_reppar_d(p_report_id,gparBTIME),gShortDTFMT)||'_'||to_char(get_reppar_d(p_report_id,gparETIME),gShortDTFMT)||'_'||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0)||'_'||get_reppar_c(p_report_id,gparDBLINK)||'.html';
-        l_displ_params := 'DBID: '||get_reppar_n(p_report_id,gparDBID)||'; DATES: '||to_char(get_reppar_d(p_report_id,gparBTIME),gShortDTFMT)||':'||to_char(get_reppar_d(p_report_id,gparETIME),gShortDTFMT)||'; INST: '||nvl(get_reppar_n(p_report_id,gparINSTANCE_NUM),0)
-                          ||'DB_LINK: '||get_reppar_c(p_report_id,gparDBLINK);
         l_report_clob := coremod_reports.getreport_ashrpt(get_reppar_n(p_report_id,gparDBID),
                                                           get_reppar_d(p_report_id,gparBTIME),
                                                           get_reppar_d(p_report_id,gparETIME),
@@ -264,7 +353,6 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     delete from opas_reports where report_id=p_report_id;
     COREFILE_API.delete_file(l_report_content);
   end;
-
 
 --=============================================================================================
 

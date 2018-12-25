@@ -9,7 +9,7 @@ PACKAGE AWRWH_REPORT_API AS
                                  p_dbid         number,
                                  p_min_snap     number,
                                  p_max_snap     number,
-                                 p_instance_num number,
+                                 p_instance_num varchar2,
                                  p_dump_id      awrwh_dumps.dump_id%type default null,
                                  p_dblink       varchar2 default null);
 
@@ -21,7 +21,7 @@ PACKAGE AWRWH_REPORT_API AS
                                    p_dbid         number,
                                    p_min_snap     number,
                                    p_max_snap     number,
-                                   p_instance_num number,
+                                   p_instance_num varchar2,
                                    p_dump_id      awrwh_dumps.dump_id%type default null,
                                    p_dblink       varchar2 default null);
 
@@ -33,11 +33,11 @@ PACKAGE AWRWH_REPORT_API AS
                                   p_dbid1         number,
                                   p_min_snap1     number,
                                   p_max_snap1     number,
-                                  p_instance_num1 number,
+                                  p_instance_num1 varchar2,
                                   p_dbid2         number,
                                   p_min_snap2     number,
                                   p_max_snap2     number,
-                                  p_instance_num2 number,
+                                  p_instance_num2 varchar2,
                                   p_dump_id1      awrwh_dumps.dump_id%type default null,
                                   p_dump_id2      awrwh_dumps.dump_id%type default null,
                                   p_dblink        varchar2 default null);
@@ -50,7 +50,7 @@ PACKAGE AWRWH_REPORT_API AS
                                  p_dbid         number,
                                  p_bdate        date,
                                  p_edate        date,
-                                 p_instance_num number,
+                                 p_instance_num varchar2,
                                  p_dump_id      awrwh_dumps.dump_id%type default null,
                                  p_dblink       varchar2 default null);
 

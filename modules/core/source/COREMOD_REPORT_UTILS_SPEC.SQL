@@ -57,6 +57,10 @@ PACKAGE COREMOD_REPORT_UTILS AS
   procedure execute_report(p_report_id opas_reports.report_id%type);
 
   procedure drop_report(p_report_id opas_reports.report_id%type);
+
+  function get_inst_list(p_list varchar2, p_col_nm varchar2) return varchar2;
+  function get_inst_list(p_list AWRRPT_INSTANCE_LIST_TYPE, p_col_nm varchar2) return varchar2;
+  function get_inst_list(p_list varchar2) return AWRRPT_INSTANCE_LIST_TYPE;
   --===========================================================================
 
   --script preparation

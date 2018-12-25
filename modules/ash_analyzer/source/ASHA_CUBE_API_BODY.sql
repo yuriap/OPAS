@@ -107,5 +107,130 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
     delete from asha_cube_reports where report_id=p_report_id and proj_id=p_proj_id;
   end;
 
+--  =============================================================================================================================================
+--  =============================================================================================================================================
+--  =============================================================================================================================================
+
+  procedure create_report_awrrpt(p_proj_id      asha_cube_reports.proj_id%type,
+                                 p_dbid         number,
+                                 p_min_snap     number,
+                                 p_max_snap     number,
+                                 p_instance_num number,
+                                 p_dblink       varchar2 default null,
+                                 p_sess_id      asha_cube_reports.sess_id%type default null)
+  is
+    l_proj      asha_cube_projects%rowtype;
+    l_report_id opas_reports.report_id%type;
+  begin
+    l_proj:=ASHA_PROJ_API.getproject(p_proj_id,true);
+
+    l_report_id := coremod_reports.queue_report_awrrpt(p_modname => gMODNAME,
+                                                       p_owner => l_proj.owner,
+                                                       P_DBID => P_DBID,
+                                                       P_MIN_SNAP => P_MIN_SNAP,
+                                                       P_MAX_SNAP => P_MAX_SNAP,
+                                                       P_INSTANCE_NUM => P_INSTANCE_NUM,
+                                                       p_dblink => p_dblink);
+
+    INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
+
+    commit;
+  end;
+--=============================================================================================================================================
+  procedure create_report_sqawrrpt(p_proj_id      asha_cube_reports.proj_id%type,
+                                   p_sql_id       varchar2,
+                                   p_dbid         number,
+                                   p_min_snap     number,
+                                   p_max_snap     number,
+                                   p_instance_num number,
+                                   p_dblink       varchar2 default null,
+                                   p_sess_id      asha_cube_reports.sess_id%type default null)
+
+  is
+    l_proj      asha_cube_projects%rowtype;
+    l_report_id opas_reports.report_id%type;
+  begin
+    l_proj:=ASHA_PROJ_API.getproject(p_proj_id,true);
+
+    l_report_id := coremod_reports.queue_report_sqawrrpt(p_modname => gMODNAME,
+                                                         p_owner => l_proj.owner,
+                                                         p_sql_id => p_sql_id,
+                                                         P_DBID => P_DBID,
+                                                         P_MIN_SNAP => P_MIN_SNAP,
+                                                         P_MAX_SNAP => P_MAX_SNAP,
+                                                         P_INSTANCE_NUM => P_INSTANCE_NUM,
+                                                         p_dblink => p_dblink);
+
+    INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
+
+    commit;
+  end;
+--=============================================================================================================================================
+  procedure create_report_diffrpt(p_proj_id       asha_cube_reports.proj_id%type,
+                                  p_dbid1         number,
+                                  p_min_snap1     number,
+                                  p_max_snap1     number,
+                                  p_instance_num1 number,
+                                  p_dbid2         number,
+                                  p_min_snap2     number,
+                                  p_max_snap2     number,
+                                  p_instance_num2 number,
+                                  p_dblink        varchar2 default null,
+                                  p_sess_id       asha_cube_reports.sess_id%type default null)
+
+  is
+    l_proj      asha_cube_projects%rowtype;
+    l_report_id opas_reports.report_id%type;
+  begin
+    l_proj:=ASHA_PROJ_API.getproject(p_proj_id,true);
+
+    l_report_id := coremod_reports.queue_report_diffrpt(p_modname => gMODNAME,
+                                                       p_owner => l_proj.owner,
+                                                       P_DBID1 => P_DBID1,
+                                                       P_MIN_SNAP1 => P_MIN_SNAP1,
+                                                       P_MAX_SNAP1 => P_MAX_SNAP1,
+                                                       P_INSTANCE_NUM1 => P_INSTANCE_NUM1,
+                                                       P_DBID2 => P_DBID2,
+                                                       P_MIN_SNAP2 => P_MIN_SNAP2,
+                                                       P_MAX_SNAP2 => P_MAX_SNAP2,
+                                                       P_INSTANCE_NUM2 => P_INSTANCE_NUM2,
+                                                       p_dblink => p_dblink);
+
+    INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
+
+    commit;
+  end;
+--=============================================================================================================================================
+  procedure create_report_ashrpt(p_proj_id      asha_cube_reports.proj_id%type,
+                                 p_dbid         number,
+                                 p_bdate        date,
+                                 p_edate        date,
+                                 p_instance_num number,
+                                 p_dblink       varchar2 default null,
+                                 p_sess_id      asha_cube_reports.sess_id%type default null)
+
+  is
+    l_proj      asha_cube_projects%rowtype;
+    l_report_id opas_reports.report_id%type;
+  begin
+    l_proj:=ASHA_PROJ_API.getproject(p_proj_id,true);
+
+    l_report_id := coremod_reports.queue_report_ashrpt(p_modname => gMODNAME,
+                                                       p_owner => l_proj.owner,
+                                                       P_DBID => P_DBID,
+                                                       p_btime => p_bdate,
+                                                       p_etime => p_edate,
+                                                       P_INSTANCE_NUM => P_INSTANCE_NUM,
+                                                       p_dblink => p_dblink);
+
+    INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
+
+    commit;
+  end;
+
 END ASHA_CUBE_API;
 /
