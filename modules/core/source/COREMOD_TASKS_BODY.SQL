@@ -52,11 +52,12 @@ package body coremod_tasks as
   end;
 
 
-  function prep_execute_task(p_taskname opas_task.taskname%type) return opas_task_queue.tq_id%type
+  function prep_execute_task(p_taskname opas_task.taskname%type,
+                             p_task_subname opas_task_queue.task_subname%type default null) return opas_task_queue.tq_id%type
   is
     l_tq_id opas_task_queue.tq_id%type;
   begin
-    INSERT INTO opas_task_queue (taskname, owner, status) VALUES (p_taskname, nvl(V('APP_USER'),'PUBLIC'), gtqNEW) returning tq_id into l_tq_id;
+    INSERT INTO opas_task_queue (taskname, owner, status, task_subname) VALUES (p_taskname, nvl(V('APP_USER'),'PUBLIC'), gtqNEW, p_task_subname) returning tq_id into l_tq_id;
     return l_tq_id;
   end;
 

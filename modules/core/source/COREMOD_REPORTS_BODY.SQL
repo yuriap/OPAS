@@ -25,14 +25,15 @@ as
     l_mis         number;
     l_mas         number;
   begin
+
     if instr(p_instance_num,'-1')=0 then
       l_inst_lst := COREMOD_REPORT_UTILS.get_inst_list(p_instance_num);
     else
       select unique INSTANCE_NUMBER bulk collect into l_inst_lst from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap;
     end if;
 
-    p_filename := 'opas_awr_'||p_dbid||'_'||p_min_snap||'_'||p_max_snap||case when l_inst_lst.count>1 then '_rac' else  p_instance_num end || '.html';
-    p_displ_params := 'DBID: '||p_dbid||'; SNAPS: '||p_min_snap||':'||p_max_snap||'; INST: '||case when l_inst_lst.count>1 then 'RAC' else  p_instance_num end;
+    p_filename := 'opas_awr_'||p_dbid||'_'||p_min_snap||'_'||p_max_snap||'_'||case when l_inst_lst.count>1 then 'rac' else l_inst_lst(1) end || '.html';
+    p_displ_params := 'DBID: '||p_dbid||'; SNAPS: '||p_min_snap||':'||p_max_snap||'; INST: '||case when l_inst_lst.count>1 then 'RAC' else  l_inst_lst(1) end;
 
     if l_inst_lst.count>1 then
       select min(snap_id) mis, max(snap_id) mas into l_mis, l_mas from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap;
@@ -46,7 +47,7 @@ as
       end;
     else
       select min(snap_id) mis, max(snap_id) mas into l_mis, l_mas
-        from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap and INSTANCE_NUMBER = p_instance_num;
+        from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap and INSTANCE_NUMBER = l_inst_lst(1);
       begin
         for j in (select rownum rn, output from table(dbms_workload_repository.awr_report_html(p_dbid,l_inst_lst(1),l_mis,l_mas)))
         loop
@@ -132,12 +133,16 @@ end;]';
     return l_report_id;
   end;
 
-  function getreport_sqawrrpt(p_sql_id varchar2, p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number) return coremod_report_utils.t_output_lines
+  function getreport_sqawrrpt(p_sql_id varchar2, p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number, p_filename out varchar2, p_displ_params out varchar2) return coremod_report_utils.t_output_lines
   is
     l_report coremod_report_utils.t_output_lines;
     l_mis         number;
     l_mas         number;
   begin
+
+    p_filename := 'opas_sql_'||p_sql_id||'_'||p_dbid||'_'||p_min_snap||'_'||p_max_snap||'_'||p_instance_num || '.html';
+    p_displ_params := 'SQL_ID: '||p_sql_id||'; DBID: '||p_dbid||'; SNAPS: '||p_min_snap||':'||p_max_snap||'; INST: '||p_instance_num ;
+
     select min(snap_id) mis, max(snap_id) mas into l_mis, l_mas
       from dba_hist_snapshot x where dbid=p_dbid and SNAP_ID between p_min_snap and p_max_snap and INSTANCE_NUMBER = p_instance_num;
     begin
@@ -151,7 +156,7 @@ end;]';
     return l_report;
   end;
 
-  function getreport_sqawrrpt(p_sql_id varchar2, p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number, p_dblink varchar2) return clob
+  function getreport_sqawrrpt(p_sql_id varchar2, p_dbid number, p_min_snap number, p_max_snap number, p_instance_num number, p_dblink varchar2, p_filename out varchar2, p_displ_params out varchar2) return clob
   is
     l_out clob;
     l_sql varchar2(4000) := q'[
@@ -169,9 +174,12 @@ begin
   end;
 end;]';
   begin
+    p_filename := 'opas_sql_'||p_sql_id||'_'||p_dbid||'_'||p_min_snap||'_'||p_max_snap||'_'||p_instance_num ||'_'|| p_dblink || '.html';
+    p_displ_params := 'SQL_ID: '||p_sql_id||'; DBID: '||p_dbid||'; SNAPS: '||p_min_snap||':'||p_max_snap||'; INST: '||p_instance_num ||'; DB_LINK: '||p_dblink;
+
     l_sql := replace(replace(replace(replace(replace(l_sql,'<DBID>',p_dbid),'<MIS>',p_min_snap),'<MAS>',p_max_snap),'<INST>',p_instance_num),'<SQLID>',p_sql_id);
-    coremod_tasks.log('Remote AWR SQL Report: '||l_sql,coremod_tasks.get_curr_tq_id);
-    coremod_tasks.log('Remote AWR SQL Report DB Link: '||p_dblink,coremod_tasks.get_curr_tq_id);
+    --coremod_tasks.log('Remote AWR SQL Report: '||l_sql,coremod_tasks.get_curr_tq_id);
+    --coremod_tasks.log('Remote AWR SQL Report DB Link: '||p_dblink,coremod_tasks.get_curr_tq_id);
     coremod_log.log('Remote AWR SQL Report: '||l_sql,'DEBUG');
     coremod_log.log('Remote AWR SQL Report DB Link: '||p_dblink,'DEBUG');
     COREMOD_REPORT_UTILS.get_clob_remotelly(l_sql,p_dblink,l_out);
@@ -183,13 +191,13 @@ end;]';
 --  =============================================================================================================================================
 
   function queue_report_diffrpt(p_modname varchar2, p_owner varchar2,
-                                p_dbid1 number, p_min_snap1 number, p_max_snap1 number, p_instance_num1 number,
-                                p_dbid2 number, p_min_snap2 number, p_max_snap2 number, p_instance_num2 number, p_dblink varchar2) return opas_reports.report_id%type
+                                p_dbid1 number, p_min_snap1 number, p_max_snap1 number, p_instance_num1 varchar2,
+                                p_dbid2 number, p_min_snap2 number, p_max_snap2 number, p_instance_num2 varchar2, p_dblink varchar2) return opas_reports.report_id%type
   is
     l_report_id opas_reports.report_id%type;
   begin
     coremod_report_utils.init_report(p_modname,l_report_id, null);
-    coremod_report_utils.set_report_type (l_report_id, coremod_report_utils.qAWRDIFF);
+    coremod_report_utils.set_report_type (l_report_id,coremod_report_utils.qAWRDIFF);
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparOWNER,       p_owner);
 
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBID,        p_dbid1);
@@ -197,18 +205,18 @@ end;]';
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMAX_SNAP,    p_max_snap1);
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparINSTANCE_NUM,p_instance_num1);
 
-    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBID,        p_dbid2);
-    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMIN_SNAP,    p_min_snap2);
-    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMAX_SNAP,    p_max_snap2);
-    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparINSTANCE_NUM,p_instance_num2);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBID2,        p_dbid2);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMIN_SNAP2,    p_min_snap2);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMAX_SNAP2,    p_max_snap2);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparINSTANCE_NUM2,p_instance_num2);
 
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBLINK,      p_dblink);
     coremod_report_utils.queue_report(l_report_id);
     return l_report_id;
   end;
 
-  function getreport_diffrpt(p_dbid1 number, p_min_snap1 number, p_max_snap1 number, p_instance_num1 number,
-                             p_dbid2 number, p_min_snap2 number, p_max_snap2 number, p_instance_num2 number) return coremod_report_utils.t_output_lines
+  function getreport_diffrpt(p_dbid1 number, p_min_snap1 number, p_max_snap1 number, p_instance_num1 varchar2,
+                             p_dbid2 number, p_min_snap2 number, p_max_snap2 number, p_instance_num2 varchar2, p_filename out varchar2, p_displ_params out varchar2) return coremod_report_utils.t_output_lines
   is
     l_report coremod_report_utils.t_output_lines;
     l_inst_lst1    AWRRPT_INSTANCE_LIST_TYPE;
@@ -218,9 +226,23 @@ end;]';
     l_mis2         number;
     l_mas2         number;
   begin
-    if p_instance_num1 is null or p_instance_num2 is null or p_instance_num1 = -1 or p_instance_num2 = -1 then
+    if instr(p_instance_num1,'-1')=0 then
+      l_inst_lst1 := COREMOD_REPORT_UTILS.get_inst_list(p_instance_num1);
+    else
       select unique INSTANCE_NUMBER bulk collect into l_inst_lst1 from dba_hist_snapshot x where dbid=p_dbid1 and SNAP_ID between p_min_snap1 and p_max_snap1;
+    end if;
+    if instr(p_instance_num2,'-1')=0 then
+      l_inst_lst2 := COREMOD_REPORT_UTILS.get_inst_list(p_instance_num2);
+    else
       select unique INSTANCE_NUMBER bulk collect into l_inst_lst2 from dba_hist_snapshot x where dbid=p_dbid2 and SNAP_ID between p_min_snap2 and p_max_snap2;
+    end if;
+
+      p_filename := 'opas_awrdiff_'||p_dbid1||'_'||p_dbid2||'_'||p_min_snap1||'_'||p_min_snap2||case when not(l_inst_lst1.count=1 and l_inst_lst2.count=1) then '_rac' else  null end ||
+                                    '.html';
+      p_displ_params := 'DBID1: '||p_dbid1||'; SNAPS1: '||p_min_snap1||':'||p_max_snap1||'; INST1: '||case when not(l_inst_lst1.count=1 and l_inst_lst2.count=1) then 'RAC' else to_char(l_inst_lst1(1)) end||
+                      '; DBID2: '||p_dbid2||'; SNAPS2: '||p_min_snap2||':'||p_max_snap2||'; INST2: '||case when not(l_inst_lst1.count=1 and l_inst_lst2.count=1) then 'RAC' else to_char(l_inst_lst2(1)) end;
+
+    if not(l_inst_lst1.count=1 and l_inst_lst2.count=1) then
       select min(snap_id) mis, max(snap_id) mas into l_mis1, l_mas1 from dba_hist_snapshot x where dbid=p_dbid1 and SNAP_ID between p_min_snap1 and p_max_snap1;
       select min(snap_id) mis, max(snap_id) mas into l_mis2, l_mas2 from dba_hist_snapshot x where dbid=p_dbid2 and SNAP_ID between p_min_snap2 and p_max_snap2;
       begin
@@ -232,10 +254,10 @@ end;]';
         when others then l_report(1):=sqlerrm;
       end;
     else
-      select min(snap_id) mis, max(snap_id) mas into l_mis1, l_mas1 from dba_hist_snapshot x where dbid=p_dbid1 and SNAP_ID between p_min_snap1 and p_max_snap1 and INSTANCE_NUMBER = p_instance_num1;
-      select min(snap_id) mis, max(snap_id) mas into l_mis2, l_mas2 from dba_hist_snapshot x where dbid=p_dbid2 and SNAP_ID between p_min_snap2 and p_max_snap2 and INSTANCE_NUMBER = p_instance_num2;
+      select min(snap_id) mis, max(snap_id) mas into l_mis1, l_mas1 from dba_hist_snapshot x where dbid=p_dbid1 and SNAP_ID between p_min_snap1 and p_max_snap1 and INSTANCE_NUMBER = l_inst_lst1(1);
+      select min(snap_id) mis, max(snap_id) mas into l_mis2, l_mas2 from dba_hist_snapshot x where dbid=p_dbid2 and SNAP_ID between p_min_snap2 and p_max_snap2 and INSTANCE_NUMBER = l_inst_lst2(1);
       begin
-        for j in (select rownum rn, output from table(dbms_workload_repository.awr_diff_report_html(p_dbid1,p_instance_num1,l_mis1,l_mas1,p_dbid2,p_instance_num2,l_mis2,l_mas2)))
+        for j in (select rownum rn, output from table(dbms_workload_repository.awr_diff_report_html(p_dbid1,l_inst_lst1(1),l_mis1,l_mas1,p_dbid2,l_inst_lst2(1),l_mis2,l_mas2)))
         loop
           l_report(j.rn):=j.output;
         end loop;
@@ -246,9 +268,13 @@ end;]';
     return l_report;
   end;
 
-  function getreport_diffrpt(p_dbid1 number, p_min_snap1 number, p_max_snap1 number, p_instance_num1 number,
-                             p_dbid2 number, p_min_snap2 number, p_max_snap2 number, p_instance_num2 number, p_dblink varchar2) return clob
+  function getreport_diffrpt(p_dbid1 number, p_min_snap1 number, p_max_snap1 number, p_instance_num1 varchar2,
+                             p_dbid2 number, p_min_snap2 number, p_max_snap2 number, p_instance_num2 varchar2, p_dblink varchar2, p_filename out varchar2, p_displ_params out varchar2) return clob
   is
+    l_inst_lst1    AWRRPT_INSTANCE_LIST_TYPE;
+    l_inst_lst2    AWRRPT_INSTANCE_LIST_TYPE;
+    l_instance_num1 varchar2(1000) := '0';
+    l_instance_num2 varchar2(1000) := '0';
     l_out clob;
     l_sql varchar2(4000) := q'[
 declare
@@ -269,19 +295,62 @@ begin
   end;
 end;]';
   begin
+  ----------------------------
+    if instr(p_instance_num1,'-1')=0 then
+      l_inst_lst1 := COREMOD_REPORT_UTILS.get_inst_list(p_instance_num1);
+    else
+      execute immediate replace(
+                        replace(
+                        replace(
+                        replace('select unique INSTANCE_NUMBER from dba_hist_snapshot@<DBLINK> x where dbid=<DBID> and SNAP_ID between <MIS> and <MAS>'
+                          ,'<DBID>'  ,p_dbid1)
+                          ,'<MIS>'   ,p_min_snap1)
+                          ,'<MAS>'   ,p_max_snap1)
+                          ,'<DBLINK>',COREMOD_API.get_ora_dblink(p_dblink))
+        bulk collect into l_inst_lst1;
+    end if;
+
+    if l_inst_lst1.count = 1 and instr(p_instance_num1,'-1')>0 then l_instance_num1:=l_inst_lst1(1); end if;
+    ----------------------------
+    ----------------------------
+    if instr(p_instance_num2,'-1')=0 then
+      l_inst_lst2 := COREMOD_REPORT_UTILS.get_inst_list(p_instance_num2);
+    else
+      execute immediate replace(
+                        replace(
+                        replace(
+                        replace('select unique INSTANCE_NUMBER from dba_hist_snapshot@<DBLINK> x where dbid=<DBID> and SNAP_ID between <MIS> and <MAS>'
+                          ,'<DBID>'  ,p_dbid2)
+                          ,'<MIS>'   ,p_min_snap2)
+                          ,'<MAS>'   ,p_max_snap2)
+                          ,'<DBLINK>',COREMOD_API.get_ora_dblink(p_dblink))
+        bulk collect into l_inst_lst2;
+    end if;
+
+    if l_inst_lst2.count = 1 and instr(p_instance_num2,'-1')>0 then l_instance_num2:=l_inst_lst2(1); end if;
+    ----------------------------
+    p_filename := 'opas_awrdiff_'||p_dbid1||'_'||p_dbid2||'_'||p_min_snap1||'_'||p_min_snap2||case when not(l_inst_lst1.count=1 and l_inst_lst2.count=1) then '_rac' else  null end ||
+                              '_'||p_dblink||'.html';
+
+    p_displ_params := 'DBID1: '||p_dbid1||'; SNAPS1: '||p_min_snap1||':'||p_max_snap1||'; INST1: '||case when not(l_inst_lst1.count=1 and l_inst_lst2.count=1) then 'RAC' else l_inst_lst1(1) end||
+                    '; DBID2: '||p_dbid2||'; SNAPS2: '||p_min_snap2||':'||p_max_snap2||'; INST2: '||case when not(l_inst_lst1.count=1 and l_inst_lst2.count=1) then 'RAC' else l_inst_lst2(1) end||
+                    '; DB_LINK: '||p_dblink;
+    ----------------------------
     l_sql := replace(replace(replace(l_sql,'<DBID1>',p_dbid1),'<MIS1>',p_min_snap1),'<MAS1>',p_max_snap1);
     l_sql := replace(replace(replace(l_sql,'<DBID2>',p_dbid2),'<MIS2>',p_min_snap2),'<MAS2>',p_max_snap2);
-    if p_instance_num1 is null or p_instance_num2 is null or p_instance_num1 = -1 or p_instance_num2 = -1 then
+
+    if not(l_inst_lst1.count=1 and l_inst_lst2.count=1) then
       l_sql := replace(replace(replace(l_sql,'<FNC>','awr_global_diff_report_text'),'<INSTLST1>','l_inst_lst1'),'<INST1>',null);
       l_sql := replace(replace(l_sql,'<INSTLST2>','l_inst_lst2'),'<INST2>',null);
     else
-      l_sql := replace(replace(replace(l_sql,'<FNC>','awr_diff_report_html'),'<INSTLST1>',p_instance_num1),'<INST1>','and INSTANCE_NUMBER='||p_instance_num1);
-      l_sql := replace(replace(l_sql,'<INSTLST2>',p_instance_num2),'<INST2>','and INSTANCE_NUMBER='||p_instance_num2);
+      l_sql := replace(replace(replace(l_sql,'<FNC>','awr_diff_report_html'),'<INSTLST1>',l_instance_num1),'<INST1>','and INSTANCE_NUMBER='||l_instance_num1);
+      l_sql := replace(replace(l_sql,'<INSTLST2>',l_instance_num2),'<INST2>','and INSTANCE_NUMBER='||l_instance_num2);
     end if;
+
     coremod_log.log('Remote AWR Diff Report: '||l_sql,'DEBUG');
     coremod_log.log('Remote AWR Diff Report DB Link: '||p_dblink,'DEBUG');
-    coremod_tasks.log('Remote AWR Diff Report: '||l_sql,coremod_tasks.get_curr_tq_id);
-    coremod_tasks.log('Remote AWR Diff Report DB Link: '||p_dblink,coremod_tasks.get_curr_tq_id);
+    --coremod_tasks.log('Remote AWR Diff Report: '||l_sql,coremod_tasks.get_curr_tq_id);
+    --coremod_tasks.log('Remote AWR Diff Report DB Link: '||p_dblink,coremod_tasks.get_curr_tq_id);
     COREMOD_REPORT_UTILS.get_clob_remotelly(l_sql,p_dblink,l_out);
     return l_out;
   end;
@@ -289,7 +358,7 @@ end;]';
 --  =============================================================================================================================================
 --  =============================================================================================================================================
 
-  function queue_report_ashrpt(p_modname varchar2, p_owner varchar2, p_dbid number, p_btime date, p_etime date, p_instance_num number, p_dblink varchar2) return opas_reports.report_id%type
+  function queue_report_ashrpt(p_modname varchar2, p_owner varchar2, p_dbid number, p_btime date, p_etime date, p_instance_num varchar2, p_dblink varchar2) return opas_reports.report_id%type
   is
     l_report_id opas_reports.report_id%type;
   begin
@@ -305,18 +374,29 @@ end;]';
     return l_report_id;
   end;
 
-  function getreport_ashrpt(p_dbid number, p_btime date, p_etime date, p_instance_num number) return coremod_report_utils.t_output_lines
+  function getreport_ashrpt(p_dbid number, p_btime date, p_etime date, p_instance_num varchar2, p_filename out varchar2, p_displ_params out varchar2) return coremod_report_utils.t_output_lines
   is
     l_report coremod_report_utils.t_output_lines;
     l_inst_lst    varchar2(256);
+    l_inst_arr    AWRRPT_INSTANCE_LIST_TYPE:=AWRRPT_INSTANCE_LIST_TYPE();
   begin
-    if p_instance_num is null or p_instance_num = -1 then
+
+    if instr(p_instance_num,'-1')=0 then
+      l_inst_arr := COREMOD_REPORT_UTILS.get_inst_list(p_instance_num);
+      l_inst_lst := p_instance_num;
+    else
       for i in (select unique INSTANCE_NUMBER from dba_hist_snapshot x where dbid=p_dbid and end_interval_time between p_btime - 1.5/24 and p_etime + 1.5/24)
       loop
         l_inst_lst:=l_inst_lst||i.INSTANCE_NUMBER||',';
+        l_inst_arr.extend;l_inst_arr(l_inst_arr.count):=i.INSTANCE_NUMBER;
       end loop;
       l_inst_lst:=rtrim(l_inst_lst,',');
+    end if;
 
+    p_filename := 'opas_ash_'||p_dbid||'_'||to_char(p_btime,COREMOD_REPORT_UTILS.gShortDTFMT)||'_'||to_char(p_etime,COREMOD_REPORT_UTILS.gShortDTFMT)||'_'||case when l_inst_arr.count>1 then 'rac' else to_char(l_inst_arr(1)) end || '.html';
+    p_displ_params := 'DBID: '||p_dbid||'; DATES: '||to_char(p_btime,COREMOD_REPORT_UTILS.gShortDTFMT)||':'||to_char(p_etime,COREMOD_REPORT_UTILS.gShortDTFMT)||'; INST: '||case when l_inst_arr.count>1 then 'RAC' else  to_char(l_inst_arr(1)) end;
+
+    if l_inst_arr.count>1 then
       begin
         for j in (select rownum rn, output from table(dbms_workload_repository.ash_global_report_html(p_dbid,l_inst_lst,p_btime,p_etime)))
         loop
@@ -327,7 +407,7 @@ end;]';
       end;
     else
       begin
-        for j in (select rownum rn, output from table(dbms_workload_repository.ash_report_html(p_dbid,p_instance_num,p_btime,p_etime)))
+        for j in (select rownum rn, output from table(dbms_workload_repository.ash_report_html(p_dbid,l_inst_lst,p_btime,p_etime)))
         loop
           l_report(j.rn):=j.output;
         end loop;
@@ -338,38 +418,59 @@ end;]';
     return l_report;
   end;
 
-  function getreport_ashrpt(p_dbid number, p_btime date, p_etime date, p_instance_num number, p_dblink varchar2) return clob
+  function getreport_ashrpt(p_dbid number, p_btime date, p_etime date, p_instance_num varchar2, p_dblink varchar2, p_filename out varchar2, p_displ_params out varchar2) return clob
   is
     l_out clob;
+    l_inst_lst    varchar2(256);
+    l_inst_arr    AWRRPT_INSTANCE_LIST_TYPE:=AWRRPT_INSTANCE_LIST_TYPE();
     l_sql varchar2(4000) := q'[
-declare
-l_inst_lst    varchar2(256);
 begin
-  for i in (select unique INSTANCE_NUMBER from dba_hist_snapshot x where dbid=<DBID> and end_interval_time between to_date('<btime>','<dtfmt>') - 1.5/24 and to_date('<etime>','<dtfmt>') + 1.5/24)
-    loop
-      l_inst_lst:=l_inst_lst||i.INSTANCE_NUMBER||',';
-    end loop;
-    l_inst_lst:=rtrim(l_inst_lst,',');
-  begin
-    for j in (select output from table(dbms_workload_repository.<FNC>(<DBID>,<INSTLST>,to_date('<btime>','<dtfmt>'),to_date('<etime>','<dtfmt>'))))
-    loop
-      l_out:=l_out||j.output||chr(10);
-    end loop;
-  exception
+  for j in (select output from table(dbms_workload_repository.<FNC>(<DBID>,'<INSTLST>',to_date('<btime>','<dtfmt>'),to_date('<etime>','<dtfmt>'))))
+  loop
+    l_out:=l_out||j.output||chr(10);
+  end loop;
+exception
     when others then l_out:=sqlerrm;
-  end;
 end;]';
   begin
+
+    if instr(p_instance_num,'-1')=0 then
+      l_inst_arr := COREMOD_REPORT_UTILS.get_inst_list(p_instance_num);
+      l_inst_lst := p_instance_num;
+    else
+      execute immediate replace(
+                        replace(
+                        replace(
+                        replace(
+                        replace(q'[select unique INSTANCE_NUMBER from dba_hist_snapshot@<DBLINK> x where dbid=<DBID> and end_interval_time between to_date('<SDT>','<FMT>') - 1.5/24 and to_date('<EDT>','<FMT>') + 1.5/24]'
+                          ,'<DBID>'  ,p_dbid)
+                          ,'<SDT>'   ,to_char(p_btime,COREMOD_REPORT_UTILS.gShortDTFMT))
+                          ,'<EDT>'   ,to_char(p_etime,COREMOD_REPORT_UTILS.gShortDTFMT))
+                          ,'<FMT>'   ,COREMOD_REPORT_UTILS.gShortDTFMT)
+                          ,'<DBLINK>',COREMOD_API.get_ora_dblink(p_dblink))
+        bulk collect into l_inst_arr;
+        for i in 1..l_inst_arr.count loop
+          l_inst_lst:=l_inst_lst||l_inst_arr(i)||',';
+        end loop;
+        l_inst_lst:=rtrim(l_inst_lst,',');
+    end if;
+
+    -----------------------------------
+    p_filename := 'opas_ash_'||p_dbid||'_'||to_char(p_btime,COREMOD_REPORT_UTILS.gShortDTFMT)||'_'||to_char(p_etime,COREMOD_REPORT_UTILS.gShortDTFMT)||'_'||case when l_inst_arr.count>1 then 'rac' else l_inst_arr(1) end || '.html';
+    p_displ_params := 'DBID: '||p_dbid||'; DATES: '||to_char(p_btime,COREMOD_REPORT_UTILS.gShortDTFMT)||':'||to_char(p_etime,COREMOD_REPORT_UTILS.gShortDTFMT)||'; INST: '||case when l_inst_arr.count>1 then 'RAC' else  l_inst_arr(1) end;
+
     l_sql := replace(replace(replace(replace(l_sql,'<DBID>',p_dbid),'<btime>',to_char(p_btime,COREMOD_REPORT_UTILS.gDTFMT)),'<etime>',to_char(p_etime,COREMOD_REPORT_UTILS.gDTFMT)),'<dtfmt>',COREMOD_REPORT_UTILS.gDTFMT);
+
     if p_instance_num is null or p_instance_num = -1 then
-      l_sql := replace(replace(l_sql,'<FNC>','ash_global_report_html'),'<INSTLST>','l_inst_lst');
+      l_sql := replace(replace(l_sql,'<FNC>','ash_global_report_html'),'<INSTLST>',l_inst_lst);
     else
       l_sql := replace(replace(l_sql,'<FNC>','ash_report_html'),'<INSTLST>',p_instance_num);
     end if;
+
     coremod_log.log('Remote ASH Report: '||l_sql,'DEBUG');
     coremod_log.log('Remote ASH Report DB Link: '||p_dblink,'DEBUG');
-    coremod_tasks.log('Remote ASH Report: '||l_sql,coremod_tasks.get_curr_tq_id);
-    coremod_tasks.log('Remote ASH Report DB Link: '||p_dblink,coremod_tasks.get_curr_tq_id);
+--    coremod_tasks.log('Remote ASH Report: '||l_sql,coremod_tasks.get_curr_tq_id);
+--    coremod_tasks.log('Remote ASH Report DB Link: '||p_dblink,coremod_tasks.get_curr_tq_id);
     COREMOD_REPORT_UTILS.get_clob_remotelly(l_sql,p_dblink,l_out);
     return l_out;
   end;
@@ -422,6 +523,8 @@ end;]';
     close l_crsr;
     commit;
     return l_main_report;
+  exception
+    when others then raise_application_error(-20000,sqlerrm||chr(10)||l_sql);
   end;
 
   function getreport_sql_memory_stats(p_sql_id varchar2, p_dblink varchar2) return coremod_report_utils.t_output_lines
@@ -485,7 +588,11 @@ end;]';
     p(HTF.BR);
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>500,p_summary=>'SQL text', p_dblink => p_dblink, p_output=> l_output);
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,p_width=>500,p_summary=>'SQL text', p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>500,p_summary=>'SQL text', p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
@@ -502,7 +609,11 @@ end;]';
     p(HTF.BR);
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'Non shared reason', p_dblink => p_dblink, p_output=> l_output);
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,p_width=>1000,p_summary=>'Non shared reason', p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'Non shared reason', p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
@@ -521,7 +632,11 @@ end;]';
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
 
     l_plsql_output:=null;
-    coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+    if p_dblink is null then
+      coremod_report_utils.execute_plsql(p_sql => l_script, p_output => l_plsql_output);
+    else
+      coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+    end if;
 
     declare
       l_user varchar2(512); l_host varchar2(512);
@@ -553,7 +668,11 @@ end;]';
     l_script:=coremod_api.getscript('PROC_OFFLOAD_PCT1');
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'Exadata statistics #1', p_dblink => p_dblink, p_output=> l_output);
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,p_width=>1000,p_summary=>'Exadata statistics #1', p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'Exadata statistics #1', p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
 
     p(HTF.BR);
@@ -561,7 +680,11 @@ end;]';
     l_script:=coremod_api.getscript('PROC_OFFLOAD_PCT2');
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'Exadata statistics #2', p_dblink => p_dblink, p_output=> l_output);
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,p_width=>1000,p_summary=>'Exadata statistics #2', p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'Exadata statistics #2', p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
 
     p(HTF.BR);
@@ -580,7 +703,11 @@ end;]';
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
 
     l_plsql_output:=null;
-    coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+    if p_dblink is null then
+      coremod_report_utils.execute_plsql(p_sql => l_script, p_output => l_plsql_output);
+    else
+      coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+    end if;
     coremod_report_utils.print_text_as_table(p_text=>l_plsql_output||chr(10),p_t_header=>'SQL Monitor report',p_width=>600, p_output=> l_output);
     p1(l_output);
 
@@ -599,7 +726,11 @@ end;]';
     p(HTF.BR);
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'SQL Workarea', p_dblink => p_dblink, p_output=> l_output);
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,p_width=>1000,p_summary=>'SQL Workarea', p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'SQL Workarea', p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
 
     p(HTF.BR);
@@ -617,7 +748,11 @@ end;]';
     p(HTF.BR);
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'CBO environment', p_dblink => p_dblink, p_output=> l_output);
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,p_width=>1000,p_summary=>'CBO environment', p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'CBO environment', p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
@@ -646,12 +781,22 @@ end;]';
     l_script:=q'[select * from table(dbms_xplan.display_cursor('&SQLID', null, 'LAST ALLSTATS +peeked_binds'))]'||chr(10);
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,
+                               p_width=>1500,
+                               p_summary=>'Display cursor (last)',
+                               p_search => 'child number ([[:digit:]]*)',
+                               p_replacement => HTF.ANCHOR(curl=>'#child_all_\1',ctext=>'child number \1',cname=>'child_last_\1',cattributes=>'class="awr"'),
+                               p_output=> l_output);
+
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                p_width=>1500,
                                p_summary=>'Display cursor (last)',
                                p_search => 'child number ([[:digit:]]*)',
                                p_replacement => HTF.ANCHOR(curl=>'#child_all_\1',ctext=>'child number \1',cname=>'child_last_\1',cattributes=>'class="awr"'),
                                p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont_plans',ctext=>'Back to Execution plans',cattributes=>'class="awr"')));
@@ -669,7 +814,11 @@ end;]';
     p(HTF.BR);
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1500,p_summary=>'Display cursor (RAC)', p_dblink => p_dblink, p_output=> l_output);
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,p_width=>1500,p_summary=>'Display cursor (RAC)', p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1500,p_summary=>'Display cursor (RAC)', p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont_plans',ctext=>'Back to Execution plans',cattributes=>'class="awr"')));
@@ -687,10 +836,17 @@ end;]';
     l_script:=q'[select * from table(dbms_xplan.display_cursor('&SQLID', null, 'LAST ADVANCED'))]'||chr(10);
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,
+                               p_width=>1500,
+                               p_summary=>'Display cursor (LAST ADVANCED)',
+                               p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                p_width=>1500,
                                p_summary=>'Display cursor (LAST ADVANCED)',
                                p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont_plans',ctext=>'Back to Execution plans',cattributes=>'class="awr"')));
@@ -708,12 +864,21 @@ end;]';
     l_script:=q'[select * from table(dbms_xplan.display_cursor('&SQLID', null, 'ALL ALLSTATS +peeked_binds'))]'||chr(10);
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,
+                               p_width=>2000,
+                               p_summary=>'Display cursor (ALL)',
+                               p_search => 'child number ([[:digit:]]*)',
+                               p_replacement => HTF.ANCHOR(curl=>'',ctext=>'child number \1',cname=>'child_all_\1',cattributes=>'class="awr"'),
+                               p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                p_width=>2000,
                                p_summary=>'Display cursor (ALL)',
                                p_search => 'child number ([[:digit:]]*)',
                                p_replacement => HTF.ANCHOR(curl=>'',ctext=>'child number \1',cname=>'child_all_\1',cattributes=>'class="awr"'),
                                p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont_plans',ctext=>'Back to Execution plans',cattributes=>'class="awr"')));
@@ -731,10 +896,17 @@ end;]';
     l_script:=q'[SELECT * FROM TABLE(DBMS_XPLAN.display_cursor('&SQLID', null, format => 'adaptive LAST ALLSTATS +peeked_binds'))]'||chr(10);
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,
+                               p_width=>1500,
+                               p_summary=>'Display cursor (ADAPTIVE)',
+                               p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                p_width=>1500,
                                p_summary=>'Display cursor (ADAPTIVE)',
                                p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont_plans',ctext=>'Back to Execution plans',cattributes=>'class="awr"')));
@@ -746,10 +918,17 @@ end;]';
     l_script:=q'[SELECT * FROM TABLE(DBMS_XPLAN.display_cursor('&SQLID', null, format => 'adaptive ALL ALLSTATS +peeked_binds'))]'||chr(10);
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,
+                               p_width=>2000,
+                               p_summary=>'Display cursor (ADAPTIVE)',
+                               p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                p_width=>2000,
                                p_summary=>'Display cursor (ADAPTIVE)',
                                p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont_plans',ctext=>'Back to Execution plans',cattributes=>'class="awr"')));
@@ -767,7 +946,11 @@ end;]';
     p(HTF.BR);
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
     l_plsql_output:=null;
-    coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+    if p_dblink is null then
+      coremod_report_utils.execute_plsql(p_sql => l_script, p_output => l_plsql_output);
+    else
+      coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+    end if;
     coremod_report_utils.print_text_as_table(p_text=>l_plsql_output,p_t_header=>'SQL Monitor report history',p_width=>600, p_output=> l_output);
     p1(l_output);
     p(HTF.BR);
@@ -787,7 +970,19 @@ end;]';
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
 
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,
+                               p_width=>1000,
+                               p_summary=>'ASH summary',
+                               p_style1 =>'awrncbbt',
+                               p_style2 =>'awrcbbt',
+                               --p_search => 'PLAN_HASH',
+                               --p_replacement => HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'\1',cattributes=>'class="awr"'),
+                               p_header=>25,
+                               p_break_col=>'SQL_EXEC_START',
+                               p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                p_width=>1000,
                                p_summary=>'ASH summary',
                                p_style1 =>'awrncbbt',
@@ -797,6 +992,7 @@ end;]';
                                p_header=>25,
                                p_break_col=>'SQL_EXEC_START',
                                p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
@@ -809,13 +1005,6 @@ end;]';
 --  =============================================================================================================================================
 
     return l_report;
-    --coremod_report_utils.save_report_for_download('sql_'||p_sql_id||'.html', l_report, p_id, p_parent_id);
---  exception
---    when others then
---      coremod_log.log(sqlerrm);
---      coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
---      coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
---      raise_application_error(-20000, sqlerrm);
   end;
 
 --==============================================================================================================================
@@ -825,7 +1014,15 @@ end;]';
 --==============================================================================================================================
 
 
-  function queue_report_sql_awr_stats_i(p_modname varchar2, p_owner varchar2, p_sql_id varchar2, p_dblink varchar2, p_report_limit number, p_parent number) return opas_reports.report_id%type
+  function queue_report_sql_awr_stats_i(p_modname varchar2,
+                                        p_owner varchar2,
+                                        p_sql_id varchar2,
+                                        p_dblink varchar2,
+                                        p_report_limit number,
+                                        p_dbid number,
+                                        p_min_snap number,
+                                        p_max_snap number,
+                                        p_parent number) return opas_reports.report_id%type
   is
     l_report_id opas_reports.report_id%type;
   begin
@@ -834,30 +1031,50 @@ end;]';
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparOWNER,p_owner);
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparSQLID,p_sql_id);
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBLINK,p_dblink);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparDBID,p_dbid);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMIN_SNAP,p_min_snap);
+    coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparMAX_SNAP,p_max_snap);
     coremod_report_utils.set_report_param(l_report_id,coremod_report_utils.gparREP_LIMIT,to_number(p_report_limit));
     coremod_report_utils.queue_report(l_report_id);
     return l_report_id;
   end;
 
-  function queue_report_sql_awr_stats(p_modname varchar2, p_owner varchar2, p_sql_id varchar2, p_dblink varchar2, p_report_limit number) return opas_reports.report_id%type
+  function queue_report_sql_awr_stats(p_modname varchar2,
+                                      p_owner varchar2,
+                                      p_sql_id varchar2,
+                                      p_dblink varchar2,
+                                      p_report_limit number,
+                                      p_dbid number default null,
+                                      p_min_snap number default null,
+                                      p_max_snap number default null) return opas_reports.report_id%type
   is
     l_report_id opas_reports.report_id%type;
-    l_sql varchar2(32765) := replace(replace(
+    l_sql varchar2(32765) := replace(replace(replace(
            q'[select sql_id from (
               select sql_id, count(1) cnt
                 from dba_hist_active_sess_history<dblink>
                where top_level_sql_id = '<sql_id>'
                  and sql_id<>top_level_sql_id
+                 and <limits>
                group by sql_id
               having count(1) > 6
-               order by cnt desc)]','<dblink>',case when p_dblink is null then null else '@'||p_dblink end),'<sql_id>',p_sql_id);
+               order by cnt desc)]','<dblink>',case when p_dblink is null then null else '@'||p_dblink end),
+                                    '<sql_id>',p_sql_id),
+                                    '<limits>', case when nvl(p_report_limit,0)>0
+                                                       then 'SAMPLE_TIME<(sysdate-'||p_report_limit||')'
+                                                     when nvl(p_report_limit,-1)=0
+                                                       then '1=1'
+                                                     when p_dbid is not null and p_min_snap is not null and p_max_snap is not null
+                                                       then 'dbid='||p_dbid||' and snap_id between '||p_min_snap||' and '||p_max_snap
+                                                     else '1=2'
+                                                 end);
     l_crsr sys_refcursor;
     l_sql_id varchar2(100);
     l_main_report opas_reports.report_id%type;
     l_rec_report  opas_reports.report_id%type;
   begin
     --main query report
-    l_main_report := queue_report_sql_awr_stats_i(p_modname, p_owner, p_sql_id, p_dblink, p_report_limit, null);
+    l_main_report := queue_report_sql_awr_stats_i(p_modname, p_owner, p_sql_id, p_dblink, p_report_limit, p_dbid, p_min_snap, p_max_snap, null);
     commit;
 
     --recursive queries
@@ -865,15 +1082,21 @@ end;]';
     loop
       fetch l_crsr into l_sql_id;
       exit when l_crsr%notfound;
-      l_rec_report := queue_report_sql_awr_stats_i(p_modname, p_owner, l_sql_id, p_dblink, p_report_limit, l_main_report);
+      l_rec_report := queue_report_sql_awr_stats_i(p_modname, p_owner, l_sql_id, p_dblink, p_report_limit, p_dbid, p_min_snap, p_max_snap, l_main_report);
     end loop;
     close l_crsr;
     commit;
     return l_main_report;
   end;
 
-  function getreport_sql_awr_stats(p_sql_id varchar2, p_dblink varchar2, p_report_limit number) return coremod_report_utils.t_output_lines
-  --procedure getplanawrh_i(p_sql_id varchar2, p_dblink varchar2, p_report_limit number)
+  function getreport_sql_awr_stats(p_sql_id varchar2,
+                                   p_dblink varchar2,
+                                   p_report_limit number,
+                                   p_dbid number,
+                                   p_min_snap number,
+                                   p_max_snap number,
+                                   p_filename out varchar2,
+                                   p_displ_params out varchar2) return coremod_report_utils.t_output_lines
   is
     l_timing boolean := true;
     l_time number; l_tot_tim number:=0;
@@ -893,7 +1116,7 @@ end;]';
     l_end_snap number;
 
     type t_num_array is table of number;
-    l_dbid t_num_array;
+    l_dbid AWRRPT_INSTANCE_LIST_TYPE := AWRRPT_INSTANCE_LIST_TYPE();
 
     procedure p(p_line varchar2) is
     begin
@@ -915,20 +1138,41 @@ end;]';
                                         p_totalwork => 13);
     COREMOD_REPORT_UTILS.start_lo_section(p_module_name => 'SQL AWR report: '||p_sql_id, p_action_name => 'Preparation');
 
-    execute immediate q'[select nvl(min(snap_id),1) , nvl(max(snap_id),1e6) from dba_hist_sqlstat@]'||p_dblink||q'[ where sql_id=']'||p_sql_id||q'[' and dbid in (select dbid from dba_hist_sqltext@]'||p_dblink||q'[ where sql_id=']'||p_sql_id||q'[')]'
-        into l_start_snap, l_end_snap;
-
-    if p_report_limit = 0 /*unlimited*/ then
-      null;
-    elsif p_report_limit>0 then
-      execute immediate q'[select nvl(min(snap_id),1) from dba_hist_snapshot@]'||p_dblink||q'[ where end_interval_time>=(select min(end_interval_time)-:p_report_limit from dba_hist_snapshot@]'||p_dblink||q'[ where snap_id = :p_end_snap )]' into l_start_snap using p_report_limit, l_end_snap;
-      --awrtools_logging.log('calc2 snaps: '||l_start_snap||','||l_end_snap,'DEBUG');
-    else
-      raise_application_error(-20000,'Invalid value for p_report_limit: '||p_report_limit||'. Must be >=0.');
+    if (p_report_limit is not null and (p_dbid is not null or p_min_snap is not null or p_max_snap is not null))
+        or
+       (p_report_limit is null and (p_dbid is null or p_min_snap is null or p_max_snap is null))
+        or
+        nvl(p_report_limit,1)<0
+    then
+      raise_application_error(-20000,'Invalid parameters for AWR SQL report: p_report_limit;p_dbid;p_min_snap;p_max_snap: '||p_report_limit||';'||p_dbid||';'||p_min_snap||';'||p_max_snap);
     end if;
 
-    execute immediate 'select unique dbid from dba_hist_sqltext@'||p_dblink||q'[ where sql_id=']'||p_sql_id||q'[' order by 1]'
-      bulk collect into l_dbid;
+    if p_dbid is not null and p_min_snap is not null and p_max_snap is not null then
+      l_dbid.extend; l_dbid(1):=p_dbid;
+      l_start_snap:=p_min_snap;
+      l_end_snap:=p_max_snap;
+    else
+      execute immediate q'[select nvl(min(snap_id),1) , nvl(max(snap_id),1e6) from dba_hist_sqlstat]'||
+                           case when p_dblink is null then null else '@'||p_dblink end ||q'[ where sql_id=']'||p_sql_id||q'[' and dbid in (select dbid from dba_hist_sqltext]'||
+                           case when p_dblink is null then null else '@'||p_dblink end ||q'[ where sql_id=']'||p_sql_id||q'[')]'
+          into l_start_snap, l_end_snap;
+
+      if p_report_limit>0 then
+        execute immediate q'[select nvl(min(snap_id),1) from dba_hist_snapshot]'||
+                             case when p_dblink is null then null else '@'||p_dblink end ||q'[ where end_interval_time>=(select min(end_interval_time)-:p_report_limit from dba_hist_snapshot]'||
+                             case when p_dblink is null then null else '@'||p_dblink end ||q'[ where snap_id = :p_end_snap )]'
+          into l_start_snap using p_report_limit, l_end_snap;
+      end if;
+
+      execute immediate 'select unique dbid from dba_hist_sqltext'||
+                             case when p_dblink is null then null else '@'||p_dblink end ||q'[ where sql_id=']'||p_sql_id||q'[' order by 1]'
+        bulk collect into l_dbid;
+    end if;
+
+    p_filename := 'opas_awr_'||p_sql_id||'.html';
+    p_displ_params := 'SQL_ID: '||p_sql_id||case when p_dblink is null then '; Local DB' else '; DBLINK: '||p_dblink end||
+                      case when nvl(p_report_limit,-1)>=0 then '; LIMIT: '||p_report_limit else '; DBID SNAPS: '||p_dbid||':'||p_min_snap||':'||p_max_snap end;
+
 
     p(HTF.header (1,'AWR SQL Report for SQL_ID='||p_sql_id,cattributes=>'class="awr"'));
     p(HTF.BR);
@@ -974,7 +1218,11 @@ end;]';
 
     l_script:=q'[select x.sql_text text from dba_hist_sqltext x where sql_id=']'||p_sql_id||q'[' and rownum=1]'||chr(10);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>500,p_summary=>'SQL text', p_dblink => p_dblink, p_output=> l_output);
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,p_width=>500,p_summary=>'SQL text', p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>500,p_summary=>'SQL text', p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
 
     p(HTF.BR);
@@ -990,9 +1238,13 @@ end;]';
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'DB description',cname=>'db_desc',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
 
-    l_script:=q'[select unique INSTANCE_NUMBER INST_ID, DB_NAME,dbid,version,host_name,platform_name from dba_hist_database_instance where dbid in (select dbid from dba_hist_sqltext where sql_id=']'||p_sql_id||q'[')]'||chr(10);
+    l_script:=q'[select unique INSTANCE_NUMBER INST_ID, DB_NAME,dbid,version,host_name,platform_name from dba_hist_database_instance where ]' || COREMOD_REPORT_UTILS.get_inst_list(l_dbid,'dbid') || chr(10);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'DB description', p_dblink => p_dblink, p_output=> l_output);
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,p_width=>1000,p_summary=>'DB description', p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'DB description', p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
 
     p(HTF.BR);
@@ -1009,8 +1261,8 @@ end;]';
     p(HTF.BR);
     p('POE - per one exec, time in milliseconds (1/1000 of second)');
     p(HTF.BR);
-    open l_crsr for 'select unique dbid,INSTANCE_NUMBER from dba_hist_database_instance@'||p_dblink||' where dbid in (select dbid from dba_hist_sqltext@'||p_dblink||q'[ where sql_id=']'||p_sql_id||q'[') order by 1,2]';
-    --for i in (select unique dbid,INSTANCE_NUMBER from dba_hist_database_instance where dbid in (select dbid from dba_hist_sqltext where sql_id=l_sql_id) order by 1,2)
+    open l_crsr for 'select unique dbid,INSTANCE_NUMBER from dba_hist_database_instance' || case when p_dblink is null then null else '@'||p_dblink end ||
+                    ' where ' || COREMOD_REPORT_UTILS.get_inst_list(l_dbid,'dbid') || q'[ order by 1,2]';
     loop
       fetch l_crsr into l_dbidn, l_inst_id;
       exit when l_crsr%notfound;
@@ -1019,7 +1271,18 @@ end;]';
       l_script:=coremod_api.getscript('PROC_AWRSQLSTAT');
       COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id,p_dbid=>l_dbidn,p_inst_id=>l_inst_id, p_start_snap => l_start_snap, p_end_snap => l_end_snap);
       l_output.delete;
-      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+      if p_dblink is null then
+        coremod_report_utils.print_table_html(p_query=>l_script,
+                                 p_width=>1000,
+                                 p_summary=>'SQL statistics',
+                                 p_style1 =>'awrncbbt',
+                                 p_style2 =>'awrcbbt',
+                                 p_search => 'PLAN_HASH',
+                                 p_replacement => HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'\1',cattributes=>'class="awr"'),
+                                 p_header=>25,
+                                 p_output=> l_output);
+      else
+        coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                  p_width=>1000,
                                  p_summary=>'SQL statistics',
                                  p_style1 =>'awrncbbt',
@@ -1028,6 +1291,7 @@ end;]';
                                  p_replacement => HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'\1',cattributes=>'class="awr"'),
                                  p_header=>25,
                                  p_dblink => p_dblink, p_output=> l_output);
+      end if;
       p1(l_output);
       p(HTF.BR);
       p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
@@ -1044,10 +1308,15 @@ end;]';
 
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'Bind values',cname=>'binds',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
-
-    l_script:=q'[select snap_id snap, name, datatype_string,to_char(last_captured,'yyyy/mm/dd hh24:mi:ss') last_captured, value_string from dba_hist_sqlbind where sql_id=']'||p_sql_id||q'[' and snap_id between ]'||l_start_snap||' and '||l_end_snap||q'[ order by snap_id,position]'||chr(10);
+    l_script:=q'[select snap_id snap, name, datatype_string,to_char(last_captured,'yyyy/mm/dd hh24:mi:ss') last_captured, value_string from dba_hist_sqlbind where ]'
+                || COREMOD_REPORT_UTILS.get_inst_list(l_dbid,'dbid') ||
+                q'[ and sql_id=']'||p_sql_id||q'[' and snap_id between ]'||l_start_snap||' and '||l_end_snap||q'[ order by snap_id,position]'||chr(10);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'Bind values',p_header=>25, p_dblink => p_dblink, p_output=> l_output);
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,p_width=>1000,p_summary=>'Bind values',p_header=>25, p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1000,p_summary=>'Bind values',p_header=>25, p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
 
     p(HTF.BR);
@@ -1065,19 +1334,28 @@ end;]';
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#awrplanscomp',ctext=>'AWR SQL plans comparison',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#epplan',ctext=>'Explain plan',cattributes=>'class="awr"')));
     p(HTF.BR);   p(HTF.BR);
-    -- for i in (select unique dbid from dba_hist_database_instance where dbid in (select dbid from dba_hist_sqltext where sql_id=l_sql_id) order by 1)
+
     for i in 1..l_dbid.count
     loop
       p('DBID: '||l_dbid(i));
 
       l_script:=q'[select * from table(dbms_xplan.display_awr(']'||p_sql_id||q'[', null, ]'||l_dbid(i)||q'[, 'ADVANCED'))]'||chr(10);
       l_output.delete;
-      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+      if p_dblink is null then
+        coremod_report_utils.print_table_html(p_query=>l_script,
+                                 p_width=>1000,
+                                 p_summary=>'AWR SQL execution plans',
+                                 p_search => 'Plan hash value: ([[:digit:]]*)',
+                                 p_replacement => HTF.ANCHOR(curl=>'#epplan_\1',ctext=>'Plan hash value: \1',cname=>'awrplan_\1',cattributes=>'class="awr"'),
+                                 p_output=> l_output);
+      else
+        coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                  p_width=>1000,
                                  p_summary=>'AWR SQL execution plans',
                                  p_search => 'Plan hash value: ([[:digit:]]*)',
                                  p_replacement => HTF.ANCHOR(curl=>'#epplan_\1',ctext=>'Plan hash value: \1',cname=>'awrplan_\1',cattributes=>'class="awr"'),
                                  p_dblink => p_dblink, p_output=> l_output);
+      end if;
       p1(l_output);
 
       p(HTF.BR);
@@ -1152,11 +1430,16 @@ end;]';
 
     declare
       l_out clob;
+      l_sql clob;
     begin
-      execute immediate 'select x.sql_text from dba_hist_sqltext@'||p_dblink||q'[ x where sql_id=']'||p_sql_id||q'[' and rownum=1]' into l_script;
-      execute immediate 'delete from plan_table@'||p_dblink;
-      --execute immediate 'explain plan for '||chr(10)||l_script;
-      coremod_report_utils.execute_plsql_remotelly(p_sql => q'(execute immediate q'[explain plan for )'||chr(10)||l_script||q'(]';)', p_dblink => p_dblink, p_output => l_out, p_is_output => false);
+      execute immediate 'select x.sql_text from dba_hist_sqltext'||case when p_dblink is null then null else '@'||p_dblink end||q'[ x where sql_id=']'||p_sql_id||q'[' and rownum=1]' into l_script;
+      execute immediate 'delete from plan_table'||case when p_dblink is null then null else '@'||p_dblink end;
+      l_sql := q'(execute immediate q'[explain plan for )'||chr(10)||l_script||q'(]';)';
+      if p_dblink is null then
+        execute immediate l_sql;
+      else
+        coremod_report_utils.execute_plsql_remotelly(p_sql => l_sql, p_dblink => p_dblink, p_output => l_out, p_is_output => false);
+      end if;
     exception
       when others then p(sqlerrm);
     end;
@@ -1165,12 +1448,21 @@ end;]';
 
     l_script:=q'[select * from table(dbms_xplan.display())]'||chr(10);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,
+                               p_width=> 1000,
+                               p_summary=> 'Explain plan',
+                               p_search => 'Plan hash value: ([[:digit:]]*)',
+                               p_replacement => HTF.ANCHOR(curl=>'#epplanadv_\1',ctext=>'Plan hash value: \1',cname=>'epplan_\1',cattributes=>'class="awr"'),
+                               p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                p_width=> 1000,
                                p_summary=> 'Explain plan',
                                p_search => 'Plan hash value: ([[:digit:]]*)',
                                p_replacement => HTF.ANCHOR(curl=>'#epplanadv_\1',ctext=>'Plan hash value: \1',cname=>'epplan_\1',cattributes=>'class="awr"'),
                                p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
 
     p(HTF.BR);p(HTF.BR);
@@ -1182,12 +1474,21 @@ end;]';
 
     l_script:=q'[select * from table(dbms_xplan.display(null,null,'ADVANCED',null))]'||chr(10);
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,
+                               p_width=>1000,
+                               p_summary=>'Explain plan (advanced)',
+                               p_search => 'Plan hash value: ([[:digit:]]*)',
+                               p_replacement => HTF.ANCHOR(curl=>'',ctext=>'Plan hash value: \1',cname=>'epplanadv_\1',cattributes=>'class="awr"'),
+                               p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                p_width=>1000,
                                p_summary=>'Explain plan (advanced)',
                                p_search => 'Plan hash value: ([[:digit:]]*)',
                                p_replacement => HTF.ANCHOR(curl=>'',ctext=>'Plan hash value: \1',cname=>'epplanadv_\1',cattributes=>'class="awr"'),
                                p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
 
     p(HTF.BR);p(HTF.BR);
@@ -1204,7 +1505,6 @@ end;]';
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_plsql',ctext=>'PL/SQL',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_summ',ctext=>'ASH summary',cattributes=>'class="awr"')));
-    --p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p1',ctext=>'AWR ASH (SQL Monitor) P1',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p1.1',ctext=>'AWR ASH (SQL Monitor) P1',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p2',ctext=>'AWR ASH (SQL Monitor) P2',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p3',ctext=>'AWR ASH (SQL Monitor) P3',cattributes=>'class="awr"')));
@@ -1216,23 +1516,32 @@ end;]';
 
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'ASH PL/SQL',cname=>'ash_plsql',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
-    for i in 1..l_dbid.count
-    loop
-      p('DBID: '||l_dbid(i));
-      if sys_context('USERENV','CON_ID')=0 then --in multitenant it runs forever
+    declare
+      l_out clob;
+    begin
+      for i in 1..l_dbid.count
+      loop
+        p('DBID: '||l_dbid(i));
         l_script:=q'[select * from dba_procedures where (object_id,subprogram_id) in (select unique plsql_entry_object_id,plsql_entry_subprogram_id from dba_hist_active_sess_history where instance_number between 1 and 255 and snap_id between ]'||l_start_snap||q'[ and ]'||l_end_snap||q'[ and sql_id = ']'||p_sql_id||q'[' and dbid= ]'||l_dbid(i)||q'[)]'||chr(10);
         l_output.delete;
-        coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1500,p_summary=>'ASH PL/SQL',p_style1 =>'awrc1',p_style2 =>'awrnc1', p_dblink => p_dblink, p_output=> l_output);
+        if p_dblink is null then
+          coremod_report_utils.print_table_html(p_query=>l_script,p_width=>1500,p_summary=>'ASH PL/SQL',p_style1 =>'awrc1',p_style2 =>'awrnc1', p_output=> l_output);
+        else
+          coremod_report_utils.execute_plsql_remotelly(p_sql => q'[begin dbms_output.put_line(sys_context('USERENV','CON_ID'));end;]', p_dblink => p_dblink, p_output => l_out, p_is_output => true);
+          if l_out='0' then --in multitenant it runs forever
+            coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1500,p_summary=>'ASH PL/SQL',p_style1 =>'awrc1',p_style2 =>'awrnc1', p_dblink => p_dblink, p_output=> l_output);
+          else
+            p('No PL/SQL source data for multitenant DB.');
+          end if;
+        end if;
         p1(l_output);
-      else
-        p('No PL/SQL source data for multitenant DB.');
-      end if;
 
-      p(HTF.BR);
-      p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash',ctext=>'Back to ASH',cattributes=>'class="awr"')));
-      p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
-      p(HTF.BR);
-    end loop;
+        p(HTF.BR);
+        p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash',ctext=>'Back to ASH',cattributes=>'class="awr"')));
+        p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
+        p(HTF.BR);
+      end loop;
+    end;
     p(HTF.BR);
     p(COREMOD_REPORT_UTILS.end_lo_section);
     p(HTF.BR);
@@ -1250,7 +1559,18 @@ end;]';
       COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id,p_dbid=>l_dbid(i), p_start_snap => l_start_snap, p_end_snap => l_end_snap);
 
       l_output.delete;
-      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+      if p_dblink is null then
+        coremod_report_utils.print_table_html(p_query=>l_script,
+                                 p_width=>1500,
+                                 p_summary=>'ASH summary',
+                                 p_style1 =>'awrncbbt',
+                                 p_style2 =>'awrcbbt',
+                                 p_search => 'PLAN_HASH',
+                                 p_replacement => HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'\1',cattributes=>'class="awr"'),
+                                 p_header=>25,
+                                 p_output=> l_output);
+      else
+        coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                  p_width=>1500,
                                  p_summary=>'ASH summary',
                                  p_style1 =>'awrncbbt',
@@ -1259,6 +1579,7 @@ end;]';
                                  p_replacement => HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'\1',cattributes=>'class="awr"'),
                                  p_header=>25,
                                  p_dblink => p_dblink, p_output=> l_output);
+      end if;
       p1(l_output);
 
       p(HTF.BR);
@@ -1317,7 +1638,19 @@ end;]';
       COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id,p_dbid=>l_dbid(i), p_start_snap => l_start_snap, p_end_snap => l_end_snap);
 
       l_output.delete;
-      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+      if p_dblink is null then
+        coremod_report_utils.print_table_html(p_query=>l_script,
+                                 p_width=>1000,
+                                 p_summary=>'AWR ASH (SQL Monitor) P1',
+                                 p_style1 =>'awrncbbt',
+                                 p_style2 =>'awrcbbt',
+                                 p_search => 'PLAN_HASH',
+                                 p_replacement => HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'\1',cattributes=>'class="awr"'),
+                                 p_header=>25,
+                                 p_break_col=>'ID',
+                                 p_output=> l_output);
+      else
+        coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                  p_width=>1000,
                                  p_summary=>'AWR ASH (SQL Monitor) P1',
                                  p_style1 =>'awrncbbt',
@@ -1327,6 +1660,7 @@ end;]';
                                  p_header=>25,
                                  p_break_col=>'ID',
                                  p_dblink => p_dblink, p_output=> l_output);
+      end if;
       p1(l_output);
       p(HTF.BR);
       p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash',ctext=>'Back to ASH',cattributes=>'class="awr"')));
@@ -1350,7 +1684,19 @@ end;]';
       COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id,p_dbid=>l_dbid(i), p_start_snap => l_start_snap, p_end_snap => l_end_snap);
 
       l_output.delete;
-      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+      if p_dblink is null then
+        coremod_report_utils.print_table_html(p_query=>l_script,
+                                 p_width=>1000,
+                                 p_summary=>'AWR ASH (SQL Monitor) P2',
+                                 p_style1 =>'awrncbbt',
+                                 p_style2 =>'awrcbbt',
+                                 p_search => 'PLAN_HASH',
+                                 p_replacement => HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'\1',cattributes=>'class="awr"'),
+                                 p_header=>50,
+                                 p_break_col=>'SQL_EXEC_START',
+                                 p_output=> l_output);
+      else
+        coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                  p_width=>1000,
                                  p_summary=>'AWR ASH (SQL Monitor) P2',
                                  p_style1 =>'awrncbbt',
@@ -1360,6 +1706,7 @@ end;]';
                                  p_header=>50,
                                  p_break_col=>'SQL_EXEC_START',
                                  p_dblink => p_dblink, p_output=> l_output);
+      end if;
       p1(l_output);
       p(HTF.BR);
       p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash',ctext=>'Back to ASH',cattributes=>'class="awr"')));
@@ -1381,7 +1728,19 @@ end;]';
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id, p_start_snap => l_start_snap, p_end_snap => l_end_snap);
 
     l_output.delete;
-    coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,
+                               p_width=>1000,
+                               p_summary=>'AWR ASH (SQL Monitor) P3',
+                               p_style1 =>'awrncbbt',
+                               p_style2 =>'awrcbbt',
+                               p_search => 'PLAN_HASH',
+                               p_replacement => HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'\1',cattributes=>'class="awr"'),
+                               p_header=>25,
+                               p_break_col=>'SQL_EXEC_START',
+                               p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                p_width=>1000,
                                p_summary=>'AWR ASH (SQL Monitor) P3',
                                p_style1 =>'awrncbbt',
@@ -1391,6 +1750,7 @@ end;]';
                                p_header=>25,
                                p_break_col=>'SQL_EXEC_START',
                                p_dblink => p_dblink, p_output=> l_output);
+    end if;
     p1(l_output);
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash',ctext=>'Back to ASH',cattributes=>'class="awr"')));
@@ -1408,7 +1768,11 @@ end;]';
     l_script:=coremod_api.getscript('PROC_SQLMON_HIST');
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id,p_start_snap => l_start_snap, p_end_snap => l_end_snap);
     l_plsql_output:=null;
-    coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+    if p_dblink is null then
+      coremod_report_utils.execute_plsql(p_sql => l_script, p_output => l_plsql_output);
+    else
+      coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+    end if;
     coremod_report_utils.print_text_as_table(p_text=>l_plsql_output,
                         p_t_header=>'SQL Monitor report history',
                         p_width=>600,
@@ -1427,13 +1791,6 @@ end;]';
 
     return l_report;
 --  =============================================================================================================================================
-    --save_report_for_download('awr_'||p_sql_id||'.html', l_report, p_id, p_parent_id);
---  exception
---    when others then
---      awrtools_logging.log(sqlerrm);
---      awrtools_logging.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
---      awrtools_logging.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
---      raise_application_error(-20000, sqlerrm);
   end;
 
 

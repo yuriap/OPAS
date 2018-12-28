@@ -31,11 +31,15 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
   procedure set_report_type(p_report_id opas_reports.report_id%type, p_report_type varchar2)
   is
   begin
-    --if p_report_type not in (gSQL_MEMORY_REPORT, gSQL_AWR_REPORT) then
-    --  raise_application_error(-20000,'Unknowm report type: '||p_report_type);
-    --end if;
-    --set_report_param(p_report_id,gparReportType,p_report_type);
     update opas_reports set report_type=p_report_type where report_id=p_report_id;
+  end;
+
+  function  get_report_type(p_report_id opas_reports.report_id%type) return varchar2
+  is
+    l_res opas_reports.report_type%type;
+  begin
+    select report_type into l_res from opas_reports where report_id = p_report_id;
+    return l_res;
   end;
 
   procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_num_par number)
@@ -65,31 +69,34 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     when not matched then insert (report_id,par_name,date_par) values (s.id, s.nm, s.val);
   end;
 
-  function get_reppar_n(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type) return number result_cache
+  function get_reppar_n(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_validate boolean default true) return number result_cache
   is
     l_val number;
   begin
     select num_par into l_val from opas_reports_pars where report_id = p_report_id and par_name=p_name;
+    if p_validate and l_val is null then raise_application_error(-20000,'Parameter '||p_name||' for report '||p_report_id||' is empty'); end if;
     return l_val;
   exception
     when no_data_found then raise_application_error(-20000,'Parameter: '||p_name||' for report_id: '||p_report_id||' is not defined (get_reppar_n).');
   end;
 
-  function get_reppar_c(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type) return varchar2 result_cache
+  function get_reppar_c(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_validate boolean default true) return varchar2 result_cache
   is
     l_val opas_reports_pars.varchar_par%type;
   begin
     select varchar_par into l_val from opas_reports_pars where report_id = p_report_id and par_name=p_name;
+    if p_validate and l_val is null then raise_application_error(-20000,'Parameter '||p_name||' for report '||p_report_id||' is empty'); end if;
     return l_val;
   exception
     when no_data_found then raise_application_error(-20000,'Parameter: '||p_name||' for report_id: '||p_report_id||' is not defined (get_reppar_c).');
   end;
 
-  function get_reppar_d(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type) return date result_cache
+  function get_reppar_d(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_validate boolean default true) return date result_cache
   is
     l_val date;
   begin
     select date_par into l_val from opas_reports_pars where report_id = p_report_id and par_name=p_name;
+    if p_validate and l_val is null then raise_application_error(-20000,'Parameter '||p_name||' for report '||p_report_id||' is empty'); end if;
     return l_val;
   exception
     when no_data_found then raise_application_error(-20000,'Parameter: '||p_name||' for report_id: '||p_report_id||' is not defined (get_reppar_d).');
@@ -153,14 +160,26 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     end if;
   end;
 
+  procedure set_report_task(p_report_id opas_reports.report_id%type, p_tq_id opas_task_queue.tq_id%type)
+  is
+  begin
+    update opas_reports set tq_id=p_tq_id where report_id=p_report_id;
+  end;
+
+  procedure set_report_content(p_report_id opas_reports.report_id%type, p_content opas_reports.report_content%type, p_displ_params opas_reports.report_params_displ%type)
+  is
+  begin
+    update opas_reports set report_content=p_content,report_params_displ=p_displ_params  where report_id=p_report_id;
+  end;
+
   procedure queue_report(p_report_id opas_reports.report_id%type)
   is
     l_tq_id opas_task_queue.tq_id%type;
   begin
-    l_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => 'OPAS_REPORT') ;
+    l_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => 'OPAS_REPORT', p_task_subname => get_report_type (p_report_id)) ;
     COREMOD_TASKS.set_task_param( p_tq_id => l_tq_id, p_name => 'B1', p_num_par => p_report_id);
     COREMOD_TASKS.queue_task ( p_tq_id => l_tq_id ) ;
-    update opas_reports set tq_id=l_tq_id where report_id=p_report_id;
+    set_report_task(p_report_id,l_tq_id);
   end;
 
   procedure execute_report(p_report_id opas_reports.report_id%type)
@@ -185,33 +204,25 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
       l_file_type := 'SQL Memory stats report';
       l_file_name := 'opas_sql_'||get_reppar_c(p_report_id,gparSQLID)||'.html';
       l_mime := 'HTML';
-      l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBLINK: '||get_reppar_c(p_report_id,gparDBLINK);
-      l_report := coremod_reports.getreport_sql_memory_stats(get_reppar_c(p_report_id,gparSQLID),
-                                                             COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)));
+      l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBLINK: '||case when get_reppar_c(p_report_id,gparDBLINK,false) is not null then get_reppar_c(p_report_id,gparDBLINK) else 'Local' end;
+      l_report := coremod_reports.getreport_sql_memory_stats(p_sql_id => get_reppar_c(p_report_id,gparSQLID),
+                                                             p_dblink => case when get_reppar_c(p_report_id,gparDBLINK,false) is not null then COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)) else null end);
     elsif l_report_type = gSQL_AWR_REPORT then
       l_file_type := 'SQL AWR stats report';
-      l_file_name := 'opas_awr_'||get_reppar_c(p_report_id,gparSQLID)||'.html';
       l_mime := 'HTML';
-      l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBLINK: '||get_reppar_c(p_report_id,gparDBLINK)||'; LIMIT: '||get_reppar_n(p_report_id,gparREP_LIMIT);
-      l_report := coremod_reports.getreport_sql_awr_stats(get_reppar_c(p_report_id,gparSQLID),
-                                                          COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)),
-                                                          get_reppar_n(p_report_id,gparREP_LIMIT));
+
+      l_report := coremod_reports.getreport_sql_awr_stats(p_sql_id       => get_reppar_c(p_report_id,gparSQLID),
+                                                          p_dblink       => case when get_reppar_c(p_report_id,gparDBLINK,false) is not null then COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)) else null end,
+                                                          p_report_limit => get_reppar_n(p_report_id,gparREP_LIMIT,false),
+                                                          p_dbid         => get_reppar_n(p_report_id,gparDBID,false),
+                                                          p_min_snap     => get_reppar_n(p_report_id,gparMIN_SNAP,false),
+                                                          p_max_snap     => get_reppar_n(p_report_id,gparMAX_SNAP,false),
+                                                          p_filename     => l_file_name,
+                                                          p_displ_params => l_displ_params);
     elsif l_report_type = qAWRRPT then
---coremod_log.log('get_reppar_c(p_report_id,gparINSTANCE_NUM:'||get_reppar_c(p_report_id,gparINSTANCE_NUM));
       l_file_type := 'AWR report';
-      l_mime := 'HTML';/*
-      l_file_name := 'opas_awr_'||get_reppar_n(p_report_id,gparDBID)||'_'||
-                                  get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||
-                                  get_reppar_n(p_report_id,gparMAX_SNAP)||
-                                  get_inst_lst_for_nm(get_reppar_c(p_report_id,gparINSTANCE_NUM),'_') ||
-                                  case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '_'|| get_reppar_c(p_report_id,gparDBLINK) end ||
-                                  '.html';
-      l_displ_params := 'DBID: '||get_reppar_n(p_report_id,gparDBID)||
-                     '; SNAPS: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||
-                                  get_reppar_n(p_report_id,gparMAX_SNAP)||
-                      '; INST: '||get_inst_lst_for_nm(get_reppar_c(p_report_id,gparINSTANCE_NUM)) ||
-                                 case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '; DB_LINK: '||get_reppar_c(p_report_id,gparDBLINK) end;*/
-      if get_reppar_c(p_report_id,gparDBLINK) is null then
+      l_mime := 'HTML';
+      if get_reppar_c(p_report_id,gparDBLINK,false) is null then
 
         l_report := coremod_reports.getreport_awrrpt(get_reppar_n(p_report_id,gparDBID),
                                                      get_reppar_n(p_report_id,gparMIN_SNAP),
@@ -227,97 +238,60 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     elsif l_report_type = qSQAWRRPT then
       l_file_type := 'SQL AWR report';
       l_mime := 'HTML';
-      l_file_name := 'opas_sql_'||get_reppar_c(p_report_id,gparSQLID)||'_'||
-                                  get_reppar_n(p_report_id,gparDBID)||'_'||
-                                  get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||
-                                  get_reppar_n(p_report_id,gparMAX_SNAP)||
-                                  case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then '_1' else '_'|| to_char(get_reppar_n(p_report_id,gparINSTANCE_NUM)) end ||
-                                  case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '_'|| get_reppar_c(p_report_id,gparDBLINK) end ||
-                                  '.html';
-      l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||
-                        '; DBID: '||get_reppar_n(p_report_id,gparDBID)||
-                        '; SNAPS: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||
-                                     get_reppar_n(p_report_id,gparMAX_SNAP)||
-                        '; INST: '||case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then '1' else to_char(get_reppar_n(p_report_id,gparINSTANCE_NUM)) end ||
-                                    case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '; DB_LINK: '||get_reppar_c(p_report_id,gparDBLINK) end;
 
-      if get_reppar_c(p_report_id,gparDBLINK) is null then
+      if get_reppar_c(p_report_id,gparDBLINK,false) is null then
         l_report := coremod_reports.getreport_sqawrrpt(get_reppar_c(p_report_id,gparSQLID),
                                                        get_reppar_n(p_report_id,gparDBID),
                                                        get_reppar_n(p_report_id,gparMIN_SNAP),
                                                        get_reppar_n(p_report_id,gparMAX_SNAP),
-                                                       get_reppar_n(p_report_id,gparINSTANCE_NUM));
+                                                       get_reppar_n(p_report_id,gparINSTANCE_NUM),l_file_name,l_displ_params);
       else
         l_report_clob := coremod_reports.getreport_sqawrrpt(get_reppar_c(p_report_id,gparSQLID),
                                                             get_reppar_n(p_report_id,gparDBID),
                                                             get_reppar_n(p_report_id,gparMIN_SNAP),
                                                             get_reppar_n(p_report_id,gparMAX_SNAP),
                                                             get_reppar_n(p_report_id,gparINSTANCE_NUM),
-                                                            COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)));
+                                                            get_reppar_c(p_report_id,gparDBLINK),l_file_name,l_displ_params);
       end if;
     elsif l_report_type = qAWRDIFF then
       l_file_type := 'AWR Diff report';
       l_mime := 'HTML';
-      l_file_name := 'opas_awrdiff_'||get_reppar_n(p_report_id,gparDBID)||'_'||
-                                      get_reppar_n(p_report_id,gparMIN_SNAP)||'_'||
-                                      get_reppar_n(p_report_id,gparMIN_SNAP2)||
-                                      case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then '_rac' else null end ||
-                                      case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '_'|| get_reppar_c(p_report_id,gparDBLINK) end ||
-                                      '.html';
-      l_displ_params := 'DBID1: '||get_reppar_n(p_report_id,gparDBID)||
-                     '; SNAPS1: '||get_reppar_n(p_report_id,gparMIN_SNAP)||':'||
-                                   get_reppar_n(p_report_id,gparMAX_SNAP)||
-                     '; INST1: '||case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then 'RAC' else to_char(get_reppar_n(p_report_id,gparINSTANCE_NUM)) end||
-                     '; DBID2: '||get_reppar_n(p_report_id,gparDBID)||
-                     '; SNAPS2: '||get_reppar_n(p_report_id,gparMIN_SNAP2)||':'||
-                                   get_reppar_n(p_report_id,gparMAX_SNAP2)||
-                     '; INST2: '||case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then 'RAC' else to_char(get_reppar_n(p_report_id,gparINSTANCE_NUM2)) end||
-                                  case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '; DB_LINK: '||get_reppar_c(p_report_id,gparDBLINK) end;
-      if get_reppar_c(p_report_id,gparDBLINK) is null then
+
+      if get_reppar_c(p_report_id,gparDBLINK,false) is null then
         l_report := coremod_reports.getreport_diffrpt(get_reppar_n(p_report_id,gparDBID),
                                                       get_reppar_n(p_report_id,gparMIN_SNAP),
                                                       get_reppar_n(p_report_id,gparMAX_SNAP),
-                                                      get_reppar_n(p_report_id,gparINSTANCE_NUM),
+                                                      get_reppar_c(p_report_id,gparINSTANCE_NUM),
                                                       get_reppar_n(p_report_id,gparDBID2),
                                                       get_reppar_n(p_report_id,gparMIN_SNAP2),
                                                       get_reppar_n(p_report_id,gparMAX_SNAP2),
-                                                      get_reppar_n(p_report_id,gparINSTANCE_NUM2));
+                                                      get_reppar_c(p_report_id,gparINSTANCE_NUM2),l_file_name,l_displ_params);
       else
         l_report_clob := coremod_reports.getreport_diffrpt(get_reppar_n(p_report_id,gparDBID),
                                                            get_reppar_n(p_report_id,gparMIN_SNAP),
                                                            get_reppar_n(p_report_id,gparMAX_SNAP),
-                                                           get_reppar_n(p_report_id,gparINSTANCE_NUM),
+                                                           get_reppar_c(p_report_id,gparINSTANCE_NUM),
                                                            get_reppar_n(p_report_id,gparDBID2),
                                                            get_reppar_n(p_report_id,gparMIN_SNAP2),
                                                            get_reppar_n(p_report_id,gparMAX_SNAP2),
-                                                           get_reppar_n(p_report_id,gparINSTANCE_NUM2),
-                                                           COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)));
+                                                           get_reppar_c(p_report_id,gparINSTANCE_NUM2),
+                                                           get_reppar_c(p_report_id,gparDBLINK),l_file_name,l_displ_params);
       end if;
     elsif l_report_type = qASHRPT then
       l_file_type := 'ASH report';
       l_mime := 'HTML';
-      l_file_name := 'opas_ash_'||get_reppar_n(p_report_id,gparDBID)||'_'||
-                                  to_char(get_reppar_d(p_report_id,gparBTIME),gShortDTFMT)||'_'||
-                                  to_char(get_reppar_d(p_report_id,gparETIME),gShortDTFMT)||
-                                  case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then '_rac' else null end||
-                                  case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '_'|| get_reppar_c(p_report_id,gparDBLINK) end||
-                                  '.html';
-      l_displ_params := 'DBID: '||get_reppar_n(p_report_id,gparDBID)||
-                     '; DATES: '||to_char(get_reppar_d(p_report_id,gparBTIME),gShortDTFMT)||':'||
-                                  to_char(get_reppar_d(p_report_id,gparETIME),gShortDTFMT)||
-                      '; INST: '||case when get_reppar_n(p_report_id,gparINSTANCE_NUM) = -1 then 'RAC' else to_char(get_reppar_n(p_report_id,gparINSTANCE_NUM)) end||
-                                  case when get_reppar_c(p_report_id,gparDBLINK) is null then null else '; DB_LINK: '||get_reppar_c(p_report_id,gparDBLINK) end;
-      if get_reppar_c(p_report_id,gparDBLINK) is null then
+
+      if get_reppar_c(p_report_id,gparDBLINK,false) is null then
         l_report := coremod_reports.getreport_ashrpt(get_reppar_n(p_report_id,gparDBID),
                                                      get_reppar_d(p_report_id,gparBTIME),
                                                      get_reppar_d(p_report_id,gparETIME),
-                                                     get_reppar_n(p_report_id,gparINSTANCE_NUM));
+                                                     get_reppar_c(p_report_id,gparINSTANCE_NUM),l_file_name,l_displ_params);
       else
         l_report_clob := coremod_reports.getreport_ashrpt(get_reppar_n(p_report_id,gparDBID),
                                                           get_reppar_d(p_report_id,gparBTIME),
                                                           get_reppar_d(p_report_id,gparETIME),
-                                                          get_reppar_n(p_report_id,gparINSTANCE_NUM),
-                                                          COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)));
+                                                          get_reppar_c(p_report_id,gparINSTANCE_NUM),
+                                                          get_reppar_c(p_report_id,gparDBLINK),l_file_name,l_displ_params);
       end if;
     end if;
 
@@ -535,6 +509,22 @@ end;]';
       raise_application_error(-20000,'Error in COREMOD_REPORT_UTILS.get_clob_emotelly: '||sqlerrm);
   end;
 
+  procedure execute_plsql(p_sql varchar2, p_output out clob, p_is_output boolean default true)
+  is
+    l_chunk varchar2(32767);
+    l_status integer;
+  begin
+    if p_is_output then dbms_output.enable(null); end if;
+    execute immediate p_sql;
+    if p_is_output then
+      loop
+        DBMS_OUTPUT.GET_LINE(l_chunk,l_status);
+        exit when l_status=1;
+        p_output:=p_output||l_chunk||chr(10);
+      end loop;
+    end if;
+  end;
+
   procedure execute_plsql_remotelly(p_sql varchar2, p_dblink varchar2, p_output out clob, p_is_output boolean default true)
   is
     l_theCursor     integer;
@@ -582,6 +572,7 @@ else q'[end;]' end;
     if length(l_sql) > 32767 then raise_application_error(-20000,'SQL <'||substr(l_sql,1,100)||'...> too long for remote table printing.');end if;
     l_sql2exec:=l_sql;
 --dbms_output.put_line(l_sql2exec);
+--coremod_log.log('l_sql2exec: '||l_sql2exec);
     l_time:=DBMS_UTILITY.GET_TIME;
     execute immediate 'begin :p_theCursor:=dbms_sql.open_cursor@'||p_dblink||'; end;' using out l_theCursor;
     execute immediate 'begin dbms_sql.parse@'||p_dblink||'(:p_theCursor, :p_stmt , :p_flg ); end;' using l_theCursor, l_sql2exec, dbms_sql.native;
@@ -604,9 +595,10 @@ else q'[end;]' end;
       if l_open then
         execute immediate 'begin dbms_sql.close_cursor@'||p_dblink||'(:p_theCursor); end;' using in out l_theCursor;
       end if;
-      coremod_log.log('Error in COREMOD_REPORT_UTILS.execute_plsql_remotelly: '||sqlerrm);
-      coremod_log.log('Error in COREMOD_REPORT_UTILS.execute_plsql_remotelly: SQL: '||l_sql2exec);
-      coremod_log.log('Error in COREMOD_REPORT_UTILS.execute_plsql_remotelly: Error stack: '||DBMS_UTILITY.FORMAT_ERROR_STACK);
+      coremod_log.log('execute_plsql_remotelly: Error: '||sqlerrm);
+      coremod_log.log('execute_plsql_remotelly: Original SQL: '||p_sql);
+      coremod_log.log('execute_plsql_remotelly: Final SQL: '||l_sql2exec);
+      coremod_log.log('execute_plsql_remotelly: Error stack: '||DBMS_UTILITY.FORMAT_ERROR_STACK);
       raise_application_error(-20000,'Error in COREMOD_REPORT_UTILS.execute_plsql_remotelly: '||sqlerrm);
   end;
 
@@ -855,7 +847,9 @@ end;]';
   exception
     when others then
       if DBMS_SQL.IS_OPEN(l_theCursor) then dbms_sql.close_cursor(l_theCursor);end if;
-      p(p_query);
+      coremod_log.log('print_table_html: Error: '||sqlerrm);
+      coremod_log.log('print_table_html: Original SQL: '||p_query);
+      coremod_log.log('print_table_html: Error stack: '||DBMS_UTILITY.FORMAT_ERROR_STACK);
       raise_application_error(-20000, 'print_table_html'||chr(10)||sqlerrm||chr(10));
   end;
 

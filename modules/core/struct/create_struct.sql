@@ -102,6 +102,7 @@ create index idx_opas_task_mod on opas_task(modname);
 create table opas_task_queue (
 tq_id        NUMBER GENERATED ALWAYS AS IDENTITY primary key,
 taskname     varchar2(128) references opas_task(taskname) on delete cascade,
+task_subname varchar2(128),
 queued       timestamp,
 started      timestamp,
 finished     timestamp,
@@ -140,7 +141,7 @@ create index idx_opas_task_created on opas_log(created);
 
 CREATE OR REPLACE FORCE VIEW V$OPAS_TASK_QUEUE AS 
 select
-  t.taskname, t.modname, t.is_public, q.tq_id, q.queued, q.started, q.finished, q.cpu_time, nvl(q.elapsed_time,round((sysdate-(q.started+0))*3600*24)) elapsed_time, q.status, q.owner, q.sid, q.serial#, q.inst_id , q.job_name
+  t.taskname, t.modname, q.task_subname, t.is_public, q.tq_id, q.queued, q.started, q.finished, q.cpu_time, nvl(q.elapsed_time,round((sysdate-(q.started+0))*3600*24)) elapsed_time, q.status, q.owner, q.sid, q.serial#, q.inst_id , q.job_name
 from opas_task t left outer join opas_task_queue q on (t.taskname = q.taskname and q.owner=decode(t.is_public,'Y',q.owner,nvl(V('APP_USER'),'~^')))
 where 1=decode(t.is_public,'Y',1, COREMOD_SEC.is_role_assigned_n(t.modname,'Reas-write users'))
 ;

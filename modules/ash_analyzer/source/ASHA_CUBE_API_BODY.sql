@@ -88,6 +88,39 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
     commit;
   end;
 
+  procedure create_awrsql_report(p_proj_id          asha_cube_reports.proj_id%type,
+                                 p_sess_id          asha_cube_reports.sess_id%type default null,
+                                 p_sql_id           varchar2,
+                                 p_dblink           varchar2,
+                                 p_limit            number,
+                                 p_dbid             number,
+                                 p_min_snap         number,
+                                 p_max_snap         number)
+  is
+    l_proj asha_cube_projects%rowtype;
+    l_report_id opas_reports.report_id%type;
+  begin
+    l_proj:=ASHA_PROJ_API.getproject(p_proj_id,true);
+
+    l_report_id := coremod_reports.queue_report_sql_awr_stats(
+                                 p_modname      => gMODNAME,
+                                 p_owner        => l_proj.owner,
+                                 p_sql_id       => p_sql_id,
+                                 p_dblink       => p_dblink,
+                                 p_report_limit => p_limit,
+                                 p_dbid         => p_dbid,
+                                 p_min_snap     => p_min_snap,
+                                 p_max_snap     => p_max_snap);
+
+    INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
+
+    insert into asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
+    select p_proj_id,report_id,p_sess_id,null,null from opas_reports where parent_id=l_report_id;
+
+    commit;
+  end;
+
   procedure edit_report_properties(p_report_id          asha_cube_reports.report_id%type,
                                    p_report_retention   asha_cube_reports.report_retention%type,
                                    p_report_note        asha_cube_reports.report_note%type)
@@ -115,7 +148,7 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
                                  p_dbid         number,
                                  p_min_snap     number,
                                  p_max_snap     number,
-                                 p_instance_num number,
+                                 p_instance_num varchar2,
                                  p_dblink       varchar2 default null,
                                  p_sess_id      asha_cube_reports.sess_id%type default null)
   is
@@ -172,11 +205,11 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
                                   p_dbid1         number,
                                   p_min_snap1     number,
                                   p_max_snap1     number,
-                                  p_instance_num1 number,
+                                  p_instance_num1 varchar2,
                                   p_dbid2         number,
                                   p_min_snap2     number,
                                   p_max_snap2     number,
-                                  p_instance_num2 number,
+                                  p_instance_num2 varchar2,
                                   p_dblink        varchar2 default null,
                                   p_sess_id       asha_cube_reports.sess_id%type default null)
 
@@ -208,7 +241,7 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
                                  p_dbid         number,
                                  p_bdate        date,
                                  p_edate        date,
-                                 p_instance_num number,
+                                 p_instance_num varchar2,
                                  p_dblink       varchar2 default null,
                                  p_sess_id      asha_cube_reports.sess_id%type default null)
 

@@ -18,6 +18,14 @@ insert into opas_groups (group_id,group_name,group_descr) values (3, 'No access 
 		   
 INSERT INTO 
   opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','CUST_AWRCOMP'           ,'AWR query plan compare report (custom)'   ,157,null,null,10);
+
+INSERT INTO    
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
+           VALUES ('&MODNM.','REPORT_TYPES','CUST_SQLMULTIPLAN'      ,'Analyze SQLs with multiple plans (custom)',158,null,null,20);
+		   
+INSERT INTO 
+  opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
            VALUES ('&MODNM.','REPORT_TYPES','CUST_SQL_AWR_REPORT'    ,'AWR SQL report (custom)'                  ,151,null,null,10);
 INSERT INTO 
   opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)

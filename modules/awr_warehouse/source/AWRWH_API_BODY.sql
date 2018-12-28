@@ -124,10 +124,12 @@ PACKAGE BODY AWRWH_API AS
     if l_cnt=0 then
 
       execute immediate q'[
-        select unique version || ', ' || host_name || ', ' || platform_name
+        select unique db_name|| ', ' || version || ', ' || platform_name || ', ' || listagg(instance_name||':'||host_name,',') within group (order by host_name) from
+        (select unique db_name,version,platform_name,host_name,instance_name
           from ]'||p_stg_user||q'[.WRM$_DATABASE_INSTANCE i,
                ]'||p_stg_user||q'[.wrm$_snapshot sn
-         where i.dbid = sn.dbid]'
+         where i.dbid = sn.dbid  and i.instance_number=sn.instance_number)
+         group by db_name,version,platform_name]'
          into p_db_description;
 
       sys.dbms_swrf_internal.move_to_awr(schname => upper(p_stg_user));

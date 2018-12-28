@@ -43,16 +43,19 @@ PACKAGE COREMOD_REPORT_UTILS AS
 
   procedure init_report(p_modname opas_reports.modname%type, p_report_id out opas_reports.report_id%type, p_parent_report opas_reports.report_id%type default null);
   procedure set_report_type(p_report_id opas_reports.report_id%type, p_report_type varchar2);
+  function  get_report_type(p_report_id opas_reports.report_id%type) return varchar2;
 
   procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_num_par number);
   procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_varchar_par varchar2);
   procedure set_report_param(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_date_par date);
 
-  function get_reppar_n(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type) return number result_cache;
-  function get_reppar_c(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type) return varchar2 result_cache;
-  function get_reppar_d(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type) return date result_cache;
+  function get_reppar_n(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_validate boolean default true) return number result_cache;
+  function get_reppar_c(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_validate boolean default true) return varchar2 result_cache;
+  function get_reppar_d(p_report_id opas_reports.report_id%type, p_name opas_reports_pars.par_name%type, p_validate boolean default true) return date result_cache;
 
   procedure queue_report(p_report_id opas_reports.report_id%type);
+  procedure set_report_task(p_report_id opas_reports.report_id%type, p_tq_id opas_task_queue.tq_id%type);
+  procedure set_report_content(p_report_id opas_reports.report_id%type, p_content opas_reports.report_content%type, p_displ_params opas_reports.report_params_displ%type);
   --for task
   procedure execute_report(p_report_id opas_reports.report_id%type);
 
@@ -72,6 +75,7 @@ PACKAGE COREMOD_REPORT_UTILS AS
                            p_start_snap number default null,
                            p_end_snap number default null);
 
+  procedure execute_plsql(p_sql varchar2, p_output out clob, p_is_output boolean default true);
   procedure execute_plsql_remotelly(p_sql varchar2, p_dblink varchar2, p_output out clob, p_is_output boolean default true);
   procedure execute_plsql_remotelly(p_sql varchar2, p_dblink varchar2, p_output out t_output_lines);
   procedure get_clob_remotelly(p_sql varchar2, p_dblink varchar2, p_output out clob);

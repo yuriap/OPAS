@@ -29,13 +29,12 @@ PACKAGE BODY AWRWH_REPORT_API AS
   end;
 
   procedure create_report_awrrpt(p_proj_id      awrwh_reports.proj_id%type,
+                                 p_instance_num varchar2,
                                  p_dump_id      awrwh_dumps.dump_id%type)
   is
   begin
     for i in (select dbid,min_snap_id,max_snap_id from awrwh_dumps where dump_id=p_dump_id and status in (AWRWH_FILE_LCC.c_dmpfilestate_awrloaded, AWRWH_FILE_LCC.c_dmpfilestate_compressed)) loop
-      for j in (select instance_number from dba_hist_snapshot where dbid=i.dbid and snap_id between i.min_snap_id and i.max_snap_id) loop
-        create_report_awrrpt(p_proj_id,i.dbid,i.min_snap_id,i.max_snap_id, j.instance_number, p_dump_id);
-      end loop;
+      create_report_awrrpt(p_proj_id,i.dbid,i.min_snap_id,i.max_snap_id, p_instance_num, p_dump_id);
     end loop;
   end;
 
@@ -48,7 +47,7 @@ PACKAGE BODY AWRWH_REPORT_API AS
                                    p_dbid         number,
                                    p_min_snap     number,
                                    p_max_snap     number,
-                                   p_instance_num varchar2,
+                                   p_instance_num number,
                                    p_dump_id      awrwh_dumps.dump_id%type default null,
                                    p_dblink       varchar2 default null)
   is
@@ -74,13 +73,12 @@ PACKAGE BODY AWRWH_REPORT_API AS
 
   procedure create_report_sqawrrpt(p_proj_id      awrwh_reports.proj_id%type,
                                    p_sql_id       varchar2,
+                                   p_instance_num number,
                                    p_dump_id      awrwh_dumps.dump_id%type)
   is
   begin
     for i in (select dbid,min_snap_id,max_snap_id from awrwh_dumps where dump_id=p_dump_id and status in (AWRWH_FILE_LCC.c_dmpfilestate_awrloaded, AWRWH_FILE_LCC.c_dmpfilestate_compressed)) loop
-      for j in (select instance_number from dba_hist_snapshot where dbid=i.dbid and snap_id between i.min_snap_id and i.max_snap_id) loop
-        create_report_sqawrrpt(p_proj_id,p_sql_id,i.dbid,i.min_snap_id,i.max_snap_id, j.instance_number, p_dump_id);
-      end loop;
+      create_report_sqawrrpt(p_proj_id,p_sql_id,i.dbid,i.min_snap_id,i.max_snap_id, p_instance_num, p_dump_id);
     end loop;
   end;
 
@@ -124,23 +122,23 @@ PACKAGE BODY AWRWH_REPORT_API AS
     commit;
   end;
 
-  procedure create_report_diffrpt(p_proj_id      awrwh_reports.proj_id%type,
+  procedure create_report_diffrpt(p_proj_id       awrwh_reports.proj_id%type,
                                   p_dump_id1      awrwh_dumps.dump_id%type,
-                                  p_dump_id2      awrwh_dumps.dump_id%type)
+                                  p_instance_num1 varchar2,
+                                  p_dump_id2      awrwh_dumps.dump_id%type,
+                                  p_instance_num2 varchar2)
   is
     l_dbid1 number;
     l_mis1  number;
     l_mas1  number;
-    l_inst1 number:=1;
     l_dbid2 number;
     l_mis2  number;
     l_mas2  number;
-    l_inst2 number:=1;
   begin
     select dbid,min_snap_id,max_snap_id into l_dbid1,l_mis1,l_mas1 from awrwh_dumps where dump_id=p_dump_id1 and status in (AWRWH_FILE_LCC.c_dmpfilestate_awrloaded, AWRWH_FILE_LCC.c_dmpfilestate_compressed);
     select dbid,min_snap_id,max_snap_id into l_dbid2,l_mis2,l_mas2 from awrwh_dumps where dump_id=p_dump_id2 and status in (AWRWH_FILE_LCC.c_dmpfilestate_awrloaded, AWRWH_FILE_LCC.c_dmpfilestate_compressed);
 
-    create_report_diffrpt(p_proj_id, l_dbid1, l_mis1, l_mas1, l_inst1, l_dbid2,l_mis2,l_mas2,l_inst2, p_dump_id1, p_dump_id2);
+    create_report_diffrpt(p_proj_id, l_dbid1, l_mis1, l_mas1, p_instance_num1, l_dbid2,l_mis2,l_mas2,p_instance_num2, p_dump_id1, p_dump_id2);
   end;
 
 --  =============================================================================================================================================
@@ -174,19 +172,96 @@ PACKAGE BODY AWRWH_REPORT_API AS
   end;
 
   procedure create_report_ashrpt(p_proj_id      awrwh_reports.proj_id%type,
+                                 p_instance_num varchar2,
                                  p_dump_id      awrwh_dumps.dump_id%type)
   is
   begin
     for i in (select dbid,min_snap_dt,max_snap_dt,min_snap_id,max_snap_id from awrwh_dumps where dump_id=p_dump_id and status in (AWRWH_FILE_LCC.c_dmpfilestate_awrloaded, AWRWH_FILE_LCC.c_dmpfilestate_compressed)) loop
-      for j in (select instance_number from dba_hist_snapshot where dbid=i.dbid and snap_id between i.min_snap_id and i.max_snap_id) loop
-        create_report_ashrpt(p_proj_id,i.dbid,i.min_snap_dt,i.max_snap_dt, j.instance_number, p_dump_id);
-      end loop;
+      create_report_ashrpt(p_proj_id,i.dbid,i.min_snap_dt,i.max_snap_dt, p_instance_num, p_dump_id);
     end loop;
   end;
 
 --  =============================================================================================================================================
 --  =============================================================================================================================================
 --  =============================================================================================================================================
+  procedure create_report(p_report_type      varchar2,
+                              p_proj_id          awrwh_projects.proj_id%type,
+                              p_sql_id           varchar2,
+                              p_dblink           varchar2,
+                              p_dump_id          awrwh_dumps.dump_id%type default null,
+                              p_limit            number default 0)
+  is
+    l_proj awrwh_projects%rowtype;
+    l_report_id opas_reports.report_id%type;
+  begin
+    l_proj:=AWRWH_PROJ_API.getproject(p_proj_id,true);
+
+    if p_report_type = COREMOD_REPORT_UTILS.gSQL_MEMORY_REPORT and p_dump_id is null then
+      l_report_id := coremod_reports.queue_report_sql_memory_stats(p_modname => AWRWH_API.gMODNAME, p_owner => l_proj.owner, p_sql_id => p_sql_id, p_dblink => p_dblink);
+    elsif p_report_type = COREMOD_REPORT_UTILS.gSQL_AWR_REPORT and p_dump_id is not null then
+      l_report_id := coremod_reports.queue_report_sql_awr_stats(p_modname => AWRWH_API.gMODNAME, p_owner => l_proj.owner, p_sql_id => p_sql_id, p_dblink => p_dblink, p_report_limit => p_limit);
+    else
+      raise_application_error(-20000,'Unsupported report type: '||p_report_type||nvl(p_dump_id,-1));
+    end if;
+
+    INSERT INTO awrwh_reports (proj_id,report_id,dump_id,dump_id_2,report_retention,report_note,created)
+                       VALUES (p_proj_id,l_report_id,p_dump_id,null,default,null,systimestamp);
+
+    insert into awrwh_reports (proj_id,report_id,dump_id,report_retention,report_note,created)
+    select p_proj_id,report_id,p_dump_id,null,null,systimestamp from opas_reports where parent_id=l_report_id;
+
+    commit;
+  end;
+
+  procedure create_awrsql_report(p_proj_id          awrwh_projects.proj_id%type,
+                                 p_sql_id           varchar2,
+                                 p_dblink           varchar2,
+                                 p_limit            number,
+                                 p_dbid             number,
+                                 p_min_snap         number,
+                                 p_max_snap         number,
+                                 p_dump_id          awrwh_dumps.dump_id%type default null)
+  is
+    l_proj awrwh_projects%rowtype;
+    l_report_id opas_reports.report_id%type;
+  begin
+    l_proj:=AWRWH_PROJ_API.getproject(p_proj_id,true);
+
+    l_report_id := coremod_reports.queue_report_sql_awr_stats(
+                                 p_modname      => AWRWH_API.gMODNAME,
+                                 p_owner        => l_proj.owner,
+                                 p_sql_id       => p_sql_id,
+                                 p_dblink       => p_dblink,
+                                 p_report_limit => p_limit,
+                                 p_dbid         => p_dbid,
+                                 p_min_snap     => p_min_snap,
+                                 p_max_snap     => p_max_snap);
+
+    INSERT INTO awrwh_reports (proj_id,report_id,dump_id,dump_id_2,report_retention,report_note,created)
+                       VALUES (p_proj_id,l_report_id,p_dump_id,null,default,null,systimestamp);
+
+    insert into awrwh_reports (proj_id,report_id,dump_id,report_retention,report_note,created)
+    select p_proj_id,report_id,p_dump_id,null,null,systimestamp from opas_reports where parent_id=l_report_id;
+
+    commit;
+  end;
+
+  procedure create_awrsql_report(p_proj_id          awrwh_projects.proj_id%type,
+                                 p_sql_id           varchar2,
+                                 p_dump_id          awrwh_dumps.dump_id%type default null)
+  is
+  begin
+    for i in (select dbid,min_snap_id,max_snap_id from awrwh_dumps where dump_id=p_dump_id and status in (AWRWH_FILE_LCC.c_dmpfilestate_awrloaded, AWRWH_FILE_LCC.c_dmpfilestate_compressed)) loop
+      create_awrsql_report (  P_PROJ_ID => P_PROJ_ID,
+                              P_SQL_ID => P_SQL_ID,
+                              P_DUMP_ID => P_DUMP_ID,
+                              P_DBLINK => null,
+                              P_LIMIT => null,
+                              P_DBID => i.dbid,
+                              P_MIN_SNAP => i.min_snap_id,
+                              P_MAX_SNAP => i.max_snap_id) ;
+    end loop;
+  end;
 /*
   procedure create_report_awrcomp(p_proj_id      awrwh_reports.proj_id%type,
                                   p_dump_id1     awrwh_dumps.dump_id%type,
@@ -234,12 +309,14 @@ PACKAGE BODY AWRWH_REPORT_API AS
     coremod_report_utils.set_report_param(l_report_id,'DUMP2',     p_dump_id2);
     coremod_report_utils.set_report_param(l_report_id,'SORT',      p_sort);
     coremod_report_utils.set_report_param(l_report_id,'SORTLIMIT', p_sort_limit);
-    coremod_report_utils.set_report_param(l_report_id,'FILTER',    p_filter);
+    coremod_report_utils.set_report_param(l_report_id,'FILTER',    nvl(p_filter,'1=1'));
 
     INSERT INTO awrwh_reports (proj_id,report_id,dump_id,dump_id_2,report_retention,report_note,created)
                        VALUES (p_proj_id,l_report_id,p_dump_id1,p_dump_id2,default,null,systimestamp);
 
     l_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => 'AWRWH_AWRCOMPRPT') ;
+    COREMOD_REPORT_UTILS.set_report_task(l_report_id,l_tq_id);
+
     COREMOD_TASKS.set_task_param( p_tq_id => l_tq_id, p_name => 'B1', p_num_par => l_report_id);
     COREMOD_TASKS.queue_task ( p_tq_id => l_tq_id ) ;
 
@@ -286,11 +363,11 @@ PACKAGE BODY AWRWH_REPORT_API AS
       l_scr := replace(l_scr,'~dblnk.',null);
     end if;
 
-    select sparse1 into l_fn_suff from opas_dictionary where modname = AWRWH_API.gMODNAME and dic_name = 'AWRCOMP_SORTORDR' and val = COREMOD_REPORT_UTILS.get_reppar_n(p_report_id,'SORT');
+    select sparse1 into l_fn_suff from opas_dictionary where modname = AWRWH_API.gMODNAME and dic_name = 'AWRCOMP_SORTORDR' and val = COREMOD_REPORT_UTILS.get_reppar_c(p_report_id,'SORT');
 
-    l_scr := replace(l_scr,'~sortcol.',COREMOD_REPORT_UTILS.get_reppar_n(p_report_id,'SORT'));
-    l_scr := replace(l_scr,'~filter.',COREMOD_REPORT_UTILS.get_reppar_n(p_report_id,'FILTER'));
-    l_scr := replace(l_scr,'~sortlimit.',COREMOD_REPORT_UTILS.get_reppar_n(p_report_id,'SORTLIMIT'));
+    l_scr := replace(l_scr,'~sortcol.',COREMOD_REPORT_UTILS.get_reppar_c(p_report_id,'SORT'));
+    l_scr := replace(l_scr,'~filter.',COREMOD_REPORT_UTILS.get_reppar_c(p_report_id,'FILTER',false));
+    l_scr := replace(l_scr,'~sortlimit.',to_char(COREMOD_REPORT_UTILS.get_reppar_n(p_report_id,'SORTLIMIT')));
     l_scr := replace(l_scr,'~embeded.','FALSE');
 /*
     if l_dn1 is not null then
@@ -309,13 +386,14 @@ PACKAGE BODY AWRWH_REPORT_API AS
     l_file_type := 'AWR Comparison report';
     l_file_name := 'opas_awrcomp_'||l_fn_suff||'.html';
     l_mime := 'HTML';
+
     --l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBLINK: '||get_reppar_c(p_report_id,gparDBLINK);
 
     l_file := COREFILE_API.create_file(P_MODNAME => AWRWH_API.gMODNAME,
                                        P_FILE_TYPE => l_file_type,
                                        P_FILE_NAME => l_file_name,
                                        P_MIMETYPE => l_mime,
-                                       P_OWNER => COREMOD_REPORT_UTILS.get_reppar_n(p_report_id,'OWNER'));
+                                       P_OWNER => COREMOD_REPORT_UTILS.get_reppar_c(p_report_id,'OWNER'));
 
     COREFILE_API.get_locator(l_file,l_file_content);
 
@@ -333,6 +411,7 @@ PACKAGE BODY AWRWH_REPORT_API AS
     COREFILE_API.store_content(l_file,l_file_content);
     COREMOD_REPORT_UTILS.save_report_for_download (P_FILE => l_file) ;
 
+    COREMOD_REPORT_UTILS.set_report_content(p_report_id,l_file,l_displ_params);
     --update opas_reports set report_content = l_file, report_params_displ=l_displ_params where report_id=p_report_id;
 
     commit;

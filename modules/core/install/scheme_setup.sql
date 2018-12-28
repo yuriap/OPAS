@@ -23,7 +23,6 @@ grant select on gv_$session to &localscheme.;
 grant select on v_$parameter to &localscheme.;
 grant select on dba_hist_sqltext to &localscheme.;
 
-
 begin
 DBMS_SCHEDULER.CREATE_JOB_CLASS (
    job_class_name            => 'OPASLIGHTJOBS',
@@ -34,3 +33,16 @@ end;
 /
 
 grant execute on OPASLIGHTJOBS to &localscheme.;
+
+set serveroutput on
+begin
+  for i in (select * from dba_tab_privs where grantee='SELECT_CATALOG_ROLE')
+  loop
+  begin
+    execute immediate 'grant '||i.privilege||' on '||i.table_name||' to &localscheme.';
+  exception
+    when others then dbms_output.put_line(i.table_name||':'||i.privilege||': '||sqlerrm);
+  end;
+  end loop;
+end;
+/

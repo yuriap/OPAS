@@ -85,14 +85,20 @@ package body AWRWH_PROJ_API as
       for i in (select dump_id, loaded,parsed, source_retention, parsed_retention,status from awrwh_dumps where proj_id=p_proj_id) loop
         if p_mode in (c_ALL, c_SOURCEDATA) then
           if nvl(i.source_retention,-1) <> 0 and (i.loaded+nvl(i.source_retention,COREMOD_API.getconf('DUMPETENTION',AWRWH_API.gMODNAME)))<sysdate then
+            AWRWH_FILE_LCC.dmpfile_exec_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_putinqueue);
+            commit;
             AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_compress,i.status);
+            commit;
             coremod_log.log('Dump file removed: '||i.dump_id);
           end if;
         end if;
 
         if p_mode in (c_ALL, c_PARSEDDATA) then
           if nvl(i.parsed_retention,-1) <> 0 and (i.parsed+nvl(i.parsed_retention,COREMOD_API.getconf('AWRPARSEDRETENTION',AWRWH_API.gMODNAME)))<sysdate then
+            AWRWH_FILE_LCC.dmpfile_exec_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_putinqueue);
+            commit;
             AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_awrunload,i.status);
+            commit;
             coremod_log.log('AWR data removed: '||i.dump_id);
           end if;
         end if;
@@ -103,6 +109,7 @@ package body AWRWH_PROJ_API as
         for i in (select report_id,created,report_retention from awrwh_reports where proj_id=p_proj_id) loop
           if nvl(i.report_retention,-1) <> 0 and (i.created+nvl(i.report_retention,COREMOD_API.getconf('REPORTRETENTION',AWRWH_API.gMODNAME)))<sysdate then
             AWRWH_REPORT_API.delete_report(p_proj_id,i.report_id);
+            commit;
             coremod_log.log('Report removed: '||i.report_id);
           end if;
         end loop;
@@ -111,14 +118,21 @@ package body AWRWH_PROJ_API as
     elsif not p_use_retention then
 
       for i in (select dump_id, loaded,parsed, source_retention, parsed_retention,status from awrwh_dumps where proj_id=p_proj_id) loop
+        AWRWH_FILE_LCC.dmpfile_exec_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_putinqueue);
+        commit;
         AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_compress,i.status);
+        commit;
         coremod_log.log('Dump file removed: '||i.dump_id);
 
+        AWRWH_FILE_LCC.dmpfile_exec_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_putinqueue);
+        commit;
         AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_awrunload,i.status);
+        commit;
         coremod_log.log('AWR data removed: '||i.dump_id);
       end loop;
       for i in (select report_id,created,report_retention from awrwh_reports where proj_id=p_proj_id) loop
         AWRWH_REPORT_API.delete_report(p_proj_id,i.report_id);
+        commit;
         coremod_log.log('Report removed: '||i.report_id);
       end loop;
     end if;

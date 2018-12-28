@@ -218,7 +218,7 @@ PACKAGE BODY AWRWH_FILE_API AS
   begin
     l_dmp_file:=get_file(p_dump_id,false);
     AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_putinqueue);
-    p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME) ;
+    p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME, p_task_subname => p_action) ;
     update awrwh_dumps set tq_id=p_tq_id where dump_id=p_dump_id;
     COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_dump_id);
     COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B2', p_varchar_par => p_action);
@@ -265,9 +265,9 @@ PACKAGE BODY AWRWH_FILE_API AS
   exception
     when others then
       rollback;
-      AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_failprocess,p_action,p_start_state);
       coremod_log.log('AWRWH_FILE_API.exec_file_action'||chr(10)||sqlerrm||chr(10)||DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
       COREMOD_API.release_resource;
+      AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_failprocess,p_action,p_start_state);
       raise_application_error(-20000,'AWRWH_FILE_API.exec_file_action'||chr(10)||sqlerrm);
   end;
 

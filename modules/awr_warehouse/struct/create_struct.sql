@@ -56,7 +56,7 @@ create table awrwh_reports(
 	report_id        NUMBER NOT NULL REFERENCES opas_reports       ( report_id ) on delete cascade,
 	dump_id          number references awrwh_dumps(dump_id) on delete set null,
 	dump_id_2        number references awrwh_dumps(dump_id) on delete set null,
-	report_retention number default 0,
+	report_retention number,
 	report_note      varchar2(4000),
 	created          timestamp default systimestamp
 );
