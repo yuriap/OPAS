@@ -356,7 +356,7 @@ PACKAGE BODY AWRWH_REPORT_API AS
 
     l_displ_params:=l_dmp_file1.dump_name||' - '||l_dmp_file2.dump_name||'; '||l_displ_params||'DB2: '||to_char(l_dmp_file2.dbid)||'; snaps: '||to_char(l_dmp_file2.min_snap_id)||'-'||to_char(l_dmp_file2.max_snap_id)||'; ';
 
-    if l_dmp_file1.is_remote='YES' then
+    if l_dmp_file2.is_remote='YES' then
       l_scr := replace(l_scr,'~dblnk.','@'||COREMOD_API.getconf('DBLINK',AWRWH_API.gMODNAME));
       l_displ_params:=l_displ_params||'DB link: '||COREMOD_API.getconf('DBLINK',AWRWH_API.gMODNAME)||'; ';
     else
