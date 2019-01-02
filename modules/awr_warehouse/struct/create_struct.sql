@@ -52,7 +52,7 @@ create table awrwh_dumps (
 create index idx1_awrwh_dumps_proj on awrwh_dumps(proj_id);
 
 create table awrwh_reports(
-    proj_id          NUMBER NOT NULL REFERENCES asha_cube_projects ( proj_id )   on delete cascade,
+    proj_id          NUMBER NOT NULL REFERENCES awrwh_projects ( proj_id )   on delete cascade,
 	report_id        NUMBER NOT NULL REFERENCES opas_reports       ( report_id ) on delete cascade,
 	dump_id          number references awrwh_dumps(dump_id) on delete set null,
 	dump_id_2        number references awrwh_dumps(dump_id) on delete set null,

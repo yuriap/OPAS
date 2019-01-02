@@ -24,6 +24,7 @@ known bugs
  .- - multiplan report make sure it can look into remote db
  .- show dump remote yes/no for 457 and 458 pages
  .- compare report does not work for remote dump
+ - dev instance, check constr from awrwh_reports to project
  todo
  .- multiuser monitor and snapper, a link between monitor and snapper to stop one another
  - filtered separately - link between sessions
