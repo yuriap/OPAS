@@ -9,6 +9,7 @@ grant connect, resource to &localscheme.;
 grant select_catalog_role to &localscheme.;
 grant select any table to &localscheme.;
 grant execute on dbms_lock to &localscheme.;
+grant execute on dbms_workload_repository to &localscheme.;
 grant create view to &localscheme.;
 grant create synonym to &localscheme.;
 grant create job to &localscheme.;
@@ -41,7 +42,7 @@ begin
   begin
     execute immediate 'grant '||i.privilege||' on '||i.table_name||' to &localscheme.';
   exception
-    when others then dbms_output.put_line(i.table_name||':'||i.privilege||': '||sqlerrm);
+    when others then null; -- dbms_output.put_line(i.table_name||':'||i.privilege||': '||sqlerrm);
   end;
   end loop;
 end;

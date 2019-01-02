@@ -1,5 +1,5 @@
 define MODNM=SQL_TRACE
-define MODVER="2.1.0"
+define MODVER="2.2.0"
 --Core installation script
 conn sys/&localsys.@&localdb. as sysdba
 
@@ -9,13 +9,13 @@ conn &localscheme./&localscheme.@&localdb.
 
 @@uninstall
 
-@..\modules\sql_trace\struct\create_struct.sql
+@../modules/sql_trace/struct/create_struct.sql
 
-@..\modules\sql_trace\source\create_stored.sql
+@../modules/sql_trace/source/create_stored.sql
 
 exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Oracle Performance Analytic Suite SQL Trace Module', p_modver => '&MODVER.', p_installed => sysdate);
 
-@..\modules\sql_trace\data\load.sql
+@../modules/sql_trace/data/load.sql
 
 begin
   COREMOD_TASKS.create_task (  p_taskname  => 'TRC_PARSEFILE',

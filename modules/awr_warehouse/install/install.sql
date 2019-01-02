@@ -1,5 +1,5 @@
 define MODNM=AWR_WAREHOUSE
-define MODVER="4.0.0"
+define MODVER="4.1.0"
 
 --remote scheme setup
 conn sys/&remotesys.@&remotedb. as sysdba
@@ -8,8 +8,8 @@ conn sys/&remotesys.@&remotedb. as sysdba
 
 conn &remotescheme./&remotescheme.@&remotedb.
 
-@..\modules\awr_warehouse\struct\create_struct_remote
-@..\modules\awr_warehouse\source\create_stored_remote
+@../modules/awr_warehouse/struct/create_struct_remote
+@../modules/awr_warehouse/source/create_stored_remote
 
 --local scheme setup
 conn sys/&localsys.@&localdb. as sysdba
@@ -18,14 +18,14 @@ conn sys/&localsys.@&localdb. as sysdba
 
 conn &localscheme./&localscheme.@&localdb.
 
-@..\modules\awr_warehouse\struct\create_struct.sql
-@..\modules\awr_warehouse\source\create_stored.sql
+@../modules/awr_warehouse/struct/create_struct.sql
+@../modules/awr_warehouse/source/create_stored.sql
 
 
 
 exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Oracle Performance Analytic Suite AWR WareHouse module', p_modver => '&MODVER.', p_installed => sysdate);
 
-@..\modules\awr_warehouse\data\load.sql
+@../modules/awr_warehouse/data/load.sql
 
 begin
   COREMOD_TASKS.create_task (  p_taskname  => 'AWRWH_EXECFILEACTION',

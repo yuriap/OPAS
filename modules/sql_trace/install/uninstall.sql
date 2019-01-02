@@ -5,7 +5,7 @@ define MODNM=SQL_TRACE
 conn &localscheme./&localscheme.@&localdb.
 
 set serveroutput on
-@..\modules\core\install\cleanup_common.sql
+@../modules/core/install/cleanup_common.sql
 
 declare
   type t_names is table of varchar2(512);

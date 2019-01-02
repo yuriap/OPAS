@@ -1,19 +1,32 @@
 -- Module list installation
 
 --Core
-rem @..\modules\core\install\install.sql
+@../modules/core/install/install.sql
 
 --SQL Trace
-rem @..\modules\sql_trace\install\install.sql
+@../modules/sql_trace/install/install.sql
 
 --ASH Analyzer
-rem @..\modules\ash_analyzer\install\install.sql
+@../modules/ash_analyzer/install/install.sql
 
 --AWR WareHouse
-@..\modules\awr_warehouse\install\install.sql
+@../modules/awr_warehouse/install/install.sql
 
 
 conn &localscheme./&localscheme.@&localdb.
+
+set pages 999
+set lines 200
+
+select * from user_errors order by 1,2,3,4,5;
+
+begin
+  dbms_utility.compile_schema(user);
+end;
+/
+
+select * from user_errors order by 1,2,3,4,5;
+
 set pages 999
 set lines 200
 column MODNAME format a32 word_wrapped

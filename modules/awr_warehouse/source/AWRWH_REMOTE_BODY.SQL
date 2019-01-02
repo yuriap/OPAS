@@ -97,3 +97,4 @@ create or replace package body awrwh_remote as
     end if;
   end;
 end;
+/

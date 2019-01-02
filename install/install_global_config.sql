@@ -16,4 +16,4 @@ define localdb=localhost:1521/pdb1.localdomain
 define localsys=qazwsx
 
 -- module configs
-@..\modules\awr_warehouse\install\install_config
+@../modules/awr_warehouse/install/install_config

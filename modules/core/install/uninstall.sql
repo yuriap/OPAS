@@ -13,7 +13,7 @@ end;
 set serveroutput off
 
 drop user &localscheme. cascade;
-rem drop tablespace &tblspc_name. including contents and datafiles;
+drop tablespace &tblspc_name. including contents and datafiles;
 
 begin
   DBMS_SCHEDULER.DROP_JOB_CLASS (job_class_name  => 'OPASLIGHTJOBS');

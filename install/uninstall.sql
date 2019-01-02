@@ -1,7 +1,7 @@
 -- Oracle Performance Analytic Suite install script
 -- Uninstallation
 
-spool .\logs\uninstall.log
+spool ./logs/uninstall.log
 set echo on
 
 --Global Config

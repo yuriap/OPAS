@@ -1,7 +1,7 @@
 -- Oracle Performance Analytic Suite install script
 -- Installation from scratch
 
-spool .\logs\install.log
+spool ./logs/install.log
 set echo on
 
 --Global Config
