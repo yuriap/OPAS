@@ -1,5 +1,5 @@
 define MODNM=ASH_ANALYZER
-define MODVER="3.2.0"
+define MODVER="3.3.0"
 --Core installation script
 conn sys/&localsys.@&localdb. as sysdba
 
@@ -11,7 +11,7 @@ conn &localscheme./&localscheme.@&localdb.
 
 @../modules/ash_analyzer/source/create_stored.sql
 
-exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Oracle Performance Analytic Suite ASH Analyzer module', p_modver => '&MODVER.', p_installed => sysdate);
+exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'ASH Analyzer module', p_modver => '&MODVER.', p_installed => sysdate);
 
 @../modules/ash_analyzer/data/load.sql
 

@@ -1,5 +1,5 @@
 define MODNM=AWR_WAREHOUSE
-define MODVER="4.1.0"
+define MODVER="4.2.0"
 
 --remote scheme setup
 conn sys/&remotesys.@&remotedb. as sysdba
@@ -23,7 +23,7 @@ conn &localscheme./&localscheme.@&localdb.
 
 
 
-exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Oracle Performance Analytic Suite AWR WareHouse module', p_modver => '&MODVER.', p_installed => sysdate);
+exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'AWR WareHouse module', p_modver => '&MODVER.', p_installed => sysdate);
 
 @../modules/awr_warehouse/data/load.sql
 

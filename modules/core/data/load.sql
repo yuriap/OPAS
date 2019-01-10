@@ -151,6 +151,14 @@ q'[
   insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRASHP3','~MODNM.',l_script);
   COREMOD_REPORT_UTILS.prepare_saved_sql_script (  P_SCRIPT_NAME => 'PROC_AWRASHP3');
 
+  l_script := 
+q'[
+@../modules/core/scripts/__ash_p3_1
+]';
+  delete from opas_scripts where script_id='PROC_AWRASHP3_1';
+  insert into opas_scripts (script_id,modname,script_content) values ('PROC_AWRASHP3_1','~MODNM.',l_script);
+  COREMOD_REPORT_UTILS.prepare_saved_sql_script (  P_SCRIPT_NAME => 'PROC_AWRASHP3_1');
+  
 end;
 /
 
@@ -204,6 +212,6 @@ end;
 
 set define &
 
-INSERT INTO opas_groups2apexusr ( group_id, modname, apex_user) VALUES ( 0, 'OPASCORE', 'OPAS40ADM');
+INSERT INTO opas_groups2apexusr ( group_id, modname, apex_user) VALUES ( 0, 'OPASCORE', upper('&namepref.')||'ADM');
 
 commit;

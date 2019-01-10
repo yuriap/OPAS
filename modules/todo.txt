@@ -16,15 +16,20 @@ known bugs
  .- editing report from 303 rediretcs to 301
  .- unknown is not shown on diagrams
  .- p303 dblinks are not filtered by project
- - filtered separatly - keep filter condition on parent seesion but ignore it for calc
  .- sysmetrics are empty for COMP report (perhaps only for RAC dumps from home)
- - DBID: 3781652766 No PL/SQL source data for multitenant DB.  when AWR SQL report run through dblink on ordinary DB
+ .- DBID: 3781652766 No PL/SQL source data for multitenant DB.  when AWR SQL report run through dblink on ordinary DB
  .- starting from dump report must set current dump
  .- remote awr dump can not be chosen
  .- - multiplan report make sure it can look into remote db
  .- show dump remote yes/no for 457 and 458 pages
  .- compare report does not work for remote dump
- - dev instance, check constr from awrwh_reports to project
+ .- dev instance, check constr from awrwh_reports to project
+ .- (session_id,session_serial#,) in (select 1283,4953,2 from dual) for blcoker
+ .- add message "report has been put in queye" from query view page AWR
+ .- AWR SQL custom from ASH with limit does not show SQL_ID to chose
+V 4.5
+ - filtered separatly - keep filter condition on parent seesion but ignore it for calc
+ - multiplan page 18 from 303 viewer not implemented
  todo
  .- multiuser monitor and snapper, a link between monitor and snapper to stop one another
  - filtered separately - link between sessions
@@ -38,7 +43,7 @@ known bugs
    - exlude own queries
  .- add metric UI
  .- link from parent cube to child and vise versa page 303
- - set correct versions to install scripts and module table
+ .- set correct versions to install scripts and module table
  .- DB LINK UI hide passwords
  .- report preview to page 303 cube status region
  -.- open cube as templ to calc new from page 301
@@ -48,13 +53,16 @@ known bugs
  .- db_description to add dbname
  .- load dump from 401 page
  .- subtask name (report name, action name, etc)
- - dblinks for AWRWH as for ASH
+ .- dblinks for AWRWH as for ASH
+ .- V$SQL report ASH summury to summarize across all runs	
+ .- add session identity when show blockers
+V 4.5
  - integration ASH to AWRWH
     - button on 301 tab Quick links
 	- open dialog from 400 app to choose proj and dump
 	- create cube by those parameters
 	- preserve on cube links (URL) two direction to initiated AWRWH proj and to target cube
- - V$SQL report ASH summury to summarize across all runs	
+ - for custom reports make configurable narrow and wide sections
 getcomph
 ============
 known bugs

@@ -544,17 +544,19 @@ end;]';
       l_report(l_indx):=p_line;
       l_indx := l_indx + 1;
     end;
+
     procedure p1(p_output coremod_report_utils.t_output_lines) is
     begin
       for i in 1..p_output.count loop
         p(p_output(i));
       end loop;
     end;
+
   begin
     COREMOD_REPORT_UTILS.init_lo_report(p_op_name => 'SQL V$ report: '||p_sql_id,
                                         p_target_desc => 'section',
                                         p_units => 'sections',
-                                        p_totalwork => 14);
+                                        p_totalwork => 16);
     COREMOD_REPORT_UTILS.start_lo_section(p_module_name => 'SQL V$ report: '||p_sql_id, p_action_name => 'Preparation');
 
     p(HTF.header (1,'SQL Report for SQL_ID='||p_sql_id,cattributes=>'class="awr"'));
@@ -562,20 +564,21 @@ end;]';
     p(HTF.BR);
     p(HTF.header (2,cheader=>HTF.ANCHOR (curl=>'',ctext=>'Table of contents',cname=>'tblofcont',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sql_text',ctext=>'SQL text',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#non_shared',ctext=>'Non shared reason',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#v_sql_stat',ctext=>'V$SQL statistics',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#exadata',ctext=>'Exadata statistics',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sql_mon',ctext=>'SQL Monitor report',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sql_text',    ctext=>'SQL text',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#non_shared',  ctext=>'Non shared reason',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#v_sql_stat',  ctext=>'V$SQL statistics',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#exadata',     ctext=>'Exadata statistics',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sql_mon',     ctext=>'SQL Monitor report',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sql_workarea',ctext=>'SQL Workarea',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#cbo_env',ctext=>'CBO environment',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#dp_last',ctext=>'Display cursor (last)',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#dp_rac',ctext=>'Display cursor (RAC)',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#dp_last_adv',ctext=>'Display cursor (LAST ADVANCED)',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#dp_all',ctext=>'Display cursor (ALL)',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#dp_adaptive',ctext=>'Display cursor (ADAPTIVE)',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#cbo_env',     ctext=>'CBO environment',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#dp_last',     ctext=>'Display cursor (last)',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#dp_rac',      ctext=>'Display cursor (RAC)',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#dp_last_adv', ctext=>'Display cursor (LAST ADVANCED)',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#dp_all',      ctext=>'Display cursor (ALL)',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#dp_adaptive', ctext=>'Display cursor (ADAPTIVE)',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sql_mon_hist',ctext=>'SQL Monitor report history',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p3',ctext=>'ASH Summary',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p3_1',    ctext=>'ASH summary',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p3',      ctext=>'ASH execs summary',cattributes=>'class="awr"')));
     p(HTF.BR);
     p(HTF.BR);
 
@@ -960,10 +963,52 @@ end;]';
     p(HTF.BR);
 
 --  =============================================================================================================================================
-    --AWR ASH (SQL Monitor) P3
-    COREMOD_REPORT_UTILS.start_lo_section(p_module_name => 'SQL V$ report: '||p_sql_id, p_action_name => 'ASH Summary');
+    --ASH summary P3
+    COREMOD_REPORT_UTILS.start_lo_section(p_module_name => 'SQL V$ report: '||p_sql_id, p_action_name => 'ASH summary');
 
-    p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'ASH Summary',cname=>'ash_p3',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
+    p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'ASH summary',cname=>'ash_p3_1',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
+    p(HTF.BR);
+
+    l_script:=coremod_api.getscript('PROC_AWRASHP3_1');
+    COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
+
+    l_output.delete;
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,
+                               p_width=>1000,
+                               p_summary=>'ASH summary',
+                               p_style1 =>'awrncbbt',
+                               p_style2 =>'awrcbbt',
+                               --p_search => 'PLAN_HASH',
+                               --p_replacement => HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'\1',cattributes=>'class="awr"'),
+                               p_header=>25,
+                               p_break_col=>'ID',
+                               p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+                               p_width=>1000,
+                               p_summary=>'ASH summary',
+                               p_style1 =>'awrncbbt',
+                               p_style2 =>'awrcbbt',
+                               --p_search => 'PLAN_HASH',
+                               --p_replacement => HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'\1',cattributes=>'class="awr"'),
+                               p_header=>25,
+                               p_break_col=>'ID',
+                               p_dblink => p_dblink, p_output=> l_output);
+    end if;
+    p1(l_output);
+    p(HTF.BR);
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
+    p(HTF.BR);
+    p(HTF.BR);
+    p(COREMOD_REPORT_UTILS.end_lo_section);
+    p(HTF.BR);
+
+--  =============================================================================================================================================
+    --ASH execs summary P3
+    COREMOD_REPORT_UTILS.start_lo_section(p_module_name => 'SQL V$ report: '||p_sql_id, p_action_name => 'ASH execs summary');
+
+    p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'ASH execs summary',cname=>'ash_p3',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
 
     l_script:=coremod_api.getscript('PROC_AWRASHP3');
@@ -1123,6 +1168,7 @@ end;]';
       l_report(l_indx):=p_line;
       l_indx := l_indx + 1;
     end;
+
     procedure p1(p_output coremod_report_utils.t_output_lines) is
     begin
       for i in 1..p_output.count loop
@@ -1135,7 +1181,7 @@ end;]';
     COREMOD_REPORT_UTILS.init_lo_report(p_op_name => 'SQL AWR report: '||p_sql_id,
                                         p_target_desc => 'section',
                                         p_units => 'sections',
-                                        p_totalwork => 13);
+                                        p_totalwork => 15);
     COREMOD_REPORT_UTILS.start_lo_section(p_module_name => 'SQL AWR report: '||p_sql_id, p_action_name => 'Preparation');
 
     if (p_report_limit is not null and (p_dbid is not null or p_min_snap is not null or p_max_snap is not null))
@@ -1195,13 +1241,14 @@ end;]';
 
     p(HTF.header (4,cheader=>'ASH',cattributes=>'class="awr"'));
 
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash',ctext=>'ASH',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash',      ctext=>'ASH',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_plsql',ctext=>'PL/SQL',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_summ',ctext=>'ASH summary',cattributes=>'class="awr"')));
-    --p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p1',ctext=>'AWR ASH (SQL Monitor) P1',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p1.1',ctext=>'AWR ASH (SQL Monitor) P1',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p2',ctext=>'AWR ASH (SQL Monitor) P2',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p3',ctext=>'AWR ASH (SQL Monitor) P3',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_summ', ctext=>'AWR ASH summary',cattributes=>'class="awr"')));
+    --p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p1', ctext=>'AWR ASH (SQL Monitor) P1',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p1.1', ctext=>'AWR ASH (SQL Monitor) P1',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p2',   ctext=>'AWR ASH (SQL Monitor) P2',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p3_1', ctext=>'ASH summary',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p3',   ctext=>'ASH execs summary',cattributes=>'class="awr"')));
 
     p(HTF.header (4,cheader=>'SQL Monitor',cattributes=>'class="awr"'));
 
@@ -1504,10 +1551,11 @@ end;]';
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'ASH',cname=>'ash',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_plsql',ctext=>'PL/SQL',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_summ',ctext=>'ASH summary',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p1.1',ctext=>'AWR ASH (SQL Monitor) P1',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p2',ctext=>'AWR ASH (SQL Monitor) P2',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p3',ctext=>'AWR ASH (SQL Monitor) P3',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_summ', ctext=>'AWR ASH summary',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p1.1', ctext=>'AWR ASH (SQL Monitor) P1',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p2',   ctext=>'AWR ASH (SQL Monitor) P2',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p3_1', ctext=>'ASH summary',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash_p3',   ctext=>'ASH execs summary',cattributes=>'class="awr"')));
     p(HTF.BR);p(HTF.BR);
 
 --  =============================================================================================================================================
@@ -1518,6 +1566,7 @@ end;]';
     p(HTF.BR);
     declare
       l_out clob;
+      l_o1 varchar2(100);
     begin
       for i in 1..l_dbid.count
       loop
@@ -1527,8 +1576,16 @@ end;]';
         if p_dblink is null then
           coremod_report_utils.print_table_html(p_query=>l_script,p_width=>1500,p_summary=>'ASH PL/SQL',p_style1 =>'awrc1',p_style2 =>'awrnc1', p_output=> l_output);
         else
-          coremod_report_utils.execute_plsql_remotelly(p_sql => q'[begin dbms_output.put_line(sys_context('USERENV','CON_ID'));end;]', p_dblink => p_dblink, p_output => l_out, p_is_output => true);
-          if l_out='0' then --in multitenant it runs forever
+          coremod_report_utils.execute_plsql_remotelly(p_sql =>
+q'[begin
+$if dbms_db_version.ver_le_11 $then
+dbms_output.put_line(0);
+$else
+dbms_output.put_line(sys_context('USERENV','CON_ID'));
+$end
+end;]',
+                                                        p_dblink => p_dblink, p_output => l_out, p_is_output => true);
+          if rtrim(rtrim(l_out,chr(10)),chr(13))='0' then --in multitenant it runs forever
             coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>1500,p_summary=>'ASH PL/SQL',p_style1 =>'awrc1',p_style2 =>'awrnc1', p_dblink => p_dblink, p_output=> l_output);
           else
             p('No PL/SQL source data for multitenant DB.');
@@ -1548,7 +1605,7 @@ end;]';
 
 --  =============================================================================================================================================
     --ASH summary
-    COREMOD_REPORT_UTILS.start_lo_section(p_module_name => 'SQL AWR report: '||p_sql_id, p_action_name => 'ASH summary');
+    COREMOD_REPORT_UTILS.start_lo_section(p_module_name => 'SQL AWR report: '||p_sql_id, p_action_name => 'AWR ASH summary');
 
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'ASH summary',cname=>'ash_summ',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
@@ -1562,7 +1619,7 @@ end;]';
       if p_dblink is null then
         coremod_report_utils.print_table_html(p_query=>l_script,
                                  p_width=>1500,
-                                 p_summary=>'ASH summary',
+                                 p_summary=>'AWR ASH summary',
                                  p_style1 =>'awrncbbt',
                                  p_style2 =>'awrcbbt',
                                  p_search => 'PLAN_HASH',
@@ -1572,7 +1629,7 @@ end;]';
       else
         coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                  p_width=>1500,
-                                 p_summary=>'ASH summary',
+                                 p_summary=>'AWR ASH summary',
                                  p_style1 =>'awrncbbt',
                                  p_style2 =>'awrcbbt',
                                  p_search => 'PLAN_HASH',
@@ -1718,10 +1775,51 @@ end;]';
     p(HTF.BR);
 
 --  =============================================================================================================================================
-    --AWR ASH (SQL Monitor) P3
-    COREMOD_REPORT_UTILS.start_lo_section(p_module_name => 'SQL AWR report: '||p_sql_id, p_action_name => 'AWR ASH (SQL Monitor) P3');
+    --ASH summary P3_1
+    COREMOD_REPORT_UTILS.start_lo_section(p_module_name => 'SQL AWR report: '||p_sql_id, p_action_name => 'ASH summary');
 
-    p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'AWR ASH (SQL Monitor) P3',cname=>'ash_p3',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
+    p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'ASH summary',cname=>'ash_p3_1',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
+    p(HTF.BR);
+
+    l_script:=coremod_api.getscript('PROC_AWRASHP3_1');
+    COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id, p_start_snap => l_start_snap, p_end_snap => l_end_snap);
+
+    l_output.delete;
+    if p_dblink is null then
+      coremod_report_utils.print_table_html(p_query=>l_script,
+                               p_width=>1000,
+                               p_summary=>'ASH summary',
+                               p_style1 =>'awrncbbt',
+                               p_style2 =>'awrcbbt',
+                               p_search => 'PLAN_HASH',
+                               p_replacement => HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'\1',cattributes=>'class="awr"'),
+                               p_header=>25,
+                               p_break_col=>'ID',
+                               p_output=> l_output);
+    else
+      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
+                               p_width=>1000,
+                               p_summary=>'ASH summary',
+                               p_style1 =>'awrncbbt',
+                               p_style2 =>'awrcbbt',
+                               p_search => 'PLAN_HASH',
+                               p_replacement => HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'\1',cattributes=>'class="awr"'),
+                               p_header=>25,
+                               p_break_col=>'ID',
+                               p_dblink => p_dblink, p_output=> l_output);
+    end if;
+    p1(l_output);
+    p(HTF.BR);
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#ash',ctext=>'Back to ASH',cattributes=>'class="awr"')));
+    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
+    p(HTF.BR);
+    p(COREMOD_REPORT_UTILS.end_lo_section);
+    p(HTF.BR);
+--  =============================================================================================================================================
+    --ASH execs summary P3
+    COREMOD_REPORT_UTILS.start_lo_section(p_module_name => 'SQL AWR report: '||p_sql_id, p_action_name => 'ASH execs summary');
+
+    p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'ASH execs summary',cname=>'ash_p3',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
 
     l_script:=coremod_api.getscript('PROC_AWRASHP3');
@@ -1731,7 +1829,7 @@ end;]';
     if p_dblink is null then
       coremod_report_utils.print_table_html(p_query=>l_script,
                                p_width=>1000,
-                               p_summary=>'AWR ASH (SQL Monitor) P3',
+                               p_summary=>'ASH execs summary',
                                p_style1 =>'awrncbbt',
                                p_style2 =>'awrcbbt',
                                p_search => 'PLAN_HASH',
@@ -1742,7 +1840,7 @@ end;]';
     else
       coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                p_width=>1000,
-                               p_summary=>'AWR ASH (SQL Monitor) P3',
+                               p_summary=>'ASH execs summary',
                                p_style1 =>'awrncbbt',
                                p_style2 =>'awrcbbt',
                                p_search => 'PLAN_HASH',

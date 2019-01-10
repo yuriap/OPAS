@@ -12,13 +12,13 @@ BEGIN
   SELECT file_contentb
   INTO   l_blob
   FROM   opas_files
-  WHERE  file_id=13;
+  WHERE  file_id=59;
 
   l_blob_len := DBMS_LOB.getlength(l_blob);
   
   -- Open the destination file.
   --l_file := UTL_FILE.fopen('BLOBS','MyImage.gif','w', 32767);
-  l_file := UTL_FILE.fopen('AWRDATA30','opas_awr_1pqrhtkuzzrs7.html','wb', 32767);
+  l_file := UTL_FILE.fopen('DATA_PUMP_DIR','opas_awr_cdabdh62fjdxk.html','wb', 32767);
 
   -- Read chunks of the BLOB and write them to the file
   -- until complete.

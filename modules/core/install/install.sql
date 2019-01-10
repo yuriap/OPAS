@@ -12,7 +12,7 @@ conn &localscheme./&localscheme.@&localdb.
 @../modules/core/source/create_stored.sql
 
 exec COREMOD.register(p_modname => 'OPASAPP', p_moddescr => 'Oracle Performance Analytic Suite Application', p_modver => '&OPASVER.', p_installed => sysdate);
-exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Oracle Performance Analytic Suite Core Module', p_modver => '&MODVER.', p_installed => sysdate);
+exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Core Module', p_modver => '&MODVER.', p_installed => sysdate);
 
 @../modules/core/data/load.sql
 

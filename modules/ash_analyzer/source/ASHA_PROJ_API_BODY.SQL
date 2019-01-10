@@ -213,14 +213,14 @@ package body ASHA_PROJ_API as
     l_n   number;
   begin
     DBMS_UTILITY.COMMA_TO_TABLE (
-      list   => replace(p_db_links_list,':',','),
+      list   => replace(replace(p_db_links_list,':',','),'$LOCAL$','LOCAL$$'),
       tablen => l_n,
       tab    => l_tbl);
 
     delete from asha_cube_srcdblink2projects where proj_id=p_proj_id;
     for i in 1..l_n loop
       --coremod_log.log(i||':'||l_tbl(i));
-      insert into asha_cube_srcdblink2projects (proj_id,src_dblink) values(p_proj_id,l_tbl(i));
+      insert into asha_cube_srcdblink2projects (proj_id,src_dblink) values(p_proj_id,replace(l_tbl(i),'LOCAL$$','$LOCAL$'));
     end loop;
   end;
 end ASHA_PROJ_API;

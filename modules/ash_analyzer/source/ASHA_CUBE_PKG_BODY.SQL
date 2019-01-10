@@ -483,9 +483,14 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
                                )
   is
     l_sql_block_template varchar2(32765):=
-   q'[insert into ASHA_CUBE_BLOCK (SESS_ID,SESSION_ID,SESSION_SERIAL#,INST_ID,SQL_ID,MODULE,ACTION,BLOCKING_SESSION,BLOCKING_SESSION_SERIAL#,BLOCKING_INST_ID,CNT)
+   q'[insert into ASHA_CUBE_BLOCK (SESS_ID,SESSION_ID,SESSION_SERIAL#,INST_ID,SQL_ID,MODULE,ACTION,BLOCKING_SESSION,BLOCKING_SESSION_SERIAL#,BLOCKING_INST_ID,CNT,blocker_id)
       select /*+ driving_site(x) */
-            :P_SESS_ID, session_id, session_serial#, <INSTANCE_NUMBER>, sql_id, module, action, blocking_session, blocking_session_serial#, blocking_inst_id, cnt<MULT> from(
+            :P_SESS_ID, session_id, session_serial#, <INSTANCE_NUMBER>, sql_id, module, action, blocking_session, blocking_session_serial#, blocking_inst_id, cnt<MULT>,
+(select program||'; '||machine||'; '||module||'; '||action
+  from <SOURCE_TABLE> b
+ where <DBID> and b.session_id=x2.blocking_session and b.session_serial#=x2.blocking_session_serial# and b.<INSTANCE_NUMBER>=x2.blocking_inst_id
+   and <SNAP_FILTER_BLOCKER> and rownum=1) blocker_id
+            from(
       select  x1.*, sum(cnt)over() tot from (
          select
                  session_id, session_serial#, <INSTANCE_NUMBER>, sql_id, module, action, blocking_session, blocking_session_serial#, blocking_inst_id,
@@ -497,14 +502,14 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
              AND SAMPLE_TIME BETWEEN :P_START_DT AND :P_END_DT
              AND <FILTER>
              and wait_class = 'Application'
-           group by session_id, session_serial#, <INSTANCE_NUMBER>, sql_id, module, action, blocking_session, blocking_session_serial#, blocking_inst_id) x1)
+           group by session_id, session_serial#, <INSTANCE_NUMBER>, sql_id, module, action, blocking_session, blocking_session_serial#, blocking_inst_id) x1)x2
            where cnt/tot>0.001]';
     l_sql varchar2(32765);
     l_crsr sys_refcursor;
   begin
     coremod_log.log('Start calc_block_cube','DEBUG');
     if p_block_analyze /*and not p_monitor*/ then
-      l_sql := replace(replace(replace(replace(replace(replace(replace(l_sql_block_template,
+      l_sql := replace(replace(replace(replace(replace(replace(replace(replace(l_sql_block_template,
                                                           '<SOURCE_TABLE>',case
                                                                              when p_snap_ash then '(select * from asha_cube_snap_ash where sess_id='||p_sess_id||')'
                                                                              when p_source = 'V$VIEW' then case when p_dblink = '$LOCAL$' then 'gv$active_session_history'
@@ -517,13 +522,14 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
                                                   '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
                                           '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
                                   '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                                  '<SNAP_FILTER_BLOCKER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP - 1000 AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
                           '<FILTER>',nvl(p_filter,'1=1')),
                           '<MULT>',case when p_source = 'AWR' then '*10' else null end),'<P_INST_ID>',p_inst_list);
       begin
         coremod_log.log('Start block loading','DEBUG');
         coremod_log.log(l_sql,'DEBUG');
 
-        execute immediate l_sql using p_sess_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt;
+        execute immediate l_sql using p_sess_id, p_dbid, p_min_snap, p_max_snap, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt;
 
         coremod_log.log('End block loading','DEBUG');
       exception

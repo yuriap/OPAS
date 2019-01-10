@@ -184,7 +184,8 @@ CREATE TABLE ASHA_CUBE_BLOCK (
     BLOCKING_SESSION NUMBER, 
     BLOCKING_SESSION_SERIAL# NUMBER, 
     BLOCKING_INST_ID NUMBER, 
-    CNT              NUMBER
+    CNT              NUMBER,
+	blocker_id       varchar2(4000)
    );
 
 create index IDX_ASHA_CUBE_BLOCK on ASHA_CUBE_BLOCK(sess_id);

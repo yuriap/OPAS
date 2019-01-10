@@ -13,7 +13,7 @@ conn &localscheme./&localscheme.@&localdb.
 
 @../modules/sql_trace/source/create_stored.sql
 
-exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Oracle Performance Analytic Suite SQL Trace Module', p_modver => '&MODVER.', p_installed => sysdate);
+exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Extended SQL Trace Module', p_modver => '&MODVER.', p_installed => sysdate);
 
 @../modules/sql_trace/data/load.sql
 

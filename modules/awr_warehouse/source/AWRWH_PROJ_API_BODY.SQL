@@ -26,6 +26,9 @@ package body AWRWH_PROJ_API as
 
     p_proj_id:=l_curproj.proj_id;
 
+    set_proj_dblinks (p_proj_id       => l_curproj.proj_id,
+                      p_db_links_list => '$LOCAL$');
+
     AWRWH_PROJ_LCC.project_exec_action(l_curproj,AWRWH_PROJ_LCC.c_project_create);
   end create_project;
 
@@ -232,5 +235,22 @@ package body AWRWH_PROJ_API as
     update awrwh_projects set proj_note = p_proj_note where proj_id = p_proj_id;
   end;
 
+  procedure set_proj_dblinks (p_proj_id       awrwh_projects.proj_id%type,
+                              p_db_links_list varchar2)
+  is
+    l_tbl DBMS_UTILITY.LNAME_ARRAY;
+    l_n   number;
+  begin
+    DBMS_UTILITY.COMMA_TO_TABLE (
+      list   => replace(replace(p_db_links_list,':',','),'$LOCAL$','LOCAL$$'),
+      tablen => l_n,
+      tab    => l_tbl);
+
+    delete from awrwh_srcdblink2projects where proj_id=p_proj_id;
+    for i in 1..l_n loop
+      --coremod_log.log(i||':'||l_tbl(i));
+      insert into awrwh_srcdblink2projects (proj_id,src_dblink) values(p_proj_id,replace(l_tbl(i),'LOCAL$$','$LOCAL$'));
+    end loop;
+  end;
 end AWRWH_PROJ_API;
 /

@@ -1,10 +1,10 @@
 -- Module list uninstallation
 
 --SQL Trace
-rem @../modules/sql_trace/install/uninstall.sql
+@../modules/sql_trace/install/uninstall.sql
 
 --ASH Analyzer
-rem @../modules/ash_analyzer/install/uninstall.sql
+@../modules/ash_analyzer/install/uninstall.sql
 
 --AWR WareHouse
 @../modules/awr_warehouse/install/uninstall.sql
