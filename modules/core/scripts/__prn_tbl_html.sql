@@ -19,6 +19,7 @@ procedure print_table_html(p_query in varchar2,
   l_break_cnt   number := 1;
   type t_output_lines is table of varchar2(32767) index by pls_integer;
   l_output t_output_lines;
+  l_widest number := 0;
   l_indx number := 1;
   procedure p(p_line varchar2) is
   begin
@@ -43,7 +44,7 @@ procedure print_table_html(p_query in varchar2,
     end if;    
   end;
 begin
-  p(HTF.TABLEOPEN(cborder=>0,cattributes=>'width="'||p_width||'" class="tdiff" summary="'||p_summary||'"'));
+  p(HTF.TABLEOPEN(cborder=>0,cattributes=>'width="<width>" class="tdiff" summary="'||p_summary||'"'));
 
   dbms_sql.parse(l_theCursor, p_query, dbms_sql.native);
   dbms_sql.describe_columns2(l_theCursor, l_colCnt, l_descTbl);
@@ -86,7 +87,7 @@ begin
     -----------------------------------------------------------------------------
     for i in 1 .. l_colCnt loop
       dbms_sql.column_value(l_theCursor, i, l_columnValue);
-
+      if l_colCnt = 1 and nvl(length(l_columnValue),0)>l_widest then l_widest:=length(l_columnValue); end if;
       l_columnValue:=replace(replace(l_columnValue,chr(13)||chr(10),chr(10)||'<br/>'),chr(10),chr(10)||'<br/>');
       if p_search is not null then
         if instr(l_descTbl(i).col_name,p_search)>0 then
@@ -115,6 +116,13 @@ begin
   end loop;
   dbms_sql.close_cursor(l_theCursor);
   p(HTF.TABLECLOSE);
+  if l_colCnt = 1 then
+    if round(p_width/(l_widest*6.2))>1.1 then
+      l_output(1):=replace(l_output(1),'<width>',round(l_widest*6.2));
+    else
+      l_output(1):=replace(l_output(1),'<width>',p_width);
+    end if;
+  end if;    
   output();
 exception
   when others then

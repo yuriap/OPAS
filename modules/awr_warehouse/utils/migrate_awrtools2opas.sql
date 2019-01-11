@@ -19,7 +19,7 @@ declare
 begin
   AWRWH_PROJ_API.create_project(p_proj_name=>l_name,
                                 p_owner=>COREMOD_API.gDefaultOwner,
-                                p_keep_forever='Y',
+                                p_keep_forever=>'Y',
                                 p_is_public=>'Y',
                                 p_proj_id=>:p_proj_id);
   AWRWH_PROJ_API.set_project_crdt(p_proj_id=>:p_proj_id,p_created=>to_date('<PROJ_DATE>','YYYYMMDDHH24MISS'));

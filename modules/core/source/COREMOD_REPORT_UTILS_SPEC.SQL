@@ -90,8 +90,7 @@ PACKAGE COREMOD_REPORT_UTILS AS
                                        p_header number default 0,
                                        p_break_col varchar2 default null,
                                        p_dblink varchar2,
-                                       p_output out t_output_lines,
-                                       p_row_limit number default 10000);
+                                       p_output out t_output_lines);
   procedure print_table_html(p_query in varchar2,
                              p_width number,
                              p_summary varchar2,
@@ -101,8 +100,7 @@ PACKAGE COREMOD_REPORT_UTILS AS
                              p_style2  varchar2 default 'awrnc1',
                              p_header number default 0,
                              p_break_col varchar2 default null,
-                             p_output in out t_output_lines,
-                             p_row_limit number default 10000);
+                             p_output in out t_output_lines);
 
   procedure print_table_html_new
                             (p_query in varchar2,

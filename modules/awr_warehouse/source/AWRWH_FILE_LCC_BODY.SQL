@@ -7,16 +7,16 @@ package body AWRWH_FILE_LCC as
     l_does_proj_allow_rw boolean;
   begin
     l_does_proj_allow_rw := AWRWH_PROJ_LCC.project_check_action(p_awrwh_dumps.proj_id,AWRWH_PROJ_LCC.c_project_rwcontent);
-    return l_does_proj_allow_rw and
+    return
       case
         when p_action = c_dmpfile_create                                                                                                         then true
-        when p_action = c_dmpfile_loadfile        and l_status in (c_dmpfilestate_new)                                                           then true
-        when p_action = c_dmpfile_editfile        and l_status in (c_dmpfilestate_new, c_dmpfilestate_dmploaded, c_dmpfilestate_awrloaded)       then true
+        when p_action = c_dmpfile_loadfile        and l_does_proj_allow_rw and l_status in (c_dmpfilestate_new)                                                           then true
+        when p_action = c_dmpfile_editfile        and l_does_proj_allow_rw and l_status in (c_dmpfilestate_new, c_dmpfilestate_dmploaded, c_dmpfilestate_awrloaded)       then true
         when p_action = c_dmpfile_putinqueue      and l_status in (c_dmpfilestate_new, c_dmpfilestate_dmploaded, c_dmpfilestate_awrloaded, c_dmpfilestate_compressed, c_dmpfilestate_archived) then true
         when p_action = c_dmpfile_startprocess    and l_status in (c_dmpfilestate_inqueue)                                                       then true
         when p_action = c_dmpfile_finishprocess   and l_status in (c_dmpfilestate_processing)                                                    then true
         when p_action = c_dmpfile_failprocess     and l_status in (c_dmpfilestate_processing)                                                    then true
-        when p_action = c_dmpfile_awrload         and l_status in (c_dmpfilestate_dmploaded)                                                     then true
+        when p_action = c_dmpfile_awrload         and l_does_proj_allow_rw and l_status in (c_dmpfilestate_dmploaded)                                                     then true
         when p_action = c_dmpfile_awrunload       and l_status in (c_dmpfilestate_awrloaded)                                                     then true
         when p_action = c_dmpfile_compress        and l_status in (c_dmpfilestate_dmploaded, c_dmpfilestate_awrloaded)                           then true
         when p_action = c_dmpfile_archive         and l_status in (c_dmpfilestate_dmploaded, c_dmpfilestate_awrloaded,c_dmpfilestate_compressed) then true
@@ -62,9 +62,9 @@ package body AWRWH_FILE_LCC as
 
     if dmpfile_check_action(p_awrwh_dumps,p_action) then
     case
-      when p_action = c_dmpfile_create         then dmpfile_set_status  (p_awrwh_dumps.dump_id,c_dmpfilestate_new);
-      when p_action = c_dmpfile_loadfile       then dmpfile_set_status  (p_awrwh_dumps.dump_id,c_dmpfilestate_dmploaded);
-      when p_action = c_dmpfile_editfile       then null;
+      when p_action = c_dmpfile_create         then dmpfile_set_status  (p_awrwh_dumps.dump_id,c_dmpfilestate_new);       AWRWH_PROJ_LCC.project_exec_action(p_awrwh_dumps.proj_id,AWRWH_PROJ_LCC.c_project_rwcontent);
+      when p_action = c_dmpfile_loadfile       then dmpfile_set_status  (p_awrwh_dumps.dump_id,c_dmpfilestate_dmploaded); AWRWH_PROJ_LCC.project_exec_action(p_awrwh_dumps.proj_id,AWRWH_PROJ_LCC.c_project_rwcontent);
+      when p_action = c_dmpfile_editfile       then null;                                                                 AWRWH_PROJ_LCC.project_exec_action(p_awrwh_dumps.proj_id,AWRWH_PROJ_LCC.c_project_rwcontent);
       when p_action = c_dmpfile_putinqueue     then dmpfile_set_status  (p_awrwh_dumps.dump_id,c_dmpfilestate_inqueue);
       when p_action = c_dmpfile_startprocess   then case
                                                       when p_process_action = c_dmpfile_dropfile then  dmpfile_set_status_a(p_awrwh_dumps.dump_id,c_dmpfilestate_dropped);
@@ -92,7 +92,6 @@ package body AWRWH_FILE_LCC as
       else
         raise_application_error(-20000,'Unimplemented project action: '||p_action||':'||nvl(p_process_action,'N/A'));
       end case;
-      AWRWH_PROJ_LCC.project_exec_action(p_awrwh_dumps.proj_id,AWRWH_PROJ_LCC.c_project_rwcontent);
     else
       raise_application_error(-20000,'Action '||p_action||' is not allowed for the dump file '||p_awrwh_dumps.dump_id||' ('||p_awrwh_dumps.filename||') with status '||p_awrwh_dumps.status);
     end if;

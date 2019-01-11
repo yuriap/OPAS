@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   11:47 Thursday January 10, 2019
+--   Date and Time:   14:56 Friday January 11, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -126,7 +126,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190110103334'
+,p_last_upd_yyyymmddhh24miss=>'20190111145604'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -12402,8 +12402,9 @@ wwv_flow_api.create_page(
  p_id=>112
 ,p_user_interface_id=>wwv_flow_api.id(11892374557539826)
 ,p_name=>'OPAS Log Viewer'
-,p_page_mode=>'MODAL'
+,p_page_mode=>'NON_MODAL'
 ,p_step_title=>'OPAS Log Viewer'
+,p_warn_on_unsaved_changes=>'N'
 ,p_step_sub_title=>'OPAS Log Viewer'
 ,p_step_sub_title_type=>'TEXT_WITH_SUBSTITUTIONS'
 ,p_autocomplete_on_off=>'OFF'
@@ -12412,7 +12413,7 @@ wwv_flow_api.create_page(
 ,p_required_role=>wwv_flow_api.id(11329277092276266)
 ,p_dialog_width=>'1200'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181228110439'
+,p_last_upd_yyyymmddhh24miss=>'20190111145313'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(25768626934000692)
@@ -30942,7 +30943,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(29647008481534090)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190108171713'
+,p_last_upd_yyyymmddhh24miss=>'20190111145604'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(45795667662019142)
@@ -31499,6 +31500,22 @@ wwv_flow_api.create_page_plug(
 ,p_attribute_02=>'HTML'
 );
 wwv_flow_api.create_page_button(
+ p_id=>wwv_flow_api.id(29676085369813520)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_api.id(29541686125461450)
+,p_button_name=>'UploadDump'
+,p_button_action=>'REDIRECT_PAGE'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>wwv_flow_api.id(11870518977539690)
+,p_button_image_alt=>'Upload dump file'
+,p_button_position=>'ABOVE_BOX'
+,p_button_alignment=>'LEFT'
+,p_button_redirect_url=>'f?p=&APP_ID.:403:&SESSION.::&DEBUG.:RP,403:P403_PROJ_ID:&P401_PROJ_ID.'
+,p_button_condition=>'AWRWH_PROJ_LCC.project_check_action(:P401_PROJ_ID,AWRWH_PROJ_LCC.c_project_rwcontent)'
+,p_button_condition_type=>'PLSQL_EXPRESSION'
+,p_security_scheme=>wwv_flow_api.id(29647275358536220)
+);
+wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(29664217258813424)
 ,p_button_sequence=>10
 ,p_button_plug_id=>wwv_flow_api.id(53283874160427066)
@@ -31525,22 +31542,6 @@ wwv_flow_api.create_page_button(
 ,p_button_position=>'BELOW_BOX'
 ,p_button_alignment=>'LEFT'
 ,p_button_condition=>'AWRWH_PROJ_LCC.project_check_action(:P401_PROJ_ID,AWRWH_PROJ_LCC.c_project_edit)'
-,p_button_condition_type=>'PLSQL_EXPRESSION'
-,p_security_scheme=>wwv_flow_api.id(29647275358536220)
-);
-wwv_flow_api.create_page_button(
- p_id=>wwv_flow_api.id(29676085369813520)
-,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_api.id(29541686125461450)
-,p_button_name=>'UploadDump'
-,p_button_action=>'REDIRECT_PAGE'
-,p_button_template_options=>'#DEFAULT#'
-,p_button_template_id=>wwv_flow_api.id(11870518977539690)
-,p_button_image_alt=>'Upload dump file'
-,p_button_position=>'BELOW_BOX'
-,p_button_alignment=>'LEFT'
-,p_button_redirect_url=>'f?p=&APP_ID.:403:&SESSION.::&DEBUG.:RP,403:P403_PROJ_ID:&P401_PROJ_ID.'
-,p_button_condition=>'AWRWH_PROJ_LCC.project_check_action(:P401_PROJ_ID,AWRWH_PROJ_LCC.c_project_rwcontent)'
 ,p_button_condition_type=>'PLSQL_EXPRESSION'
 ,p_security_scheme=>wwv_flow_api.id(29647275358536220)
 );
@@ -31850,10 +31851,10 @@ wwv_flow_api.create_page_process(
 '    from awrwh_dumps t',
 '   where proj_id=:P401_PROJ_ID;',
 '    ',
-'  select to_char(nvl(sum(round(COREFILE_API.get_file_size(t.report_id)/1024)),0),''999G999G999G999G999G999G990'') rpt_size_kb',
+'  select to_char(nvl(sum(round(COREFILE_API.get_file_size(r.report_content)/1024)),0),''999G999G999G999G999G999G990'') rpt_size_kb',
 '    into :P401_REPORT_SZ',
-'    from awrwh_reports t',
-'   where proj_id=:P401_PROJ_ID;    ',
+'    from awrwh_reports t, opas_reports r',
+'   where t.report_id=r.report_id and proj_id=:P401_PROJ_ID;   ',
 '',
 '  :P401_DB_LINKS:=null;',
 '  for i in (select db_link_name from awrwh_srcdblink2projects d2p, v$opas_db_links d',

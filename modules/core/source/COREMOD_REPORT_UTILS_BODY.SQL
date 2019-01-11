@@ -634,8 +634,7 @@ else q'[end;]' end;
                                        p_header number default 0,
                                        p_break_col varchar2 default null,
                                        p_dblink varchar2,
-                                       p_output out t_output_lines,
-                                       p_row_limit number default 10000)
+                                       p_output out t_output_lines)
   is
     l_sql clob:=  q'[declare
   l_sql varchar2(32767) := q'^<SQL_QUERY>^';
@@ -659,7 +658,7 @@ end;]';
     if p_header is not null then l_sql:=replace(l_sql,'<p_header>',q'[,p_header => ]'||p_header||chr(10)); else l_sql:=replace(l_sql,'<p_header>'); end if;
     if p_break_col is not null then l_sql:=replace(l_sql,'<p_break_col>',q'[,p_break_col => q'^]'||p_break_col||q'[^']'||chr(10)); else l_sql:=replace(l_sql,'<p_break_col>'); end if;
 
-    l_sql:=replace(l_sql,'<p_row_limit>',',p_row_limit => '||p_row_limit||chr(10));
+    l_sql:=replace(l_sql,'<p_row_limit>',',p_row_limit => '||COREMOD_API.getconf('LONGSECTROWS',COREMOD_API.gMODNAME)||chr(10));
 
     if length(L_SQL) > 32767 then raise_application_error(-20000,'SQL <'||substr(p_query,1,100)||'...> too long for remote table printing.');end if;
     --dbms_output.put_line('length(P_SQL): '||length(L_SQL));
@@ -680,8 +679,7 @@ end;]';
                              p_style2  varchar2 default 'awrnc1',
                              p_header number default 0,
                              p_break_col varchar2 default null,
-                             p_output in out t_output_lines,
-                             p_row_limit number default 10000) is
+                             p_output in out t_output_lines) is
     l_theCursor   integer default dbms_sql.open_cursor;
     l_columnValue varchar2(32767);
     l_status      integer;
@@ -693,6 +691,9 @@ end;]';
     l_break_cnt   number := 1;
     l_indx   number := p_output.count + 1;
     l_output t_output_lines;
+    l_widest number := 0;
+
+    l_long_sect_rows    number := COREMOD_API.getconf('LONGSECTROWS',COREMOD_API.gMODNAME);
 
     procedure p(p_line varchar2) is
     begin
@@ -701,23 +702,27 @@ end;]';
     end;
 
     procedure output is
+      l_indx number;
     begin
-      if l_output.count<=nvl(p_row_limit,1000) then
+      if l_output.count<=nvl(l_long_sect_rows,1000) then
         for i in 1..l_output.count loop
           p_output(i):=l_output(i);
         end loop;
       else
-        for i in 1..round(nvl(p_row_limit,1000)/2) loop
+        for i in 1..round(nvl(l_long_sect_rows,1000)/2) loop
           p_output(i):=l_output(i);
         end loop;
-        for i in l_output.count-round(nvl(p_row_limit,1000)/2)..l_output.count loop
-          p_output(i):=l_output(i);
+        l_indx := p_output.count+1;
+        for i in l_output.count-round(nvl(l_long_sect_rows,1000)/2)..l_output.count loop
+          p_output(l_indx):=l_output(i);
+          l_indx:=l_indx+1;
         end loop;
-        p_output(l_output.count+1) := 'Output is truncated: first and last '||round(nvl(p_row_limit,1000)/2)||' rows are shown';
+        p_output(p_output.count+1) := 'Output is truncated: first and last '||round(nvl(l_long_sect_rows,1000)/2)||' rows are shown';
       end if;
     end;
   begin
-    p(HTF.TABLEOPEN(cborder=>0,cattributes=>'width="'||p_width||'" class="tdiff" summary="'||p_summary||'"'));
+    --p(HTF.TABLEOPEN(cborder=>0,cattributes=>'width="'||p_width||'" class="tdiff" summary="'||p_summary||'"'));
+    p(HTF.TABLEOPEN(cborder=>0,cattributes=>'width="<width>" class="tdiff" summary="'||p_summary||'"'));
 
     dbms_sql.parse(l_theCursor, p_query, dbms_sql.native);
     dbms_sql.describe_columns2(l_theCursor, l_colCnt, l_descTbl);
@@ -761,6 +766,8 @@ end;]';
       for i in 1 .. l_colCnt loop
         dbms_sql.column_value(l_theCursor, i, l_columnValue);
 
+        if l_colCnt = 1 and nvl(length(l_columnValue),0)>l_widest then l_widest:=length(l_columnValue); end if;
+
         l_columnValue:=replace(replace(l_columnValue,chr(13)||chr(10),chr(10)||'<br/>'),chr(10),chr(10)||'<br/>');
         if p_search is not null then
           if instr(l_descTbl(i).col_name,p_search)>0 then
@@ -789,7 +796,17 @@ end;]';
     end loop;
     dbms_sql.close_cursor(l_theCursor);
     p(HTF.TABLECLOSE);
+
     output();
+
+    if l_colCnt = 1 then
+      if round(p_width/(l_widest*6.2))>1.1 then
+        p_output(1):=replace(p_output(1),'<width>',round(l_widest*6.2));
+      else
+        p_output(1):=replace(p_output(1),'<width>',p_width);
+      end if;
+    end if;
+
   exception
     when others then
       if DBMS_SQL.IS_OPEN(l_theCursor) then dbms_sql.close_cursor(l_theCursor);end if;
@@ -818,7 +835,9 @@ end;]';
     end;
   begin
 
-    p(HTF.TABLEOPEN(cborder=>0,cattributes=>'width="'||p_width||'" class="tdiff" summary="'||p_t_header||'"'));
+    --p(HTF.TABLEOPEN(cborder=>0,cattributes=>'width="'||p_width||'" class="tdiff" summary="'||p_t_header||'"'));
+    p(HTF.TABLEOPEN(cborder=>0,cattributes=>'width="<width>" class="tdiff" summary="'||p_t_header||'"'));
+
     if p_t_header<>'#FIRST_LINE#' then
       p(HTF.TABLEROWOPEN);
       p(HTF.TABLEHEADER(cvalue=>replace(p_t_header,' ','&nbsp;'),calign=>'left',cattributes=>'class="awrbg" scope="col"'));
@@ -861,6 +880,7 @@ end;]';
           l_line:=replace(l_line,' ','&nbsp;');
         end if;
         l_line:=replace(l_line,'`',' ');
+
         if p_comparison and l_pref in ('-') then
           p(HTF.TABLEDATA(cvalue=>l_line,calign=>'left',cattributes=>'class="'|| case when mod(l_iter,2)=0 then l_style_comp1 else l_style_comp2 end ||'"'));
         else

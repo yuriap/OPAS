@@ -12,7 +12,7 @@ BEGIN
   SELECT file_contentb
   INTO   l_blob
   FROM   opas_files
-  WHERE  file_id=59;
+  WHERE  file_id=60;
 
   l_blob_len := DBMS_LOB.getlength(l_blob);
   

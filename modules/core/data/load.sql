@@ -10,6 +10,12 @@ INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','TA
 
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RETENTION','SQLCACHERETENTION', 30,'Retention time in days for SQL Cache.');
 
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','REPORT','LONGSECTROWS', 10000,'Custom reports long sections length in rows');
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','REPORT','NARROWSECT',   700,  'Custom reports narrow section width, pixels');
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','REPORT','MIDDLESECT',   1000, 'Custom reports middle section width, pixels');
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','REPORT','WIDESECT',     1500, 'Custom reports wide section width, pixels');
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','REPORT','SUPERWIDESECT',1800, 'Custom reports super wide section width, pixels');
+
 insert into opas_groups (group_id,group_name,group_descr) values (0, 'Administrators','Full set of rights');
 insert into opas_groups (group_id,group_name,group_descr) values (1, 'Reas-write users','All application functions');
 insert into opas_groups (group_id,group_name,group_descr) values (2, 'Read-only users','Read-only functions');

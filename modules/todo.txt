@@ -28,8 +28,27 @@ known bugs
  .- add message "report has been put in queye" from query view page AWR
  .- AWR SQL custom from ASH with limit does not show SQL_ID to chose
 V 4.5
+ .- page 401 dump grid, dump status to add <was hidden>
+ .- log page non-modal dialog
+V 4.5.1
  - filtered separatly - keep filter condition on parent seesion but ignore it for calc
- - multiplan page 18 from 303 viewer not implemented
+ - multiplan page 18 from 303 viewer not implemented 
+ - p150 does not work when not all modules installed
+error_statement:
+begin begin select display_name d, db_link_name r 
+   bulk collect into wwv_flow_utilities.g_display, wwv_flow_utilities.g_value from v$opas_db_links l, 
+       (select unique sparse2 from opas_dictionary where dic_name='REPORT_TYPES' and  modname=:P150_MODNAME) trg
+where l.db_link_name=nvl(trg.sparse2,l.db_link_name)
+and l.db_link_name in
+(
+select src_dblink from awrwh_srcdblink2projects where :P150_SOURCE_PAGE = 401 and proj_id = :P401_PROJ_ID
+union all
+select src_dblink from asha_cube_srcdblink2projects where :P150_SOURCE_PAGE = 301 and proj_id = :P301_PROJ_ID
+union all
+select src_dblink from asha_cube_srcdblink2projects where :P150_SOURCE_PAGE = 303 and proj_id = :P303_PROJ_ID    
+); end;
+end;
+
  todo
  .- multiuser monitor and snapper, a link between monitor and snapper to stop one another
  - filtered separately - link between sessions
@@ -48,7 +67,6 @@ V 4.5
  .- report preview to page 303 cube status region
  -.- open cube as templ to calc new from page 301
  .- task monitor: add module & action
- - doc: each module, list of features, install guide
  .- sqlmultiplan report from awrdwh
  .- db_description to add dbname
  .- load dump from 401 page
@@ -56,13 +74,15 @@ V 4.5
  .- dblinks for AWRWH as for ASH
  .- V$SQL report ASH summury to summarize across all runs	
  .- add session identity when show blockers
-V 4.5
+V 4.5.1
  - integration ASH to AWRWH
     - button on 301 tab Quick links
 	- open dialog from 400 app to choose proj and dump
 	- create cube by those parameters
 	- preserve on cube links (URL) two direction to initiated AWRWH proj and to target cube
  - for custom reports make configurable narrow and wide sections
+ - doc: each module, list of features, install guide
+ 
 getcomph
 ============
 known bugs
