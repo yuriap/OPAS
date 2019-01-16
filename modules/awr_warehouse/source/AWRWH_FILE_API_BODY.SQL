@@ -143,6 +143,12 @@ PACKAGE BODY AWRWH_FILE_API AS
     remove_source_data_i(p_dump_id);
 	remove_parsed_data_i(p_dump_id);
 
+    COREMOD_INTEGRATION.remove_integration
+    (  P_INT_KEY => AWRWH_API.gintAWRWH2ASH_DUMP2CUBE,
+       p_modname => AWRWH_API.gMODNAME,
+       P_PRNT_ENTITY_ID => l_dmp_file.proj_id,
+       P_ENTITY_ID => p_dump_id) ;
+
 	delete from awrwh_dumps where dump_id = p_dump_id;
   end;
 
@@ -329,7 +335,17 @@ PACKAGE BODY AWRWH_FILE_API AS
       status         = AWRWH_FILE_LCC.c_dmpfilestate_dmploaded
      WHERE dump_id   = l_dump_id;
 
-   end;
+  end;
+
+  procedure calc_ash_cube(p_dump_id awrwh_dumps.dump_id%type, p_ash_proj_id number)
+  is
+  begin
+    if COREMOD_SEC.is_mod_installed(P_MODNAME => 'ASH_ANALYZER') then
+      execute immediate 'begin AWRWH_CALC_ASH_CUBE(:p_dump_id, :p_ash_proj_id); end;' using p_dump_id,p_ash_proj_id;
+    else
+      raise_application_error(-20000,'Module "ASH_ANALYZER" is not installed.');
+    end if;
+  end;
 
 END AWRWH_FILE_API;
 /

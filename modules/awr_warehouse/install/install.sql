@@ -1,5 +1,5 @@
 define MODNM=AWR_WAREHOUSE
-define MODVER="4.2.1"
+define MODVER="4.3.0"
 
 --remote scheme setup
 conn sys/&remotesys.@&remotedb. as sysdba
@@ -49,4 +49,19 @@ begin
                                             p_task_body => 'begin AWRWH_PROJ_API.cleanup_projects; end;');
 end;
 /
+
+BEGIN
+  COREMOD_INTEGRATION.register_integration (  P_INT_KEY => AWRWH_API.gintAWRWH2ASH_DUMP2CUBE,
+    P_OWNER_MODNAME => 'AWR_WAREHOUSE',
+    P_SRC_MODNAME => 'AWR_WAREHOUSE',
+    P_TRG_MODNAME => 'ASH_ANALYZER',
+    P_SRC_URL_TMPL => 'f?p=<APP_ID>:404:<SESSION>::::P404_DUMP_ID,P404_PROJ_ID:<SRC_ENTITY>,<SRC_PARENT>:',
+    P_TRG_URL_TMPL => 'f?p=<APP_ID>:303:<SESSION>::::P303_SESS_ID,P303_TQ_ID,P303_PROJ_ID:<TRG_ENTITY>,0,<TRG_PARENT>:',
+    P_SRC_DESC_TMPL => 'Dump file "<VAR2>" with name "<VAR1>" of "<VAR3>" project',
+    P_TRG_DESC_TMPL => 'ASH Cube "Created: <VAR1>; Status: <VAR2>" for dump file "<VAR3>"',
+    P_SRC_DESC_DYN_TMPL => 'select dump_name, filename, p.proj_name, null from awrwh_dumps d, awrwh_projects p where dump_id=<SRC_ENTITY> and d.proj_id=p.proj_id',
+    P_TRG_DESC_DYN_TMPL => q'[select to_char(sess_created,'YYYY-MON-DD HH24:MI:SS'),sess_status, (select filename from awrwh_dumps where dump_id=<SRC_ENTITY>) dump_name, null from asha_cube_sess where sess_id=<TRG_ENTITY>]');
+END;
+/
+
 commit;

@@ -46,5 +46,8 @@ PACKAGE AWRWH_FILE_API AS
                                 p_db_description   awrwh_dumps.db_description%type default null,
                                 p_dump_name        awrwh_dumps.dump_name%type default null);
 
+  /*integration with ASH Cube*/
+  procedure calc_ash_cube(p_dump_id awrwh_dumps.dump_id%type, p_ash_proj_id number);
+
 END AWRWH_FILE_API;
 /

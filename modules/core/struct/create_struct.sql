@@ -231,3 +231,33 @@ apex_user      varchar2(100));
 create index opas_groups2apexusr_usr on opas_groups2apexusr(apex_user);
 create unique index opas_groups2apexusr_usr2grp on opas_groups2apexusr(modname,apex_user,group_id);
 
+--V4.6
+--Module integration
+create table opas_integration_tmpl (
+int_key              varchar2(30) primary key,
+owner_modname        varchar2(128) references opas_modules(modname) on delete cascade,
+src_modname          varchar2(128) references opas_modules(modname) on delete cascade,
+trg_modname          varchar2(128) references opas_modules(modname) on delete cascade,
+src_url_tmpl         varchar2(1000),
+trg_url_tmpl         varchar2(1000),
+src_desc_tmpl        varchar2(1000),
+trg_desc_tmpl        varchar2(1000),
+src_desc_dyn_tmpl    varchar2(1000),
+trg_desc_dyn_tmpl    varchar2(1000)
+);
+
+create index idx_opas_int_tmpl_modo   on opas_integration_tmpl(owner_modname);
+create index idx_opas_int_tmpl_mods   on opas_integration_tmpl(src_modname);
+create index idx_opas_int_tmpl_modt   on opas_integration_tmpl(trg_modname);
+
+create table opas_integration (
+int_id               NUMBER GENERATED ALWAYS AS IDENTITY primary key,
+int_key              varchar2(30)  references opas_integration_tmpl(int_key) on delete cascade,
+src_entity_id        number,
+src_prnt_entity_id   number,
+trg_entity_id        number,
+trg_prnt_entity_id   number
+);
+
+create index idx_opas_integration_src on opas_integration(int_key,src_prnt_entity_id,src_entity_id);
+create index idx_opas_integration_trg on opas_integration(int_key,trg_prnt_entity_id,trg_entity_id);

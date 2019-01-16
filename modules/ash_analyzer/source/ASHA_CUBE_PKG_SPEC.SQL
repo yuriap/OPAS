@@ -19,7 +19,10 @@ PACKAGE ASHA_CUBE_PKG AS
   c_top_sess             constant varchar2(100) := 'TOP_SESS';
   c_SNAP_ASH             constant varchar2(100) := 'SNAP_ASH';
   c_FILTERED_SEPARATLY   constant varchar2(100) := 'FILTERED_SEPARATLY';
-  --c_SNAP_DURATION        constant varchar2(100) := 'SNAP_DURATION';
+
+  c_DBID                 constant varchar2(100) := 'DBID';
+  c_START_SNAP           constant varchar2(100) := 'START_SNAP';
+  c_END_SNAP             constant varchar2(100) := 'END_SNAP';
 
   c_date_interval        constant varchar2(100) := 'DATE_INTERVAL';
 

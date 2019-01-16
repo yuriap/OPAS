@@ -34,6 +34,11 @@ begin
   insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'SNAP_ASH','N'); 
   insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'FILTERED_SEPARATLY','N'); 
 
+  insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'DBID',null); 
+  insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'START_SNAP',null); 
+  insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'END_SNAP',null); 
+
+  
   
   INSERT INTO asha_cube_sess_tmpl (tmpl_id,tmpl_proj_id,tmpl_name,tmpl_description,tmpl_created) 
        VALUES (default,null,'Last 30 minutes','Set parameters to show last 30 minutes of ASH',default) returning tmpl_id into l_tmpl;

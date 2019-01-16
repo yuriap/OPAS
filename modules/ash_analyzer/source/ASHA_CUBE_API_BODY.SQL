@@ -13,7 +13,7 @@ PACKAGE BODY ASHA_CUBE_API AS
     for i in (select *
                 from (select p2l.src_dblink, min(created) min_created
                         from asha_cube_srcdblink2projects p2l, asha_cube_racnodes_cache c, v$opas_db_links l
-                       where p2l.src_dblink=c.src_dblink(+) and p2l.src_dblink=l.db_link_name and l.status=COREMOD_API.dblCREATED
+                       where p2l.src_dblink=c.src_dblink(+) and p2l.src_dblink=l.db_link_name and l.status=COREMOD_API.dblCREATED and p2l.src_dblink<>'$LOCAL$'
                        group by p2l.src_dblink)
                where (min_created is null or min_created < (systimestamp - to_number(COREMOD_API.getconf('DICRETENTION',gMODNAME)))))
     loop

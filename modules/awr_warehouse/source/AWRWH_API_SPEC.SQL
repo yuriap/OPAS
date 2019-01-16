@@ -5,6 +5,9 @@ PACKAGE AWRWH_API AS
 
   gDUMPFILETYPE  constant varchar2(32) := 'AWR Dump';
 
+  gintAWRWH2ASH_DUMP2CUBE constant varchar2(32) := 'AWRWH2ASH_DUMP2CUBE';
+
+
   function  getMODNAME return varchar2;
 
   procedure put_file_to_fs      (p_blob blob,

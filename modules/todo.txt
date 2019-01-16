@@ -1,3 +1,23 @@
+todo.txt
+
+Type
+Text
+Size
+5 KB (4,701 bytes)
+Storage used
+5 KB (4,701 bytes)
+Location
+OPAS
+Owner
+me
+Modified
+Jan 12, 2019 by me
+Opened
+10:05 AM by me
+Created
+Jan 12, 2019 with Google Drive Web
+Add a description
+Viewers can download
 ASH Analyzer
 ============
 known bugs
@@ -31,9 +51,9 @@ V 4.5
  .- page 401 dump grid, dump status to add <was hidden>
  .- log page non-modal dialog
 V 4.5.1
- - filtered separatly - keep filter condition on parent seesion but ignore it for calc
- - multiplan page 18 from 303 viewer not implemented 
- - p150 does not work when not all modules installed
+ .- filtered separatly - keep filter condition on parent seesion but ignore it for calc/ or just show jilter condition somewhere for parent cube
+ .- multiplan page 18 from 303 viewer not implemented 
+ .- p150 does not work when not all modules installed
 error_statement:
 begin begin select display_name d, db_link_name r 
    bulk collect into wwv_flow_utilities.g_display, wwv_flow_utilities.g_value from v$opas_db_links l, 
@@ -49,9 +69,18 @@ select src_dblink from asha_cube_srcdblink2projects where :P150_SOURCE_PAGE = 30
 ); end;
 end;
 
+ -.- AWR Comp does not contain dump name (it is OPAS feature only and report is universal)
+ .- plan comp section of comp report is too wide
+ .- report pages 150* CreateReport processes must be valid if AWRWH not installed
+ .- from page 303 blocker grid click to blocked sql_id, it goes to page 18
+ -.- sql_id chooser for reports, make it be able not to search but just to insert some known sql_id
+ .- when creating cube for dump allow to choose NEW ASH project  
+V 4.6
+ - show multyplan sql for local db must use dbid and snaps to select only relevant
+ 
  todo
  .- multiuser monitor and snapper, a link between monitor and snapper to stop one another
- - filtered separately - link between sessions
+ .- filtered separately - link between sessions
  -.- for monitor mode snap session statistics and draw some diagrams
  -.- validation of iput parameter before start cube calculation
  .- report type add somewhere to show
@@ -75,13 +104,18 @@ end;
  .- V$SQL report ASH summury to summarize across all runs	
  .- add session identity when show blockers
 V 4.5.1
- - integration ASH to AWRWH
-    - button on 301 tab Quick links
-	- open dialog from 400 app to choose proj and dump
-	- create cube by those parameters
-	- preserve on cube links (URL) two direction to initiated AWRWH proj and to target cube
- - for custom reports make configurable narrow and wide sections
+ .- integration ASH to AWRWH
+    -.- button on 301 tab Quick links
+	.- open dialog from 400 app to choose proj and dump
+	.- create cube by those parameters
+	.- preserve on cube links (URL) two direction to initiated AWRWH proj and to target cube
+ .- for custom reports make configurable narrow and wide sections
+ -.- show ASH for loaded dumps choosing dumps
+ .- ASH navigation through cubes from p303
+V 4.6
  - doc: each module, list of features, install guide
+ - move cubes, dumps with report to other project
+ - AWRWH reports dump name, link to project; space usage by project (awrtools)
  
 getcomph
 ============

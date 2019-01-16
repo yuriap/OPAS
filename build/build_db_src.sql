@@ -101,7 +101,6 @@ select text from user_source where name='COREMOD_TASKS' and type='PACKAGE BODY' 
 prompt /
 spool off
 
-
 spool &COREMODPATH.\COREMOD_REPORTS_SPEC.SQL
 prompt CREATE OR REPLACE
 select text from user_source where name='COREMOD_REPORTS' and type='PACKAGE' order by line;
@@ -110,6 +109,17 @@ spool off
 spool &COREMODPATH.\COREMOD_REPORTS_BODY.SQL
 prompt CREATE OR REPLACE
 select text from user_source where name='COREMOD_REPORTS' and type='PACKAGE BODY' order by line;
+prompt /
+spool off
+
+spool &COREMODPATH.\COREMOD_INTEGRATION_SPEC.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='COREMOD_INTEGRATION' and type='PACKAGE' order by line;
+prompt /
+spool off
+spool &COREMODPATH.\COREMOD_INTEGRATION_BODY.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='COREMOD_INTEGRATION' and type='PACKAGE BODY' order by line;
 prompt /
 spool off
 --=============================================================================================
@@ -310,6 +320,13 @@ spool off
 spool &COREMODPATH.\AWRWH_REPORT_API_BODY.SQL
 prompt CREATE OR REPLACE
 select text from user_source where name='AWRWH_REPORT_API' and type='PACKAGE BODY' order by line;
+prompt /
+spool off
+
+
+spool &COREMODPATH.\AWRWH_CALC_ASH_CUBE_PRC.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='AWRWH_CALC_ASH_CUBE' and type='PROCEDURE' order by line;
 prompt /
 spool off
 --=============================================================================================

@@ -18,8 +18,10 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     pa_monitor boolean,
     pa_top_sess boolean,
     pa_snap_ash boolean,
-    pa_filtered_separatelly boolean
-    --pa_snap_duration number
+    pa_filtered_separatelly boolean,
+    pa_dbid number,
+    pa_start_snap number,
+    pa_end_snap number
     );
 
   g_params_t tt_params_t;
@@ -96,6 +98,10 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     g_allpars.pa_top_sess := to_bool(get_parameter(c_top_sess));
     g_allpars.pa_filtered_separatelly := to_bool(get_parameter(c_FILTERED_SEPARATLY));
 
+    g_allpars.pa_dbid := get_parameter(c_DBID);
+    g_allpars.pa_start_snap := get_parameter(c_START_SNAP);
+    g_allpars.pa_end_snap := get_parameter(c_END_SNAP);
+
     --g_allpars.pa_snap_duration := get_parameter(c_SNAP_DURATION);
   end;
 
@@ -164,7 +170,10 @@ PACKAGE BODY ASHA_CUBE_PKG AS
 
     if l_params_t.exists(c_SNAP_ASH) then add_parameter(p_sess_id,c_SNAP_ASH,l_params_t(c_SNAP_ASH)); end if;
     if l_params_t.exists(c_FILTERED_SEPARATLY) then add_parameter(p_sess_id,c_FILTERED_SEPARATLY,l_params_t(c_FILTERED_SEPARATLY)); end if;
-    --if l_params_t.exists(c_SNAP_DURATION) then add_parameter(p_sess_id,c_SNAP_DURATION,l_params_t(c_SNAP_DURATION)); end if;
+
+    if l_params_t.exists(c_DBID) then add_parameter(p_sess_id,c_DBID,l_params_t(c_DBID)); end if;
+    if l_params_t.exists(c_START_SNAP) then add_parameter(p_sess_id,c_START_SNAP,l_params_t(c_START_SNAP)); end if;
+    if l_params_t.exists(c_END_SNAP) then add_parameter(p_sess_id,c_END_SNAP,l_params_t(c_END_SNAP)); end if;
 
     coremod_log.log('load_par_tmpl finished','DEBUG');
   end;
@@ -187,6 +196,12 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     if l_sess_id is not null then
       insert into asha_cube_sess_pars (sess_id, sess_par_nm, sess_par_val)
       SELECT p_sess_id, sess_par_nm, sess_par_val FROM asha_cube_sess_pars where sess_id = l_sess_id;
+
+      COREMOD_INTEGRATION.clone_integration (  P_INT_KEY => 'AWRWH2ASH_DUMP2CUBE',
+                                               p_modname => 'ASH_ANALYZER',
+                                               P_TRG_ENTITY_ID => l_sess_id,
+                                               P_TRG_PRNT_ENTITY_ID => p_proj_id,
+                                               P_NEW_TRG_ENTITY_ID => p_sess_id) ;
     end if;
   end;
 
@@ -763,7 +778,26 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
         end if;
       end if;
     else
-      raise_application_error(-20000,'AWR Warehouse is under construction');
+      --raise_application_error(-20000,'AWR Warehouse is under construction');
+      l_dbid     := g_allpars.pa_DBID;
+      l_min_snap := g_allpars.pa_START_SNAP;
+      l_max_snap := g_allpars.pa_END_SNAP;
+      l_start_dt := g_allpars.pa_start_dt;
+      l_end_dt   := g_allpars.pa_end_dt;
+
+      if instr(g_allpars.pa_inst_id,'-1')>0 then
+        open l_crsr for select unique instance_number inst_id from dba_hist_snapshot where dbid=l_dbid and snap_id between l_min_snap and l_max_snap order by 1;
+        loop
+          fetch l_crsr into l_inst_id;
+          exit when l_crsr%notfound;
+          l_inst_list:=l_inst_list||l_inst_id||',';
+        end loop;
+        close l_crsr;
+        l_inst_list:=rtrim(l_inst_list,',');
+        if l_inst_list is null then l_inst_list:='1'; end if;
+      else
+        l_inst_list:=replace(replace(g_allpars.pa_inst_id,':',','),';',',');
+      end if;
     end if;
     ----------------------------------------------------
     coremod_log.log('l_dbid:     '||l_dbid,'DEBUG');

@@ -160,6 +160,12 @@ package body AWRWH_PROJ_API as
 
     cleanup_project(p_proj_id=>p_proj_id, p_mode => c_ALL, p_use_retention => false);
 
+    COREMOD_INTEGRATION.remove_integration
+    (  p_int_key => AWRWH_API.gintAWRWH2ASH_DUMP2CUBE,
+       p_modname => AWRWH_API.gMODNAME,
+       P_PRNT_ENTITY_ID => p_proj_id,
+       P_ENTITY_ID => null) ;
+
     delete from awrwh_projects where proj_id=p_proj_id;
   end drop_project_i;
 

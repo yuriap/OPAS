@@ -1,5 +1,5 @@
 select * from dba_directories;
-select * from opas_files;
+select * from opas_files order by 1 desc;
 DECLARE
   l_file      UTL_FILE.FILE_TYPE;
   l_buffer    RAW(32767);
@@ -7,18 +7,19 @@ DECLARE
   l_pos       INTEGER := 1;
   l_blob      BLOB;
   l_blob_len  INTEGER;
+  l_fn        varchar2(1000);
 BEGIN
   -- Get LOB locator
-  SELECT file_contentb
-  INTO   l_blob
+  SELECT file_contentb, file_name
+  INTO   l_blob, l_fn
   FROM   opas_files
-  WHERE  file_id=60;
+  WHERE  file_id=86;
 
   l_blob_len := DBMS_LOB.getlength(l_blob);
   
   -- Open the destination file.
   --l_file := UTL_FILE.fopen('BLOBS','MyImage.gif','w', 32767);
-  l_file := UTL_FILE.fopen('DATA_PUMP_DIR','opas_awr_cdabdh62fjdxk.html','wb', 32767);
+  l_file := UTL_FILE.fopen('DATA_PUMP_DIR',l_fn,'wb', 32767);
 
   -- Read chunks of the BLOB and write them to the file
   -- until complete.

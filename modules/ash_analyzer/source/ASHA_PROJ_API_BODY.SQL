@@ -81,12 +81,23 @@ package body ASHA_PROJ_API as
 
     --delete expired sessions
     if p_mode in (c_ALL, c_SOURCEDATA) and p_use_retention then
-      delete from asha_cube_sess
+      l_done:=0;
+      for i in (select sess_id from asha_cube_sess
        where sess_proj_id=p_proj_id
          and (sess_created+nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME)/24))<sysdate
          and nvl(sess_retention_days,COREMOD_API.getconf('CUBERETENTION',ASHA_CUBE_API.gMODNAME))>0
-         and parent_id is null;
-      coremod_log.log('ASHA Sessions: '||sql%rowcount||' removed');
+         and parent_id is null)
+      loop
+        delete from asha_cube_sess where sess_id=i.sess_id;
+        COREMOD_INTEGRATION.remove_integration
+        (  p_int_key => 'AWRWH2ASH_DUMP2CUBE',
+           p_modname => 'ASH_ANALYZER',
+           P_PRNT_ENTITY_ID => p_proj_id,
+           P_ENTITY_ID => i.sess_id) ;
+        l_done:=l_done+1;
+      end loop;
+
+      coremod_log.log('ASHA Sessions: '||l_done||' removed');
 
       for i in (select * from asha_cube_reports
                  where proj_id = p_proj_id
@@ -124,6 +135,12 @@ package body ASHA_PROJ_API as
 	end if;
 
     cleanup_project(p_proj_id=>p_proj_id, p_mode => c_ALL, p_use_retention => false);
+
+    COREMOD_INTEGRATION.remove_integration
+    (  p_int_key => 'AWRWH2ASH_DUMP2CUBE',
+       p_modname => 'ASH_ANALYZER',
+       P_PRNT_ENTITY_ID => p_proj_id,
+       P_ENTITY_ID => null) ;
 
     delete from asha_cube_projects where proj_id=p_proj_id;
   end drop_project_i;

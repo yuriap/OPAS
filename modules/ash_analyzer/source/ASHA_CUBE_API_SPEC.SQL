@@ -1,7 +1,7 @@
 CREATE OR REPLACE
 PACKAGE ASHA_CUBE_API AS
 
-  gMODNAME            constant varchar2(32) := 'ASH_ANALYZER';
+  gMODNAME                constant varchar2(32) := 'ASH_ANALYZER';
 
   function  getMODNAME return varchar2;
 
