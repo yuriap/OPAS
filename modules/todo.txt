@@ -76,8 +76,8 @@ end;
  -.- sql_id chooser for reports, make it be able not to search but just to insert some known sql_id
  .- when creating cube for dump allow to choose NEW ASH project  
 V 4.6
- - show multyplan sql for local db must use dbid and snaps to select only relevant
- 
+ .- show multyplan sql for local db must use dbid and snaps to select only relevant
+V 4.6.1 
  todo
  .- multiuser monitor and snapper, a link between monitor and snapper to stop one another
  .- filtered separately - link between sessions
@@ -113,10 +113,11 @@ V 4.5.1
  -.- show ASH for loaded dumps choosing dumps
  .- ASH navigation through cubes from p303
 V 4.6
+ .- AWRWH reports dump name, link to project; space usage by project (awrtools)
+V 4.6.1
  - doc: each module, list of features, install guide
  - move cubes, dumps with report to other project
- - AWRWH reports dump name, link to project; space usage by project (awrtools)
- 
+ - when create link from AWR to ASH - redirect to cube page
 getcomph
 ============
 known bugs

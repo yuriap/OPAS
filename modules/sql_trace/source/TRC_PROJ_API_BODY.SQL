@@ -176,5 +176,21 @@ package body TRC_PROJ_API as
     update trc_projects set proj_note = p_proj_note where proj_id = p_proj_id;
   end;
 
+  procedure move_trace(p_trc_file_id      trc_files.trc_file_id%type,
+                       p_new_proj_id      trc_projects.proj_id%type)
+  is
+    l_trc_file         trc_files%rowtype;
+  begin
+    coremod_log.log('TRC_PROJ_API.move_trace: '||p_trc_file_id||':'||p_new_proj_id,'DEBUG');
+    l_trc_file:=TRC_FILE_API.get_file(p_trc_file_id,true);
+    if l_trc_file.status not in (TRC_FILE_LCC.c_trcfilestate_new,
+                                 TRC_FILE_LCC.c_trcfilestate_loaded,
+                                 TRC_FILE_LCC.c_trcfilestate_parsed,
+                                 TRC_FILE_LCC.c_trcfilestate_compressed,
+                                 TRC_FILE_LCC.c_trcfilestate_archived)
+    then raise_application_error(-20000,'Inapropriate status for trace file: '||l_trc_file.status); end if;
+    update trc_files set proj_id=p_new_proj_id where trc_file_id = p_trc_file_id;
+  end;
+
 end TRC_PROJ_API;
 /

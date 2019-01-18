@@ -1,6 +1,6 @@
 define MODNM=SQL_TRACE
-define MODVER="2.2.0"
---Core installation script
+define MODVER="2.2.1"
+--Extended SQL Trace installation script
 conn sys/&localsys.@&localdb. as sysdba
 
 @@scheme_setup.sql

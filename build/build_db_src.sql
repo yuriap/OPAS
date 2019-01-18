@@ -324,9 +324,9 @@ prompt /
 spool off
 
 
-spool &COREMODPATH.\AWRWH_CALC_ASH_CUBE_PRC.SQL
+spool &COREMODPATH.\AWRWH_CALC_ASH_CUBE_FNC.SQL
 prompt CREATE OR REPLACE
-select text from user_source where name='AWRWH_CALC_ASH_CUBE' and type='PROCEDURE' order by line;
+select text from user_source where name='AWRWH_CALC_ASH_CUBE' and type='FUNCTION' order by line;
 prompt /
 spool off
 --=============================================================================================

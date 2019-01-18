@@ -23,13 +23,6 @@ PACKAGE AWRWH_FILE_API AS
   procedure set_awr_dest(p_dump_id  awrwh_dumps.dump_id%type,
                          p_remote_dest varchar2);
 
-  /*
-    AWRWH_FILE_LCC.c_dmpfile_awrload,
-    AWRWH_FILE_LCC.c_dmpfile_awrunload,
-    AWRWH_FILE_LCC.c_dmpfile_compress,
-    AWRWH_FILE_LCC.c_dmpfile_archive,
-    AWRWH_FILE_LCC.c_dmpfile_dropfile
-  */
   procedure exec_file_action_async(p_dump_id awrwh_dumps.dump_id%type, p_action varchar2, p_tq_id out opas_task_queue.tq_id%type);
   procedure exec_file_action      (p_dump_id awrwh_dumps.dump_id%type, p_action varchar2, p_start_state varchar2);
 
@@ -47,7 +40,7 @@ PACKAGE AWRWH_FILE_API AS
                                 p_dump_name        awrwh_dumps.dump_name%type default null);
 
   /*integration with ASH Cube*/
-  procedure calc_ash_cube(p_dump_id awrwh_dumps.dump_id%type, p_ash_proj_id number);
+  function calc_ash_cube(p_dump_id awrwh_dumps.dump_id%type, p_ash_proj_id number) return number;
 
 END AWRWH_FILE_API;
 /

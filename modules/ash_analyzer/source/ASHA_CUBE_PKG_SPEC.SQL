@@ -26,6 +26,13 @@ PACKAGE ASHA_CUBE_PKG AS
 
   c_date_interval        constant varchar2(100) := 'DATE_INTERVAL';
 
+  stNEW                constant varchar2(100) := 'NEW';
+  stINQUEUE            constant varchar2(100) := 'INQUEUE';
+  stCALC               constant varchar2(100) := 'CALCULATING';
+  stREADY              constant varchar2(100) := 'READY';
+  stMONITOR            constant varchar2(100) := 'MONITOR';
+  stFAILED             constant varchar2(100) := 'FAILED';
+
   type tt_params_t is table of asha_cube_sess_pars.sess_par_val%type index by asha_cube_sess_pars.sess_par_nm%type;
 
   procedure queue_load_cube   (p_sess_id asha_cube_sess.sess_id%type, p_tq_id out opas_task_queue.tq_id%type); --from UI

@@ -41,5 +41,10 @@ package TRC_PROJ_API as
   procedure set_note(p_proj_id      trc_projects.proj_id%type,
                      p_proj_note    trc_projects.proj_note%type);
 
+  -- move data between projects
+  procedure move_trace(p_trc_file_id      trc_files.trc_file_id%type,
+                       p_new_proj_id      trc_projects.proj_id%type);
+
+
 end TRC_PROJ_API;
 /

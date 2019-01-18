@@ -28,13 +28,6 @@ PACKAGE BODY ASHA_CUBE_PKG AS
 
   c_sess               constant varchar2(100) := 'SESS_ID';
 
-  stNEW                constant varchar2(100) := 'NEW';
-  stINQUEUE            constant varchar2(100) := 'INQUEUE';
-  stCALC               constant varchar2(100) := 'CALCULATING';
-  stREADY              constant varchar2(100) := 'READY';
-  stMONITOR            constant varchar2(100) := 'MONITOR';
-  stFAILED             constant varchar2(100) := 'FAILED';
-
   g_mon_job_name       constant varchar2(30)  := 'OPASASHMONITOR';
 
   g_allpars   tt_all_params_r;

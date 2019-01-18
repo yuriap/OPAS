@@ -1,5 +1,5 @@
 CREATE OR REPLACE
-procedure AWRWH_CALC_ASH_CUBE(p_dump_id awrwh_dumps.dump_id%type, p_ash_proj_id number)
+function AWRWH_CALC_ASH_CUBE(p_dump_id awrwh_dumps.dump_id%type, p_ash_proj_id number) return number
 is
     l_dmp_file         awrwh_dumps%rowtype;
     l_sess_id          number;
@@ -33,5 +33,6 @@ begin
 
     ASHA_CUBE_PKG.queue_load_cube( l_sess_id, l_tq_id);
     commit;
+    return l_sess_id;
 end;
 /

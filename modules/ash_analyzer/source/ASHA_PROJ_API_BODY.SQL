@@ -240,5 +240,37 @@ package body ASHA_PROJ_API as
       insert into asha_cube_srcdblink2projects (proj_id,src_dblink) values(p_proj_id,replace(l_tbl(i),'LOCAL$$','$LOCAL$'));
     end loop;
   end;
+
+  -- move data between projects
+  procedure move_cube(p_sess_id          asha_cube_sess.sess_id%type,
+                      p_new_proj_id      asha_cube_projects.proj_id%type)
+  is
+    l_sess     asha_cube_sess%rowtype;
+  begin
+    select * into l_sess from asha_cube_sess where sess_id=p_sess_id;
+
+    if l_sess.sess_status not in (ASHA_CUBE_PKG.stREADY) then raise_application_error(-20000,'Inapropriate status for cube: '||l_sess.sess_status); end if;
+    update asha_cube_sess set sess_proj_id=p_new_proj_id where sess_id=p_sess_id;
+    for i in (select report_id from asha_cube_reports where nvl(sess_id,-1) = p_sess_id) loop
+      move_report(i.report_id,p_new_proj_id);
+    end loop;
+  end;
+
+  procedure move_report(p_report_id      asha_cube_reports.report_id%type,
+                        p_new_proj_id    asha_cube_projects.proj_id%type)
+  is
+    l_repo     asha_cube_reports%rowtype;
+    l_sess     asha_cube_sess%rowtype;
+  begin
+    select * into l_repo from asha_cube_reports where report_id=p_report_id for update;
+
+    if l_repo.sess_id is not null then
+      select * into l_sess from asha_cube_sess where sess_id=l_repo.sess_id;
+      if l_sess.sess_proj_id <> p_new_proj_id then raise_application_error(-20000,'Report project must match cube project (cube:report): '||l_sess.sess_proj_id ||':'|| p_new_proj_id); end if;
+    end if;
+
+    update asha_cube_reports set proj_id=p_new_proj_id where report_id=p_report_id;
+  end;
+
 end ASHA_PROJ_API;
 /

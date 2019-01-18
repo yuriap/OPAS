@@ -337,14 +337,16 @@ PACKAGE BODY AWRWH_FILE_API AS
 
   end;
 
-  procedure calc_ash_cube(p_dump_id awrwh_dumps.dump_id%type, p_ash_proj_id number)
+  function calc_ash_cube(p_dump_id awrwh_dumps.dump_id%type, p_ash_proj_id number) return number
   is
+    l_sess number;
   begin
     if COREMOD_SEC.is_mod_installed(P_MODNAME => 'ASH_ANALYZER') then
-      execute immediate 'begin AWRWH_CALC_ASH_CUBE(:p_dump_id, :p_ash_proj_id); end;' using p_dump_id,p_ash_proj_id;
+      execute immediate 'begin :sess := AWRWH_CALC_ASH_CUBE(:p_dump_id, :p_ash_proj_id); end;'  using in out l_sess, p_dump_id,p_ash_proj_id;
     else
       raise_application_error(-20000,'Module "ASH_ANALYZER" is not installed.');
     end if;
+    return l_sess;
   end;
 
 END AWRWH_FILE_API;

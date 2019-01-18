@@ -264,5 +264,46 @@ package body AWRWH_PROJ_API as
       insert into awrwh_srcdblink2projects (proj_id,src_dblink) values(p_proj_id,replace(l_tbl(i),'LOCAL$$','$LOCAL$'));
     end loop;
   end;
+
+  -- move data between projects
+  procedure move_dump(p_dump_id          awrwh_dumps.dump_id%type,
+                      p_new_proj_id      awrwh_projects.proj_id%type)
+  is
+    l_dmp_file awrwh_dumps%rowtype;
+  begin
+    l_dmp_file:=AWRWH_FILE_API.get_file(p_dump_id,true);
+    if l_dmp_file.status not in (AWRWH_FILE_LCC.c_dmpfilestate_new,
+                                 AWRWH_FILE_LCC.c_dmpfilestate_dmploaded,
+                                 AWRWH_FILE_LCC.c_dmpfilestate_awrloaded,
+                                 AWRWH_FILE_LCC.c_dmpfilestate_compressed,
+                                 AWRWH_FILE_LCC.c_dmpfilestate_archived)
+    then raise_application_error(-20000,'Inapropriate status for file: '||l_dmp_file.status); end if;
+    update awrwh_dumps set proj_id=p_new_proj_id where dump_id=p_dump_id;
+    for i in (select report_id from awrwh_reports where nvl(dump_id,-1) = p_dump_id or nvl(dump_id_2,-1)=p_dump_id) loop
+      move_report(i.report_id,p_new_proj_id);
+    end loop;
+  end;
+
+  procedure move_report(p_report_id      awrwh_reports.report_id%type,
+                        p_new_proj_id    awrwh_projects.proj_id%type)
+  is
+    l_repo    awrwh_reports%rowtype;
+    l_dmp_file awrwh_dumps%rowtype;
+  begin
+    select * into l_repo from awrwh_reports where report_id=p_report_id for update;
+
+    if l_repo.dump_id is not null then
+      l_dmp_file:=AWRWH_FILE_API.get_file(l_repo.dump_id,false);
+      if l_dmp_file.proj_id <> p_new_proj_id then raise_application_error(-20000,'Report project must match dump project (dump:report): '||l_dmp_file.proj_id ||':'|| p_new_proj_id); end if;
+    end if;
+
+    if l_repo.dump_id_2 is not null then
+      l_dmp_file:=AWRWH_FILE_API.get_file(l_repo.dump_id_2,false);
+      if l_dmp_file.proj_id <> p_new_proj_id then raise_application_error(-20000,'Report project must match dump project (dump:report): '||l_dmp_file.proj_id ||':'|| p_new_proj_id); end if;
+    end if;
+
+    update awrwh_reports set proj_id=p_new_proj_id where report_id=p_report_id;
+  end;
+
 end AWRWH_PROJ_API;
 /
