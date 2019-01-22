@@ -57,6 +57,9 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
       sess_retention_days = decode(p_sess_retention_days,-1,null,p_sess_retention_days),
       sess_description = p_sess_description
      where sess_id = p_sess_id;
+    update asha_cube_sess set
+     sess_retention_days = decode(p_sess_retention_days,-1,null,p_sess_retention_days)
+     where parent_id = p_sess_id;
   end;
 
   procedure create_report(p_report_type      varchar2,
@@ -130,6 +133,9 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
       report_retention = decode(p_report_retention,-1,null,p_report_retention),
       report_note = p_report_note
      where report_id = p_report_id;
+    update asha_cube_reports set
+      report_retention = decode(p_report_retention,-1,null,p_report_retention)
+     where report_id in (select report_id from opas_reports where parent_id=p_report_id);
   end;
 
   procedure delete_report(p_proj_id          asha_cube_reports.proj_id%type,

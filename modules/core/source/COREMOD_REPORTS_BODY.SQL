@@ -544,6 +544,8 @@ end;]';
     l_wide_sect_width   number := COREMOD_API.getconf('WIDESECT',COREMOD_API.gMODNAME);
     l_super_wide_sect_width   number := COREMOD_API.getconf('SUPERWIDESECT',COREMOD_API.gMODNAME);
 
+    l_ora_ver number;
+
     procedure p(p_line varchar2) is
     begin
       l_report(l_indx):=p_line;
@@ -563,6 +565,9 @@ end;]';
                                         p_units => 'sections',
                                         p_totalwork => 16);
     COREMOD_REPORT_UTILS.start_lo_section(p_module_name => 'SQL V$ report: '||p_sql_id, p_action_name => 'Preparation');
+
+    execute immediate q'[select rtrim(trim(substr(banner,instr(banner,'.')-3,4)),'.') from v$version]' || case when p_dblink is null then null else '@'||p_dblink end || q'[ where banner like 'Oracle Database%']'
+      into l_ora_ver;
 
     p(HTF.header (1,'SQL Report for SQL_ID='||p_sql_id,cattributes=>'class="awr"'));
     p(HTF.BR);
@@ -708,16 +713,21 @@ end;]';
     l_script:=coremod_api.getscript('PROC_SQLMON');
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'SQL Monitor report (11g+)',cname=>'sql_mon',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
-    COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
 
-    l_plsql_output:=null;
-    if p_dblink is null then
-      coremod_report_utils.execute_plsql(p_sql => l_script, p_output => l_plsql_output);
+    if l_ora_ver >= 11 then
+      COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
+
+      l_plsql_output:=null;
+      if p_dblink is null then
+        coremod_report_utils.execute_plsql(p_sql => l_script, p_output => l_plsql_output);
+      else
+        coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+      end if;
+      coremod_report_utils.print_text_as_table(p_text=>l_plsql_output||chr(10),p_t_header=>'SQL Monitor report',p_width=>l_narrow_sect_width, p_output=> l_output);
+      p1(l_output);
     else
-      coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+      p('Section available starting from 11g');
     end if;
-    coremod_report_utils.print_text_as_table(p_text=>l_plsql_output||chr(10),p_t_header=>'SQL Monitor report',p_width=>l_narrow_sect_width, p_output=> l_output);
-    p1(l_output);
 
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
@@ -952,15 +962,20 @@ end;]';
     l_script:=coremod_api.getscript('PROC_SQLMON_HIST');
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'SQL Monitor report history (12c+)',cname=>'sql_mon_hist',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
-    COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
-    l_plsql_output:=null;
-    if p_dblink is null then
-      coremod_report_utils.execute_plsql(p_sql => l_script, p_output => l_plsql_output);
+
+    if l_ora_ver >=12 then
+      COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
+      l_plsql_output:=null;
+      if p_dblink is null then
+        coremod_report_utils.execute_plsql(p_sql => l_script, p_output => l_plsql_output);
+      else
+        coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+      end if;
+      coremod_report_utils.print_text_as_table(p_text=>l_plsql_output,p_t_header=>'SQL Monitor report history',p_width=>l_narrow_sect_width, p_output=> l_output);
+      p1(l_output);
     else
-      coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+      p('Section available starting from 12c');
     end if;
-    coremod_report_utils.print_text_as_table(p_text=>l_plsql_output,p_t_header=>'SQL Monitor report history',p_width=>l_narrow_sect_width, p_output=> l_output);
-    p1(l_output);
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
     p(HTF.BR);
@@ -1175,6 +1190,8 @@ end;]';
     l_wide_sect_width   number := COREMOD_API.getconf('WIDESECT',COREMOD_API.gMODNAME);
     l_super_wide_sect_width   number := COREMOD_API.getconf('SUPERWIDESECT',COREMOD_API.gMODNAME);
 
+    l_ora_ver number;
+
     procedure p(p_line varchar2) is
     begin
       l_report(l_indx):=p_line;
@@ -1227,6 +1244,8 @@ end;]';
         bulk collect into l_dbid;
     end if;
 
+    execute immediate q'[select rtrim(trim(substr(banner,instr(banner,'.')-3,4)),'.') from v$version]' || case when p_dblink is null then null else '@'||p_dblink end || q'[ where banner like 'Oracle Database%']'
+      into l_ora_ver;
     p_filename := 'opas_awr_'||p_sql_id||'.html';
     p_displ_params := 'SQL_ID: '||p_sql_id||case when p_dblink is null then '; Local DB' else '; DBLINK: '||p_dblink end||
                       case when nvl(p_report_limit,-1)>=0 then '; LIMIT: '||p_report_limit else '; DBID SNAPS: '||p_dbid||':'||p_min_snap||':'||p_max_snap end;
@@ -1408,13 +1427,13 @@ end;]';
     loop
       p('DBID: '||l_dbid(i));
 
-      $if dbms_db_version.ver_le_12 $then
-      l_script:=q'[select plan_table_output from (select unique sql_id,plan_hash_value,dbid from dba_hist_sqlstat where dbid=]'||l_dbid(i)||q'[ and snap_id between ]'||l_start_snap||' and '||l_end_snap||q'[ and sql_id=']'||p_sql_id||q'[') s,
-      table(dbms_xplan.display_awr(sql_id => s.sql_id, plan_hash_value => s.plan_hash_value, db_id => s.dbid, FORMAT=>'ADVANCED -ALIAS'))]'||chr(10);
-      $else
-      l_script:=q'[select plan_table_output from (select unique sql_id,plan_hash_value,dbid from dba_hist_sqlstat where dbid=]'||l_dbid(i)||q'[ and snap_id between ]'||l_start_snap||' and '||l_end_snap||q'[ and sql_id=']'||p_sql_id||q'[') s,
-      table(dbms_xplan.display_workload_repository(sql_id => s.sql_id, plan_hash_value => s.plan_hash_value, dbid => s.dbid, con_dbid => s.dbid, format => 'ADVANCED -ALIAS', awr_location    => 'AWR_PDB'))]'||chr(10);
-      $end
+      if l_ora_ver < 18 then
+        l_script:=q'[select plan_table_output from (select unique sql_id,plan_hash_value,dbid from dba_hist_sqlstat where dbid=]'||l_dbid(i)||q'[ and snap_id between ]'||l_start_snap||' and '||l_end_snap||q'[ and sql_id=']'||p_sql_id||q'[') s,
+        table(dbms_xplan.display_awr(sql_id => s.sql_id, plan_hash_value => s.plan_hash_value, db_id => s.dbid, FORMAT=>'ADVANCED -ALIAS'))]'||chr(10);
+      else
+        l_script:=q'[select plan_table_output from (select unique sql_id,plan_hash_value,dbid from dba_hist_sqlstat where dbid=]'||l_dbid(i)||q'[ and snap_id between ]'||l_start_snap||' and '||l_end_snap||q'[ and sql_id=']'||p_sql_id||q'[') s,
+        table(dbms_xplan.display_workload_repository(sql_id => s.sql_id, plan_hash_value => s.plan_hash_value, dbid => s.dbid, con_dbid => s.dbid, format => 'ADVANCED -ALIAS', awr_location    => 'AWR_PDB'))]'||chr(10);
+      end if;
       l_output.delete;
       if p_dblink is null then
         coremod_report_utils.print_table_html(p_query=>l_script,
@@ -1876,22 +1895,26 @@ end;]',
 
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'SQL Monitor report history (12c+)',cname=>'sql_mon_hist',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
-    l_script:=coremod_api.getscript('PROC_SQLMON_HIST');
-    COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id,p_start_snap => l_start_snap, p_end_snap => l_end_snap);
-    l_plsql_output:=null;
-    if p_dblink is null then
-      coremod_report_utils.execute_plsql(p_sql => l_script, p_output => l_plsql_output);
-    else
-      coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
-    end if;
-    coremod_report_utils.print_text_as_table(p_text=>l_plsql_output,
+
+    if l_ora_ver >=12 then
+      l_script:=coremod_api.getscript('PROC_SQLMON_HIST');
+      COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id,p_start_snap => l_start_snap, p_end_snap => l_end_snap);
+      l_plsql_output:=null;
+      if p_dblink is null then
+        coremod_report_utils.execute_plsql(p_sql => l_script, p_output => l_plsql_output);
+      else
+        coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+      end if;
+      coremod_report_utils.print_text_as_table(p_text=>l_plsql_output,
                         p_t_header=>'SQL Monitor report history',
                         p_width=>l_narrow_sect_width,
                         p_search=>'Plan Hash Value=([[:digit:]]*)',
                         p_replacement=>HTF.ANCHOR (curl=>'#awrplan_\1',ctext=>'Plan Hash Value=\1',cattributes=>'class="awr"'),
                         p_output=> l_output);
-    p1(l_output);
-
+      p1(l_output);
+    else
+      p('Section is available from 12c');
+    end if;
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
     p(HTF.BR);

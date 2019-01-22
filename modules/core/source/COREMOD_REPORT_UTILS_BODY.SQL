@@ -800,12 +800,9 @@ end;]';
     output();
 
     if l_colCnt = 1 then
-      if round(p_width/(l_widest*6.2))>1.1 then
-        p_output(1):=replace(p_output(1),'<width>',round(l_widest*6.2));
-      else
-        p_output(1):=replace(p_output(1),'<width>',p_width);
-      end if;
+      p_output(1):=replace(p_output(1),'<width>',round(l_widest*6.2));
     end if;
+    p_output(1):=replace(p_output(1),'<width>',p_width);
 
   exception
     when others then
@@ -1186,7 +1183,7 @@ end;]';
       return q'[select /*+ qb_name(OPAS_SEARCH) */ 1 nn#, 'Local query cache' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,4000) as varchar2(4000)) sql_text from opas_qry_cache
                  where 1=2]';
     elsif p_srcdb is null or p_srcdb = '$LOCAL$' then
-      return q'[select * from (
+      return q'[select * from
                (select /*+ qb_name(OPAS_SEARCH) */ 1 nn#, 'Local query cache' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,4000) as varchar2(4000)) sql_text from opas_qry_cache
                  where (sql_text like ']'||p_sql_search_str||q'[' or upper(sql_text) like upper(']'||p_sql_search_str||q'[')) and 'Y'=']'||p_use_cache||q'['
                 union all

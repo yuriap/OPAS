@@ -1,5 +1,5 @@
 define MODNM=AWR_WAREHOUSE
-define MODVER="4.3.1"
+define MODVER="4.3.2"
 
 --remote scheme setup
 conn sys/&remotesys.@&remotedb. as sysdba

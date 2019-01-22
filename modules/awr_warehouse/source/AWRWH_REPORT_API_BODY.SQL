@@ -196,12 +196,12 @@ PACKAGE BODY AWRWH_REPORT_API AS
   begin
     l_proj:=AWRWH_PROJ_API.getproject(p_proj_id,true);
 
-    if p_report_type = COREMOD_REPORT_UTILS.gSQL_MEMORY_REPORT and p_dump_id is null then
+    if p_report_type = COREMOD_REPORT_UTILS.gSQL_MEMORY_REPORT then
       l_report_id := coremod_reports.queue_report_sql_memory_stats(p_modname => AWRWH_API.gMODNAME, p_owner => l_proj.owner, p_sql_id => p_sql_id, p_dblink => p_dblink);
-    elsif p_report_type = COREMOD_REPORT_UTILS.gSQL_AWR_REPORT and p_dump_id is not null then
+    elsif p_report_type = COREMOD_REPORT_UTILS.gSQL_AWR_REPORT then
       l_report_id := coremod_reports.queue_report_sql_awr_stats(p_modname => AWRWH_API.gMODNAME, p_owner => l_proj.owner, p_sql_id => p_sql_id, p_dblink => p_dblink, p_report_limit => p_limit);
     else
-      raise_application_error(-20000,'Unsupported report type: '||p_report_type||nvl(p_dump_id,-1));
+      raise_application_error(-20000,'Unsupported report type: '||p_report_type||'; dump: '||nvl(p_dump_id,-1));
     end if;
 
     INSERT INTO awrwh_reports (proj_id,report_id,dump_id,dump_id_2,report_retention,report_note,created)
@@ -431,6 +431,9 @@ PACKAGE BODY AWRWH_REPORT_API AS
       report_retention = decode(p_report_retention,-1,null,p_report_retention),
       report_note = p_report_note
      where report_id = p_report_id;
+    update asha_cube_reports set
+      report_retention = decode(p_report_retention,-1,null,p_report_retention)
+     where report_id in (select report_id from opas_reports where parent_id=p_report_id);
   end;
 
   procedure delete_report(p_proj_id            awrwh_reports.proj_id%type,

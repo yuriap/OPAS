@@ -1,23 +1,5 @@
 todo.txt
 
-Type
-Text
-Size
-5 KB (4,701 bytes)
-Storage used
-5 KB (4,701 bytes)
-Location
-OPAS
-Owner
-me
-Modified
-Jan 12, 2019 by me
-Opened
-10:05 AM by me
-Created
-Jan 12, 2019 with Google Drive Web
-Add a description
-Viewers can download
 ASH Analyzer
 ============
 known bugs
@@ -78,6 +60,14 @@ end;
 V 4.6
  .- show multyplan sql for local db must use dbid and snaps to select only relevant
 V 4.6.1 
+ .- Query search Local ORA-00907: missing right parenthesis
+ .- query search -> open query -> sql mem report / awr report -> no_data_found
+ .- p151 sql_id list empty before change parameter retention/dumps
+ .- custon awr report throug dblink uses 18c display_cursor
+ .not reproduced - filter is lost when create new session in cube
+V 4.6.2
+ 
+============================================================================================================================
  todo
  .- multiuser monitor and snapper, a link between monitor and snapper to stop one another
  .- filtered separately - link between sessions
@@ -114,10 +104,15 @@ V 4.5.1
  .- ASH navigation through cubes from p303
 V 4.6
  .- AWRWH reports dump name, link to project; space usage by project (awrtools)
+ .- when create link from AWR to ASH - redirect to cube page
+ .- move cubes, dumps with report to other project
 V 4.6.1
+ .- if to set retention polisy for a cube it must be propogated to child if any als for reports
+ .- search for query in AWRWH p401,404
+V 4.6.2
  - doc: each module, list of features, install guide
- - move cubes, dumps with report to other project
- - when create link from AWR to ASH - redirect to cube page
+ 
+============================================================================================================================
 getcomph
 ============
 known bugs

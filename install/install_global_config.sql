@@ -1,7 +1,7 @@
 define namepref=opas45
 
 -- Oracle Performance Analytic Suite version
-define OPASVER=4.6.1
+define OPASVER=4.6.2
 
 -- Oracle Performance Analytic Suite scheme for local database
 define localscheme=&namepref.

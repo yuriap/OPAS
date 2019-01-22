@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   15:26 Friday January 18, 2019
+--   Date and Time:   11:42 Tuesday January 22, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -40,9 +40,9 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 --     Items:                  317
 --     Computations:             3
 --     Validations:              2
---     Processes:              141
+--     Processes:              143
 --     Regions:                229
---     Buttons:                166
+--     Buttons:                168
 --     Dynamic Actions:         21
 --   Shared Components:
 --     Logic:
@@ -126,7 +126,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190118152324'
+,p_last_upd_yyyymmddhh24miss=>'20190122104353'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -14147,7 +14147,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'ui-dialog--stretch'
 ,p_dialog_chained=>'N'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190117124654'
+,p_last_upd_yyyymmddhh24miss=>'20190122104353'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(93285675762615738)
@@ -14237,7 +14237,7 @@ wwv_flow_api.create_page_plug(
 ,p_plug_display_point=>'BODY'
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 ,p_plug_display_condition_type=>'PLSQL_EXPRESSION'
-,p_plug_display_when_condition=>':P131_SOURCEDB<>''$LOCAL$'' and :P131_SQL_ID<>''<UNKNOWN SQL>'' and :P131_SOURCE_PAGE in (301, 303) and :P131_SQL_ID is not null'
+,p_plug_display_when_condition=>'nvl(:P131_SQL_ID,''~'')<>''<UNKNOWN SQL>'' and (:P131_SOURCE_PAGE between 300 and 399 or :P131_SOURCE_PAGE between 400 and 499)'
 ,p_attribute_01=>'N'
 ,p_attribute_02=>'HTML'
 );
@@ -14273,11 +14273,6 @@ wwv_flow_api.create_page_button(
 ,p_button_image_alt=>'Queue SQL report from memory'
 ,p_button_position=>'BODY'
 ,p_button_execute_validations=>'N'
-,p_button_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
-':P131_SOURCEDB!=''$LOCAL$'' and ',
-'ASHA_PROJ_LCC.PROJECT_CHECK_ACTION(case when :P131_SOURCE_PAGE = 303 then :P303_PROJ_ID when :P131_SOURCE_PAGE = 301 then :P301_PROJ_ID else null end,ASHA_PROJ_LCC.C_PROJECT_EDIT)'))
-,p_button_condition_type=>'PLSQL_EXPRESSION'
-,p_grid_new_grid=>false
 ,p_grid_new_row=>'Y'
 ,p_grid_column_span=>1
 ,p_security_scheme=>wwv_flow_api.id(103683328942143765)
@@ -14292,9 +14287,6 @@ wwv_flow_api.create_page_button(
 ,p_button_template_id=>wwv_flow_api.id(105136390946958319)
 ,p_button_image_alt=>'Queue SQL report from AWR'
 ,p_button_position=>'BODY'
-,p_button_condition=>'ASHA_PROJ_LCC.PROJECT_CHECK_ACTION(case when :P131_SOURCE_PAGE = 303 then :P303_PROJ_ID when :P131_SOURCE_PAGE = 301 then :P301_PROJ_ID else null end,ASHA_PROJ_LCC.C_PROJECT_EDIT)'
-,p_button_condition_type=>'PLSQL_EXPRESSION'
-,p_grid_new_grid=>false
 ,p_grid_new_row=>'Y'
 ,p_grid_column_span=>1
 ,p_security_scheme=>wwv_flow_api.id(103683328942143765)
@@ -14350,47 +14342,120 @@ wwv_flow_api.create_page_item(
 ,p_attribute_05=>'BOTH'
 );
 wwv_flow_api.create_page_process(
- p_id=>wwv_flow_api.id(122798622985321515)
-,p_process_sequence=>10
+ p_id=>wwv_flow_api.id(30756680649496214)
+,p_process_sequence=>30
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
-,p_process_name=>'ASHQueueSQLReportFromMemory'
+,p_process_name=>'CreateReportASH_Memory'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
-'  if :P131_SOURCE_PAGE in ( 301, 303 ) then',
-'    ASHA_CUBE_API.create_report(',
-'         p_report_type => COREMOD_REPORT_UTILS.gSQL_MEMORY_REPORT,',
-'         P_PROJ_ID     => :P303_PROJ_ID,',
-'         P_SESS_ID     => case when :P131_SOURCE_PAGE = 303 then :P303_SESS_ID else null end,',
-'         P_SQL_ID      => :P131_SQL_ID,',
-'         P_DBLINK      => :P131_SOURCEDB) ; ',
-'  end if;',
+'  case ',
+'    when :P131_SOURCE_PAGE between 300 and 399 ',
+'      then ',
+'          ASHA_CUBE_API.create_report (  ',
+'             p_report_type  => COREMOD_REPORT_UTILS.gSQL_MEMORY_REPORT,',
+'             P_PROJ_ID      => case when :P131_SOURCE_PAGE = 301 then :P301_PROJ_ID when :P131_SOURCE_PAGE = 303 then :P303_PROJ_ID else null end,',
+'             p_sql_id       => :P131_SQL_ID,',
+'             P_DBLINK       => case when :P131_SOURCEDB = ''$LOCAL$'' then null else :P131_SOURCEDB end,',
+'             P_SESS_ID      => case when :P131_SOURCE_PAGE = 303 then :P303_SESS_ID else null end) ;',
+'    else ',
+'      raise_application_error(-20000,''Unimplemented source page: ''||:P131_SOURCE_PAGE);',
+'  end case;',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(122796598430321494)
+,p_process_when=>':P131_SOURCE_PAGE between 300 and 399 '
+,p_process_when_type=>'PLSQL_EXPRESSION'
 ,p_process_success_message=>'The report has been put in the queue.'
 );
 wwv_flow_api.create_page_process(
- p_id=>wwv_flow_api.id(122799052819321518)
-,p_process_sequence=>20
+ p_id=>wwv_flow_api.id(30756995356498020)
+,p_process_sequence=>40
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
-,p_process_name=>'ASHQueueSQLReportFromAWR'
+,p_process_name=>'CreateReportAWRWH_Memory'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
-'  if :P131_SOURCE_PAGE in (301, 303) then',
-'    ASHA_CUBE_API.create_report',
-'      (  p_report_type => COREMOD_REPORT_UTILS.gSQL_AWR_REPORT,',
-'         P_PROJ_ID     => :P303_PROJ_ID,',
-'         P_SESS_ID     => case when :P131_SOURCE_PAGE = 303 then :P303_SESS_ID else null end,',
-'         P_SQL_ID      => :P131_SQL_ID,',
-'         P_DBLINK      => :P131_SOURCEDB,',
-'         P_LIMIT       => :P131_AWR_LIMIT) ; ',
-'    end if;',
+'  case ',
+'    when :P131_SOURCE_PAGE between 400 and 499 ',
+'      then',
+'        AWRWH_REPORT_API.create_report (  ',
+'             p_report_type  => COREMOD_REPORT_UTILS.gSQL_MEMORY_REPORT,',
+'             P_PROJ_ID      => case when :P131_SOURCE_PAGE = 401 then :P401_PROJ_ID when :P131_SOURCE_PAGE = 404 then :P404_PROJ_ID else null end,',
+'             p_sql_id       => :P131_SQL_ID,',
+'             P_DBLINK       => case when :P131_SOURCEDB = ''$LOCAL$'' then null else :P131_SOURCEDB end,',
+'             p_dump_id      => case when :P131_SOURCE_PAGE = 404 then :P404_DUMP_ID else null end) ;',
+'    else ',
+'      raise_application_error(-20000,''Unimplemented source page: ''||:P131_SOURCE_PAGE);',
+'  end case;',
+'end;',
+''))
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_api.id(122796598430321494)
+,p_process_when=>':P131_SOURCE_PAGE between 400 and 499'
+,p_process_when_type=>'PLSQL_EXPRESSION'
+,p_process_success_message=>'The report has been put in the queue.'
+);
+wwv_flow_api.create_page_process(
+ p_id=>wwv_flow_api.id(30760112353563848)
+,p_process_sequence=>50
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'CreateReportASH_AWR'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'begin',
+'  case ',
+'    when :P131_SOURCE_PAGE between 300 and 399 ',
+'      then',
+'          ASHA_CUBE_API.create_awrsql_report (  ',
+'            P_PROJ_ID      => case when :P131_SOURCE_PAGE = 301 then :P301_PROJ_ID when :P131_SOURCE_PAGE = 303 then :P303_PROJ_ID else null end,',
+'            P_SESS_ID      => case when :P131_SOURCE_PAGE = 303 then :P303_SESS_ID else null end,',
+'            p_sql_id       => :P131_SQL_ID,',
+'            P_DBLINK       => case when :P131_SOURCEDB = ''$LOCAL$'' then null else :P131_SOURCEDB end,',
+'            p_limit        => :P131_AWR_LIMIT,',
+'            p_dbid         => null,',
+'            p_min_snap     => null,',
+'            p_max_snap     => null) ;',
+'    else ',
+'      raise_application_error(-20000,''Unimplemented source page: ''||:P131_SOURCE_PAGE);',
+'  end case;',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(122797029251321499)
-,p_process_success_message=>'Report has been put in queue.'
+,p_process_when=>':P131_SOURCE_PAGE between 300 and 399'
+,p_process_when_type=>'PLSQL_EXPRESSION'
+,p_process_success_message=>'The report has been put in the queue.'
+);
+wwv_flow_api.create_page_process(
+ p_id=>wwv_flow_api.id(30760404651565119)
+,p_process_sequence=>60
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'CreateReportAWRWH_AWR'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'begin',
+'  case ',
+'    when :P131_SOURCE_PAGE between 400 and 499 ',
+'      then',
+'          AWRWH_REPORT_API.create_awrsql_report (  ',
+'            P_PROJ_ID      => case when :P131_SOURCE_PAGE = 401 then :P401_PROJ_ID when :P131_SOURCE_PAGE = 404 then :P404_PROJ_ID else null end,',
+'            p_sql_id       => :P131_SQL_ID,',
+'            P_DBLINK       => case when :P131_SOURCEDB = ''$LOCAL$'' then null else :P131_SOURCEDB end,',
+'            p_limit        => :P131_AWR_LIMIT,',
+'            p_dbid         => null,',
+'            p_min_snap     => null,',
+'            p_max_snap     => null,',
+'            p_dump_id      => case when :P131_SOURCE_PAGE = 404 then :P404_DUMP_ID else null end) ;',
+'    else ',
+'      raise_application_error(-20000,''Unimplemented source page: ''||:P131_SOURCE_PAGE);',
+'  end case;',
+'end;',
+''))
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_api.id(122797029251321499)
+,p_process_when=>':P131_SOURCE_PAGE between 400 and 499 '
+,p_process_when_type=>'PLSQL_EXPRESSION'
+,p_process_success_message=>'The report has been put in the queue.'
 );
 end;
 /
@@ -14407,7 +14472,7 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(109267767934883432)
 ,p_page_template_options=>'#DEFAULT#:ui-dialog--stretch'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181212121956'
+,p_last_upd_yyyymmddhh24miss=>'20190121151126'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(122687885213044878)
@@ -14523,7 +14588,6 @@ wwv_flow_api.create_page_item(
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_named_lov=>'OPAS_DB_LINKS'
 ,p_lov=>'select DISPLAY_NAME D, DB_LINK_NAME R from v$opas_db_links where status=''CREATED'' order by 1'
-,p_lov_display_null=>'YES'
 ,p_cHeight=>1
 ,p_field_template=>wwv_flow_api.id(105135891214958300)
 ,p_item_template_options=>'#DEFAULT#'
@@ -14807,7 +14871,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_height=>'600'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190116125115'
+,p_last_upd_yyyymmddhh24miss=>'20190121150230'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(213106360232145279)
@@ -14944,7 +15008,7 @@ wwv_flow_api.create_page_item(
 ,p_display_as=>'NATIVE_POPUP_LOV'
 ,p_lov=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
-'  if :P150_DEST is null or :P151_DBID is null or :P151_START_SNAP is null or :P151_END_SNAP is null then',
+'  if :P150_DEST is null or :P151_DBID is null then',
 '    return q''[select t.sql_id||'' : ''||cast(substr(sql_text,1,200) as varchar2(200)) d, t.sql_id r from dba_hist_sqltext t, dba_hist_sqlstat s where t.sql_id=s.sql_id and t.dbid = s.dbid and 1=2]'';',
 '  elsif :P150_DEST = ''$LOCAL$'' then',
 '    return q''[select unique t.sql_id||'' : ''||cast(substr(sql_text,1,200) as varchar2(200)) d, t.sql_id r ',
@@ -14961,7 +15025,7 @@ wwv_flow_api.create_page_item(
 '         and s.dbid=''||:P151_DBID;  ',
 '  end if;',
 'end;'))
-,p_lov_cascade_parent_items=>'P151_DBID'
+,p_lov_cascade_parent_items=>'P151_DBID, P151_SNAPS, P151_LIMIT'
 ,p_ajax_optimize_refresh=>'Y'
 ,p_cSize=>30
 ,p_display_when=>'P151_SNAPS'
@@ -15083,7 +15147,7 @@ wwv_flow_api.create_page_item(
 '      :P151_DBID||'' and s.snap_id between ''||:P151_START_SNAP||'' and ''||:P151_END_SNAP;  ',
 '  end if;',
 'end;'))
-,p_lov_cascade_parent_items=>'P151_DBID,P151_START_SNAP,P151_END_SNAP'
+,p_lov_cascade_parent_items=>'P151_DBID,P151_START_SNAP,P151_END_SNAP,P151_SNAPS'
 ,p_ajax_optimize_refresh=>'Y'
 ,p_cSize=>30
 ,p_display_when=>'P151_SNAPS'
@@ -32112,8 +32176,8 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(123036395099748426)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(122912880450952719)
-,p_last_updated_by=>'OPAS45ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190117154539'
+,p_last_updated_by=>'OPAS40ADM'
+,p_last_upd_yyyymmddhh24miss=>'20190122103245'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(139061539631437771)
@@ -32888,6 +32952,19 @@ wwv_flow_api.create_page_button(
 ,p_security_scheme=>wwv_flow_api.id(122913147327954849)
 );
 wwv_flow_api.create_page_button(
+ p_id=>wwv_flow_api.id(30763958847628363)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_api.id(152493190289702589)
+,p_button_name=>'Searchquery'
+,p_button_action=>'REDIRECT_PAGE'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>wwv_flow_api.id(105136390946958319)
+,p_button_image_alt=>'Search for query'
+,p_button_position=>'TOP'
+,p_button_alignment=>'LEFT'
+,p_button_redirect_url=>'f?p=&APP_ID.:132:&SESSION.::&DEBUG.:RP,132:P132_SOURCE_PAGE,P132_SOURCEDB:401,$LOCAL$'
+);
+wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(122964238589571475)
 ,p_button_sequence=>20
 ,p_button_plug_id=>wwv_flow_api.id(152493190289702589)
@@ -32997,6 +33074,9 @@ wwv_flow_api.create_page_item(
 ,p_attribute_04=>'kama'
 ,p_attribute_05=>'top'
 );
+end;
+/
+begin
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(122932434817232059)
 ,p_name=>'P401_OWNER'
@@ -33019,9 +33099,6 @@ wwv_flow_api.create_page_item(
 ,p_attribute_01=>'NONE'
 ,p_attribute_02=>'N'
 );
-end;
-/
-begin
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(122932844254232062)
 ,p_name=>'P401_KEEP_FOREVER'
@@ -33578,7 +33655,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(122912880450952719)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190118152324'
+,p_last_upd_yyyymmddhh24miss=>'20190122104029'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(133054806686047722)
@@ -34126,6 +34203,19 @@ wwv_flow_api.create_page_button(
 ,p_security_scheme=>wwv_flow_api.id(122912880450952719)
 );
 wwv_flow_api.create_page_button(
+ p_id=>wwv_flow_api.id(30765213342683373)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_api.id(182641978106098363)
+,p_button_name=>'Searchquery'
+,p_button_action=>'REDIRECT_PAGE'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>wwv_flow_api.id(105136390946958319)
+,p_button_image_alt=>'Search for query'
+,p_button_position=>'TOP'
+,p_button_alignment=>'LEFT'
+,p_button_redirect_url=>'f?p=&APP_ID.:132:&SESSION.::&DEBUG.:RP,132:P132_SOURCE_PAGE,P132_SOURCEDB:404,$LOCAL$'
+);
+wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(123420455620814463)
 ,p_button_sequence=>20
 ,p_button_plug_id=>wwv_flow_api.id(182641978106098363)
@@ -34443,6 +34533,9 @@ wwv_flow_api.create_page_item(
 ,p_attribute_01=>'NONE'
 ,p_attribute_02=>'N'
 );
+end;
+/
+begin
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(123008632420772380)
 ,p_name=>'P404_PARSED_RETENTION'
@@ -34460,9 +34553,6 @@ wwv_flow_api.create_page_item(
 ,p_attribute_01=>'NONE'
 ,p_attribute_02=>'N'
 );
-end;
-/
-begin
 wwv_flow_api.create_page_process(
  p_id=>wwv_flow_api.id(123009735569772399)
 ,p_process_sequence=>10
