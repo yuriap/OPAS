@@ -800,7 +800,7 @@ end;]';
     output();
 
     if l_colCnt = 1 then
-      p_output(1):=replace(p_output(1),'<width>',round(l_widest*6.2));
+      p_output(1):=replace(p_output(1),'<width>',round(l_widest*8));
     end if;
     p_output(1):=replace(p_output(1),'<width>',p_width);
 
@@ -1175,6 +1175,12 @@ end;]';
     update opas_qry_cache set hit_num = hit_num + p_hit where sql_id = p_sql_id;
   end;
 
+  procedure pin_sql_in_cache(p_sql_id varchar2, p_days number default 180)
+  is
+  begin
+    update opas_qry_cache set hit_num = case when p_days > hit_num then p_days else hit_num end where sql_id = p_sql_id;
+  end;
+
   function get_sql_search_query(p_srcdb varchar2, p_sql_search_str varchar2, p_use_cache varchar2 default 'N', p_result_limit number default 0) return varchar2
   is
     l_dblink varchar2(512);
@@ -1249,20 +1255,8 @@ end;]';
             (  P_SQL => l_sql,
                P_DBLINK => l_dblink,
                P_OUTPUT => l_output) ;
-          --begin
-          --  l_sql := 'select txt from (select cast(substr(sql_text,1,4000) as varchar2(4000)) txt from dba_hist_sqltext@'||l_dblink||' a where sql_id=:p_sql_id and dbid=:p_dbid) where rownum<2';
-          --  execute immediate l_sql into l_txt using p_sql_id, l_dbid;
-          --exception
-          --  when no_data_found then null;
-          --end;
 
           if l_output is null and p_srcdb is not null and p_srcdb <> '$LOCAL$' then
-            --begin
-            --  l_sql := 'select txt from (select cast(substr(SQL_FULLTEXT,1,4000) as varchar2(4000)) txt from gv$sql@'||l_dblink||' a where sql_id=:p_sql_id) where rownum<2';
-            --  execute immediate l_sql into l_txt using p_sql_id;
-            --exception
-            --  when no_data_found then null;
-            --end;
             l_sql := q'[select SQL_FULLTEXT into l_out from gv$sql where sql_id=']'||p_sql_id||q'['  and rownum<2;]';
             COREMOD_REPORT_UTILS.get_clob_remotelly
               (  P_SQL => l_sql,

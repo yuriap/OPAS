@@ -13,6 +13,11 @@ PACKAGE ASHA_CUBE_API AS
                          p_sess_retention_days asha_cube_sess.sess_retention_days%type,
                          p_sess_description    asha_cube_sess.sess_description%type);
 
+  function get_cube_retention(p_sess_id asha_cube_reports.sess_id%type) return asha_cube_sess.sess_retention_days%type;
+  procedure pin_cube_sqls(p_sess_id             asha_cube_sess.sess_id%type default null,
+                          p_sess_retention_days asha_cube_sess.sess_retention_days%type,
+                          p_sql_id              varchar2 default null);
+
   procedure create_report(p_report_type      varchar2,
                           p_proj_id          asha_cube_reports.proj_id%type,
                           p_sess_id          asha_cube_reports.sess_id%type,

@@ -14,7 +14,8 @@ is_public           varchar2(1) default 'Y' not null
 
 create table asha_cube_srcdblink2projects (
 proj_id         number references asha_cube_projects(proj_id) on delete cascade,
-src_dblink      varchar2(128) references opas_db_links (DB_LINK_NAME) on delete cascade);
+src_dblink      varchar2(128) references opas_db_links (DB_LINK_NAME) on delete cascade
+default_dblink  varchar2(1));
 
 create index idx_asha_cube_src2proj_proj on asha_cube_srcdblink2projects(proj_id);
 create index idx_asha_cube_src2proj_src  on asha_cube_srcdblink2projects(src_dblink);

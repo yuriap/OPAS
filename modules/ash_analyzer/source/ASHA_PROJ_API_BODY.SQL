@@ -223,21 +223,40 @@ package body ASHA_PROJ_API as
     update asha_cube_projects set proj_note = p_proj_note where proj_id = p_proj_id;
   end;
 
+  procedure set_proj_def_dblink (p_proj_id       asha_cube_projects.proj_id%type,
+                                  p_db_link       asha_cube_srcdblink2projects.src_dblink%type)
+  is
+  begin
+    update asha_cube_srcdblink2projects set default_dblink = decode(src_dblink,p_db_link,'Y',null) where proj_id = p_proj_id;
+  end;
+
+  function  get_proj_def_dblink (p_proj_id       asha_cube_projects.proj_id%type) return asha_cube_srcdblink2projects.src_dblink%type
+  is
+    l_default_dblink asha_cube_srcdblink2projects.src_dblink%type;
+  begin
+    select src_dblink into l_default_dblink from asha_cube_srcdblink2projects where default_dblink='Y' and proj_id=p_proj_id;
+    return l_default_dblink;
+    exception when others then return null;
+  end;
+
   procedure set_proj_dblinks (p_proj_id       asha_cube_projects.proj_id%type,
                               p_db_links_list varchar2)
   is
     l_tbl DBMS_UTILITY.LNAME_ARRAY;
     l_n   number;
+    l_default_dblink asha_cube_srcdblink2projects.src_dblink%type;
   begin
     DBMS_UTILITY.COMMA_TO_TABLE (
       list   => replace(replace(p_db_links_list,':',','),'$LOCAL$','LOCAL$$'),
       tablen => l_n,
       tab    => l_tbl);
 
+    l_default_dblink:=get_proj_def_dblink(p_proj_id);
     delete from asha_cube_srcdblink2projects where proj_id=p_proj_id;
+
     for i in 1..l_n loop
       --coremod_log.log(i||':'||l_tbl(i));
-      insert into asha_cube_srcdblink2projects (proj_id,src_dblink) values(p_proj_id,replace(l_tbl(i),'LOCAL$$','$LOCAL$'));
+      insert into asha_cube_srcdblink2projects (proj_id,src_dblink,default_dblink) values(p_proj_id,replace(l_tbl(i),'LOCAL$$','$LOCAL$'),decode(l_tbl(i),l_default_dblink,'Y',null));
     end loop;
   end;
 

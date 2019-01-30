@@ -48,6 +48,38 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
     values (s.group_id, s.group_name, s.metric_id, s.metric_name, s.is_manual, s.created);
   end;
 
+  procedure set_report_retention(p_report_id          asha_cube_reports.report_id%type,
+                                 p_report_retention   asha_cube_reports.report_retention%type)
+  is
+  begin
+    update asha_cube_reports set
+      report_retention = decode(p_report_retention,-1,null,p_report_retention)
+     where report_id = p_report_id;
+    update asha_cube_reports set
+      report_retention = decode(p_report_retention,-1,null,p_report_retention)
+     where report_id in (select report_id from opas_reports where parent_id=p_report_id);
+  end;
+
+  procedure pin_cube_sqls(p_sess_id             asha_cube_sess.sess_id%type default null,
+                          p_sess_retention_days asha_cube_sess.sess_retention_days%type,
+                          p_sql_id              varchar2 default null)
+  is
+  begin
+    if p_sess_retention_days > 10 or p_sess_retention_days = 0 then
+      if p_sql_id is not null then
+        COREMOD_REPORT_UTILS.pin_sql_in_cache (  P_SQL_ID => p_sql_id, P_DAYS => case when p_sess_retention_days = 0 then 365*10 else p_sess_retention_days end) ;
+      else
+        for i in (select sql_id from (SELECT c.sql_id, smpls
+                                        FROM asha_cube c, opas_qry_cache q
+                                       where c.sess_id = p_sess_id and c.g2=0 and c.sql_id=q.sql_id
+                                       ORDER BY 2 desc) where rownum<11)
+        loop
+          COREMOD_REPORT_UTILS.pin_sql_in_cache (  P_SQL_ID => i.sql_id, P_DAYS => case when p_sess_retention_days = 0 then 365*10 else p_sess_retention_days end) ;
+        end loop;
+      end if;
+    end if;
+  end;
+
   procedure edit_session(p_sess_id             asha_cube_sess.sess_id%type,
                          p_sess_retention_days asha_cube_sess.sess_retention_days%type,
                          p_sess_description    asha_cube_sess.sess_description%type)
@@ -60,7 +92,50 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
     update asha_cube_sess set
      sess_retention_days = decode(p_sess_retention_days,-1,null,p_sess_retention_days)
      where parent_id = p_sess_id;
+
+    --set the same retrntion for related reports
+    for i in (select * from asha_cube_reports where sess_id=p_sess_id) loop
+      set_report_retention(i.report_id,p_sess_retention_days);
+    end loop;
+
+    --set cache pin for sqls
+    pin_cube_sqls(p_sess_id,p_sess_retention_days);
   end;
+
+  procedure edit_report_properties(p_report_id          asha_cube_reports.report_id%type,
+                                   p_report_retention   asha_cube_reports.report_retention%type,
+                                   p_report_note        asha_cube_reports.report_note%type)
+  is
+  begin
+    update asha_cube_reports set
+      report_note = p_report_note
+     where report_id = p_report_id;
+    set_report_retention(p_report_id,p_report_retention);
+  end;
+
+  procedure delete_report(p_proj_id          asha_cube_reports.proj_id%type,
+                          p_report_id          asha_cube_reports.report_id%type)
+  is
+  begin
+    coremod_report_utils.drop_report(p_report_id);
+    delete from asha_cube_reports where report_id=p_report_id and proj_id=p_proj_id;
+  end;
+
+  function get_cube_retention(p_sess_id asha_cube_reports.sess_id%type) return asha_cube_sess.sess_retention_days%type
+  is
+    l_ret asha_cube_sess.sess_retention_days%type;
+  begin
+    if p_sess_id is not null then
+      select sess_retention_days into l_ret from asha_cube_sess where sess_id=p_sess_id;
+      return l_ret;
+    else
+      return null; --default retention
+    end if;
+  end;
+
+--  =============================================================================================================================================
+--  =============================================================================================================================================
+--  =============================================================================================================================================
 
   procedure create_report(p_report_type      varchar2,
                           p_proj_id          asha_cube_reports.proj_id%type,
@@ -83,10 +158,10 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
     end if;
 
     INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
-    VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,get_cube_retention(p_sess_id),null);
 
     insert into asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
-    select p_proj_id,report_id,p_sess_id,null,null from opas_reports where parent_id=l_report_id;
+    select p_proj_id,report_id,p_sess_id,get_cube_retention(p_sess_id),null from opas_reports where parent_id=l_report_id;
 
     commit;
   end;
@@ -116,34 +191,12 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
                                  p_max_snap     => p_max_snap);
 
     INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
-    VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,get_cube_retention(p_sess_id),null);
 
     insert into asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
-    select p_proj_id,report_id,p_sess_id,null,null from opas_reports where parent_id=l_report_id;
+    select p_proj_id,report_id,p_sess_id,get_cube_retention(p_sess_id),null from opas_reports where parent_id=l_report_id;
 
     commit;
-  end;
-
-  procedure edit_report_properties(p_report_id          asha_cube_reports.report_id%type,
-                                   p_report_retention   asha_cube_reports.report_retention%type,
-                                   p_report_note        asha_cube_reports.report_note%type)
-  is
-  begin
-    update asha_cube_reports set
-      report_retention = decode(p_report_retention,-1,null,p_report_retention),
-      report_note = p_report_note
-     where report_id = p_report_id;
-    update asha_cube_reports set
-      report_retention = decode(p_report_retention,-1,null,p_report_retention)
-     where report_id in (select report_id from opas_reports where parent_id=p_report_id);
-  end;
-
-  procedure delete_report(p_proj_id          asha_cube_reports.proj_id%type,
-                          p_report_id          asha_cube_reports.report_id%type)
-  is
-  begin
-    coremod_report_utils.drop_report(p_report_id);
-    delete from asha_cube_reports where report_id=p_report_id and proj_id=p_proj_id;
   end;
 
 --  =============================================================================================================================================
@@ -172,7 +225,7 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
                                                        p_dblink => p_dblink);
 
     INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
-    VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,get_cube_retention(p_sess_id),null);
 
     commit;
   end;
@@ -202,7 +255,7 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
                                                          p_dblink => p_dblink);
 
     INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
-    VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,get_cube_retention(p_sess_id),null);
 
     commit;
   end;
@@ -238,7 +291,7 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
                                                        p_dblink => p_dblink);
 
     INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
-    VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,get_cube_retention(p_sess_id),null);
 
     commit;
   end;
@@ -266,7 +319,7 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
                                                        p_dblink => p_dblink);
 
     INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
-    VALUES                        (p_proj_id,l_report_id,p_sess_id,null,null);
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,get_cube_retention(p_sess_id),null);
 
     commit;
   end;

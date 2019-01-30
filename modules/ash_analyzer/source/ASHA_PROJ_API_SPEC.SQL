@@ -44,6 +44,10 @@ package ASHA_PROJ_API as
   procedure set_proj_dblinks (p_proj_id       asha_cube_projects.proj_id%type,
                               p_db_links_list varchar2);
 
+  procedure set_proj_def_dblink (p_proj_id       asha_cube_projects.proj_id%type,
+                                  p_db_link       asha_cube_srcdblink2projects.src_dblink%type);
+  function  get_proj_def_dblink (p_proj_id       asha_cube_projects.proj_id%type) return asha_cube_srcdblink2projects.src_dblink%type;
+
   -- move data between projects
   procedure move_cube(p_sess_id          asha_cube_sess.sess_id%type,
                       p_new_proj_id      asha_cube_projects.proj_id%type);

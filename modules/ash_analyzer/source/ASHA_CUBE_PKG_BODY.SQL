@@ -769,27 +769,47 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
              where dbid=:P_DBID
                and instance_number in (<P_INST_ID>)','<P_INST_ID>',l_inst_list) into l_max_snap using l_dbid;
         end if;
+
+        add_parameter(p_sess_id,c_DBID,l_dbid);
+        add_parameter(p_sess_id,c_START_SNAP,l_min_snap);
+        add_parameter(p_sess_id,c_END_SNAP,l_max_snap);
       end if;
     else
-      --raise_application_error(-20000,'AWR Warehouse is under construction');
-      l_dbid     := g_allpars.pa_DBID;
-      l_min_snap := g_allpars.pa_START_SNAP;
-      l_max_snap := g_allpars.pa_END_SNAP;
-      l_start_dt := g_allpars.pa_start_dt;
-      l_end_dt   := g_allpars.pa_end_dt;
+      if g_allpars.pa_source = 'AWR' then
+        --raise_application_error(-20000,'AWR Warehouse is under construction');
+        l_dbid     := g_allpars.pa_DBID;
+        l_min_snap := g_allpars.pa_START_SNAP;
+        l_max_snap := g_allpars.pa_END_SNAP;
+        l_start_dt := g_allpars.pa_start_dt;
+        l_end_dt   := g_allpars.pa_end_dt;
 
-      if instr(g_allpars.pa_inst_id,'-1')>0 then
-        open l_crsr for select unique instance_number inst_id from dba_hist_snapshot where dbid=l_dbid and snap_id between l_min_snap and l_max_snap order by 1;
-        loop
-          fetch l_crsr into l_inst_id;
-          exit when l_crsr%notfound;
-          l_inst_list:=l_inst_list||l_inst_id||',';
-        end loop;
-        close l_crsr;
-        l_inst_list:=rtrim(l_inst_list,',');
-        if l_inst_list is null then l_inst_list:='1'; end if;
-      else
-        l_inst_list:=replace(replace(g_allpars.pa_inst_id,':',','),';',',');
+        if instr(g_allpars.pa_inst_id,'-1')>0 then
+          open l_crsr for select unique instance_number inst_id from dba_hist_snapshot where dbid=l_dbid and snap_id between l_min_snap and l_max_snap order by 1;
+          loop
+            fetch l_crsr into l_inst_id;
+            exit when l_crsr%notfound;
+            l_inst_list:=l_inst_list||l_inst_id||',';
+          end loop;
+          close l_crsr;
+          l_inst_list:=rtrim(l_inst_list,',');
+          if l_inst_list is null then l_inst_list:='1'; end if;
+        else
+          l_inst_list:=replace(replace(g_allpars.pa_inst_id,':',','),';',',');
+        end if;
+      elsif g_allpars.pa_source = 'V$VIEW' then
+        if instr(g_allpars.pa_inst_id,'-1')>0 then
+          open l_crsr for select unique inst_id from gv$instance order by 1;
+          loop
+            fetch l_crsr into l_inst_id;
+            exit when l_crsr%notfound;
+            l_inst_list:=l_inst_list||l_inst_id||',';
+          end loop;
+          close l_crsr;
+          l_inst_list:=rtrim(l_inst_list,',');
+          if l_inst_list is null then l_inst_list:='1'; end if;
+        else
+          l_inst_list:=replace(replace(g_allpars.pa_inst_id,':',','),';',',');
+        end if;
       end if;
     end if;
     ----------------------------------------------------

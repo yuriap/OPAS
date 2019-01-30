@@ -16,7 +16,8 @@ is_public           varchar2(1) default 'Y' not null
 
 create table awrwh_srcdblink2projects (
 proj_id         number references awrwh_projects(proj_id) on delete cascade,
-src_dblink      varchar2(128) references opas_db_links (DB_LINK_NAME) on delete cascade);
+src_dblink      varchar2(128) references opas_db_links (DB_LINK_NAME) on delete cascade
+default_dblink  varchar2(1));
 
 create index idx_awrwh_src2proj_proj on awrwh_srcdblink2projects(proj_id);
 create index idx_awrwh_src2proj_src  on awrwh_srcdblink2projects(src_dblink);

@@ -43,6 +43,9 @@ package AWRWH_PROJ_API as
                      p_proj_note    awrwh_projects.proj_note%type);
   procedure set_proj_dblinks (p_proj_id       awrwh_projects.proj_id%type,
                               p_db_links_list varchar2);
+  procedure set_proj_def_dblink (p_proj_id       awrwh_projects.proj_id%type,
+                                  p_db_link       awrwh_srcdblink2projects.src_dblink%type);
+  function  get_proj_def_dblink (p_proj_id       awrwh_projects.proj_id%type) return awrwh_srcdblink2projects.src_dblink%type;
 
   -- move data between projects
   procedure move_dump(p_dump_id          awrwh_dumps.dump_id%type,

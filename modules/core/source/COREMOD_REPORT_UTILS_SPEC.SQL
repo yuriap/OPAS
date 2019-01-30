@@ -142,6 +142,7 @@ PACKAGE COREMOD_REPORT_UTILS AS
   -- query cache
   procedure CLEANUP_CACHE;
   function get_sql_qry_txt(p_srcdb varchar2, p_sql_id varchar2) return clob;
+  procedure pin_sql_in_cache(p_sql_id varchar2, p_days number default 180);
   function get_sql_search_query(p_srcdb varchar2, p_sql_search_str varchar2, p_use_cache varchar2 default 'N', p_result_limit number default 0) return varchar2;
 
 end;
