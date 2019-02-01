@@ -1,5 +1,5 @@
 define MODNM=ASH_ANALYZER
-define MODVER="3.4.2"
+define MODVER="3.4.4"
 --Core installation script
 conn sys/&localsys.@&localdb. as sysdba
 

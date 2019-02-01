@@ -289,6 +289,7 @@ PACKAGE BODY TRC_FILE_API AS
     p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME) ;
     COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_trc_file_id);
     COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id ) ;
+    update trc_files set tq_id = p_tq_id where trc_file_id = p_trc_file_id;
     commit;
   end;
 /*

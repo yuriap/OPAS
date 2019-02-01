@@ -68,6 +68,7 @@ V 4.6.1
 V 4.6.2
  .- cube for local V$
 V 4.6.3
+V 4.6.4
  - cube local AWR is empty
 ============================================================================================================================
  todo
@@ -119,7 +120,10 @@ V 4.6.2
  .- when create report for cude make possible set snap range as on the cube
  .- open commomn report interface from 131
 V 4.6.3
+ .- autorefresahble
+V 4.6.4
  - doc: each module, list of features, install guide
+ - query search, not like is required
 ============================================================================================================================
 getcomph
 ============

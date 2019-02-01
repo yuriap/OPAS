@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   14:58 Wednesday January 30, 2019
+--   Date and Time:   17:50 Thursday January 31, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -37,13 +37,13 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 
 -- Application Statistics:
 --   Pages:                     64
---     Items:                  320
+--     Items:                  324
 --     Computations:             3
 --     Validations:              2
---     Processes:              151
---     Regions:                229
+--     Processes:              153
+--     Regions:                230
 --     Buttons:                175
---     Dynamic Actions:         21
+--     Dynamic Actions:         23
 --   Shared Components:
 --     Logic:
 --       Items:                  4
@@ -70,6 +70,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 --         Report:              11
 --       LOVs:                  10
 --       Shortcuts:              1
+--       Plug-ins:               1
 --     Globalization:
 --     Reports:
 --     E-Mail:
@@ -126,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190130145750'
+,p_last_upd_yyyymmddhh24miss=>'20190131174917'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -10763,6 +10764,235 @@ wwv_flow_api.create_authentication(
 );
 end;
 /
+prompt --application/shared_components/plugins/dynamic_action/muledev_server_region_refresh
+begin
+wwv_flow_api.create_plugin(
+ p_id=>wwv_flow_api.id(5114945828406567879)
+,p_plugin_type=>'DYNAMIC ACTION'
+,p_name=>'MULEDEV.SERVER_REGION_REFRESH'
+,p_display_name=>'Execute PL/SQL Code and Return Content'
+,p_category=>'EXECUTE'
+,p_supported_ui_types=>'DESKTOP'
+,p_image_prefix => nvl(wwv_flow_application_install.get_static_plugin_file_prefix('DYNAMIC ACTION','MULEDEV.SERVER_REGION_REFRESH'),'')
+,p_plsql_code=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'function render_it (',
+'    p_dynamic_action in apex_plugin.t_dynamic_action,',
+'    p_plugin         in apex_plugin.t_plugin )',
+'    return apex_plugin.t_dynamic_action_render_result',
+'as',
+'  l_js                    varchar2(32000);',
+'  l_element_name          varchar2(4000) := p_dynamic_action.attribute_02;',
+'  l_page_items_to_submit  varchar2(4000) := p_dynamic_action.attribute_03;',
+'  l_interval              number := nvl(p_dynamic_action.attribute_04,0) * 1000;',
+'  l_mode                  varchar2(255) := p_dynamic_action.attribute_05;',
+'  l_js_callback           varchar2(4000) := p_dynamic_action.attribute_07;',
+'  l_returnvalue           apex_plugin.t_dynamic_action_render_result;',
+'begin',
+'',
+'',
+'  l_js := ''function muledev_server_region_refresh() {',
+'  ',
+'    var lAjaxIdentifier = this.action.ajaxIdentifier;',
+'    var lElementName = this.action.attribute02;',
+'    var lPageItemsToSubmit = this.action.attribute03;',
+'    var lInterval = parseInt(this.action.attribute04);',
+'    var lMode = this.action.attribute05;',
+'    ',
+'    muledev_server_region_do_refresh (lAjaxIdentifier, lElementName, lPageItemsToSubmit, lInterval, lMode);',
+'  ',
+'  }',
+'  ',
+'  ',
+'  function muledev_server_region_do_refresh (pAjaxIdentifier, pElementName, pPageItemsToSubmit, pInterval, pMode) {',
+'',
+'    //console.log ("Page items to submit: " + pPageItemsToSubmit);',
+'',
+'    var lPageItemsStr = pPageItemsToSubmit;',
+'   ',
+'    lPageItemsStr = "#" + lPageItemsStr;',
+'    lPageItemsStr = lPageItemsStr.replace(new RegExp(",", "g"), ",#");',
+'    //console.log ("Page items to submit: " + lPageItemsStr);',
+'',
+'   apex.server.plugin (pAjaxIdentifier, { pageItems: lPageItemsStr },',
+'   { dataType: "text",',
+'        success: function(pData) {',
+'',
+'        if (pMode == "APPEND_BEFORE") {',
+'          $x(pElementName).innerHTML = pData + $x(pElementName).innerHTML; ',
+'         }',
+'       else if (pMode == "APPEND_AFTER") {',
+'          $x(pElementName).innerHTML = $x(pElementName).innerHTML + pData; ',
+'         }',
+'       else {',
+'          $x(pElementName).innerHTML = pData; ',
+'        }',
+''' || l_js_callback || ''',
+'       }',
+'     }',
+'  );',
+'',
+'',
+'  if (pInterval > 0) {',
+'    setTimeout (function () {',
+'      muledev_server_region_do_refresh(pAjaxIdentifier, pElementName, pPageItemsToSubmit, pInterval, pMode);',
+'      }, pInterval);',
+'',
+'    }',
+'  ',
+'  }'';',
+'',
+'',
+'  apex_javascript.add_inline_code (l_js, p_key => ''muledev_server_region_refresh'');',
+'',
+'  l_returnvalue.javascript_function := ''muledev_server_region_refresh'';',
+'  l_returnvalue.ajax_identifier     := apex_plugin.get_ajax_identifier;',
+'  l_returnvalue.attribute_01 := null; -- we don''t want to expose the PL/SQL source/statement to the client',
+'  l_returnvalue.attribute_02 := l_element_name;',
+'  l_returnvalue.attribute_03 := l_page_items_to_submit;',
+'  l_returnvalue.attribute_04 := l_interval;',
+'  l_returnvalue.attribute_05 := l_mode;',
+'',
+'  return l_returnvalue;',
+'',
+'end render_it;',
+'',
+'',
+'function ajax_it (',
+'    p_dynamic_action in apex_plugin.t_dynamic_action,',
+'    p_plugin         in apex_plugin.t_plugin )',
+'    return apex_plugin.t_dynamic_action_ajax_result',
+'as',
+'  l_source      varchar2(32000) := p_dynamic_action.attribute_01;',
+'  l_errmsg      varchar2(4000) := p_dynamic_action.attribute_06;',
+'  l_returnvalue apex_plugin.t_dynamic_action_ajax_result;',
+'begin',
+'',
+'  begin',
+'    apex_plugin_util.execute_plsql_code (l_source);',
+'  exception',
+'    when others then',
+'      htp.p(coalesce(l_errmsg, sqlerrm));',
+'  end;',
+'',
+'  return l_returnvalue;',
+'',
+'end ajax_it;'))
+,p_api_version=>1
+,p_render_function=>'render_it'
+,p_ajax_function=>'ajax_it'
+,p_substitute_attributes=>true
+,p_subscribe_plugin_settings=>true
+,p_version_identifier=>'1.1'
+,p_about_url=>'https://github.com/mortenbra/apex-plugins'
+);
+wwv_flow_api.create_plugin_attribute(
+ p_id=>wwv_flow_api.id(5114946002564569901)
+,p_plugin_id=>wwv_flow_api.id(5114945828406567879)
+,p_attribute_scope=>'COMPONENT'
+,p_attribute_sequence=>1
+,p_display_sequence=>10
+,p_prompt=>'PL/SQL Source'
+,p_attribute_type=>'PLSQL'
+,p_is_required=>true
+,p_is_translatable=>false
+);
+wwv_flow_api.create_plugin_attribute(
+ p_id=>wwv_flow_api.id(5114946508451571676)
+,p_plugin_id=>wwv_flow_api.id(5114945828406567879)
+,p_attribute_scope=>'COMPONENT'
+,p_attribute_sequence=>2
+,p_display_sequence=>20
+,p_prompt=>'Page Element (DIV)'
+,p_attribute_type=>'TEXT'
+,p_is_required=>true
+,p_is_translatable=>false
+);
+wwv_flow_api.create_plugin_attribute(
+ p_id=>wwv_flow_api.id(5114947014338573306)
+,p_plugin_id=>wwv_flow_api.id(5114945828406567879)
+,p_attribute_scope=>'COMPONENT'
+,p_attribute_sequence=>3
+,p_display_sequence=>30
+,p_prompt=>'Page item(s) to submit'
+,p_attribute_type=>'PAGE ITEMS'
+,p_is_required=>false
+,p_is_translatable=>false
+);
+wwv_flow_api.create_plugin_attribute(
+ p_id=>wwv_flow_api.id(5114953926570835328)
+,p_plugin_id=>wwv_flow_api.id(5114945828406567879)
+,p_attribute_scope=>'COMPONENT'
+,p_attribute_sequence=>4
+,p_display_sequence=>40
+,p_prompt=>'Interval (seconds)'
+,p_attribute_type=>'INTEGER'
+,p_is_required=>false
+,p_default_value=>'0'
+,p_is_translatable=>false
+,p_help_text=>'Enter 0 for no interval.'
+);
+wwv_flow_api.create_plugin_attribute(
+ p_id=>wwv_flow_api.id(5114980727414176495)
+,p_plugin_id=>wwv_flow_api.id(5114945828406567879)
+,p_attribute_scope=>'COMPONENT'
+,p_attribute_sequence=>5
+,p_display_sequence=>50
+,p_prompt=>'Mode'
+,p_attribute_type=>'SELECT LIST'
+,p_is_required=>true
+,p_default_value=>'REPLACE'
+,p_is_translatable=>false
+,p_lov_type=>'STATIC'
+);
+wwv_flow_api.create_plugin_attr_value(
+ p_id=>wwv_flow_api.id(5114981530184177315)
+,p_plugin_attribute_id=>wwv_flow_api.id(5114980727414176495)
+,p_display_sequence=>10
+,p_display_value=>'Replace'
+,p_return_value=>'REPLACE'
+);
+wwv_flow_api.create_plugin_attr_value(
+ p_id=>wwv_flow_api.id(5114981902264178739)
+,p_plugin_attribute_id=>wwv_flow_api.id(5114980727414176495)
+,p_display_sequence=>20
+,p_display_value=>'Append after'
+,p_return_value=>'APPEND_AFTER'
+);
+wwv_flow_api.create_plugin_attr_value(
+ p_id=>wwv_flow_api.id(5114982304342179333)
+,p_plugin_attribute_id=>wwv_flow_api.id(5114980727414176495)
+,p_display_sequence=>30
+,p_display_value=>'Append before'
+,p_return_value=>'APPEND_BEFORE'
+);
+wwv_flow_api.create_plugin_attribute(
+ p_id=>wwv_flow_api.id(5114983410014190362)
+,p_plugin_id=>wwv_flow_api.id(5114945828406567879)
+,p_attribute_scope=>'COMPONENT'
+,p_attribute_sequence=>6
+,p_display_sequence=>60
+,p_prompt=>'Error message'
+,p_attribute_type=>'TEXT'
+,p_is_required=>false
+,p_is_translatable=>true
+,p_help_text=>'Leave blank to return SQLERRM as error message.'
+);
+wwv_flow_api.create_plugin_attribute(
+ p_id=>wwv_flow_api.id(45598366668998760)
+,p_plugin_id=>wwv_flow_api.id(5114945828406567879)
+,p_attribute_scope=>'COMPONENT'
+,p_attribute_sequence=>7
+,p_display_sequence=>70
+,p_prompt=>'Javascript callback'
+,p_attribute_type=>'TEXT'
+,p_is_required=>false
+,p_is_common=>false
+,p_show_in_wizard=>false
+,p_is_translatable=>false
+,p_help_text=>'Specify a piece of Javascript code to be run when the PL/SQL (Ajax) call completes. This code runs inside the success function of the Ajax call and you can refer to the "pData" parameter to get the raw value returned by the Ajax call.'
+);
+end;
+/
 prompt --application/user_interfaces
 begin
 wwv_flow_api.create_user_interface(
@@ -13802,12 +14032,13 @@ wwv_flow_api.create_page(
 ,p_step_sub_title_type=>'TEXT_WITH_SUBSTITUTIONS'
 ,p_autocomplete_on_off=>'OFF'
 ,p_group_id=>wwv_flow_api.id(109267767934883432)
+,p_html_page_header=>'<meta http-equiv="refresh" content="&P121_PAGE_REFRESH_INTERVAL.">'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(104595149061694895)
 ,p_dialog_height=>'600'
 ,p_dialog_width=>'1200'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181228110349'
+,p_last_upd_yyyymmddhh24miss=>'20190131144525'
 );
 wwv_flow_api.create_report_region(
  p_id=>wwv_flow_api.id(104585691055640171)
@@ -13942,6 +14173,14 @@ wwv_flow_api.create_report_columns(
 ,p_include_in_export=>'Y'
 );
 wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(30674954016830646)
+,p_name=>'P121_PAGE_REFRESH_INTERVAL'
+,p_item_sequence=>30
+,p_item_plug_id=>wwv_flow_api.id(109646944947709170)
+,p_display_as=>'NATIVE_HIDDEN'
+,p_attribute_01=>'Y'
+);
+wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(103110148021382364)
 ,p_name=>'P121_TQ_ID'
 ,p_item_sequence=>10
@@ -13981,6 +14220,30 @@ wwv_flow_api.create_page_process(
 'exception',
 '  when no_data_found then',
 '    :P121_HEADER := ''Task info for TQ_ID:''||:P121_TQ_ID||'' has been cleaned up.'';',
+'end;'))
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+);
+wwv_flow_api.create_page_process(
+ p_id=>wwv_flow_api.id(30674833805830645)
+,p_process_sequence=>20
+,p_process_point=>'BEFORE_HEADER'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'PageRefreshCalc'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare',
+'  l_status varchar2(100);',
+'begin',
+'  if :P121_TQ_ID is null then',
+'    :P121_PAGE_REFRESH_INTERVAL:=null; ',
+'  else',
+'    select status into l_status from v$opas_task_queue where tq_id=:P121_TQ_ID;  ',
+'  ',
+'    if l_status in (''QUEUED'',''STARTED'',''RUNNING'') then',
+'      :P121_PAGE_REFRESH_INTERVAL:=5;',
+'    else    ',
+'      :P121_PAGE_REFRESH_INTERVAL:=null;  ',
+'    end if;',
+'  end if;',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 );
@@ -18863,7 +19126,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(105334237137436873)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190118130155'
+,p_last_upd_yyyymmddhh24miss=>'20190131155510'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(103325878449694038)
@@ -18933,6 +19196,7 @@ wwv_flow_api.create_page_plug(
 ,p_plug_display_sequence=>3
 ,p_include_in_reg_disp_sel_yn=>'Y'
 ,p_plug_display_point=>'BODY'
+,p_plug_source=>'<div id="p204_task_info_div"></div>'
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 ,p_plug_display_condition_type=>'ITEM_IS_NOT_NULL'
 ,p_plug_display_when_condition=>'P204_PARSE_EXEC_ID'
@@ -18984,6 +19248,19 @@ wwv_flow_api.create_page_button(
 ,p_button_condition_type=>'PLSQL_EXPRESSION'
 ,p_grid_new_grid=>false
 ,p_security_scheme=>wwv_flow_api.id(105334105953434876)
+);
+wwv_flow_api.create_page_button(
+ p_id=>wwv_flow_api.id(103221371930018707)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_api.id(104690495475276480)
+,p_button_name=>'Task'
+,p_button_action=>'REDIRECT_PAGE'
+,p_button_template_options=>'#DEFAULT#:t-Button--gapTop:t-Button--padBottom'
+,p_button_template_id=>wwv_flow_api.id(105136390946958319)
+,p_button_image_alt=>'Task Info'
+,p_button_position=>'BELOW_BOX'
+,p_button_redirect_url=>'f?p=&APP_ID.:121:&SESSION.::&DEBUG.:RP:P121_TQ_ID:&P204_PARSE_EXEC_ID.'
+,p_security_scheme=>wwv_flow_api.id(105334237137436873)
 );
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(103326572677694045)
@@ -19111,22 +19388,6 @@ wwv_flow_api.create_page_button(
 ,p_grid_new_grid=>false
 ,p_security_scheme=>wwv_flow_api.id(105334105953434876)
 );
-wwv_flow_api.create_page_button(
- p_id=>wwv_flow_api.id(103221371930018707)
-,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_api.id(104690495475276480)
-,p_button_name=>'Task'
-,p_button_action=>'REDIRECT_PAGE'
-,p_button_template_options=>'#DEFAULT#:t-Button--gapTop:t-Button--padBottom'
-,p_button_template_id=>wwv_flow_api.id(105136390946958319)
-,p_button_image_alt=>'Task Info'
-,p_button_position=>'BODY'
-,p_button_redirect_url=>'f?p=&APP_ID.:121:&SESSION.::&DEBUG.:RP:P121_TQ_ID:&P204_PARSE_EXEC_ID.'
-,p_grid_new_grid=>false
-,p_grid_new_row=>'N'
-,p_grid_column=>10
-,p_security_scheme=>wwv_flow_api.id(105334237137436873)
-);
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(103043876282146045)
 ,p_name=>'P204_PARSED'
@@ -19247,12 +19508,8 @@ wwv_flow_api.create_page_item(
 ,p_name=>'P204_TASK_HEADER'
 ,p_item_sequence=>5
 ,p_item_plug_id=>wwv_flow_api.id(104690495475276480)
-,p_display_as=>'NATIVE_DISPLAY_ONLY'
-,p_field_template=>wwv_flow_api.id(105135891214958300)
-,p_item_template_options=>'#DEFAULT#'
-,p_attribute_01=>'N'
-,p_attribute_02=>'VALUE'
-,p_attribute_04=>'N'
+,p_display_as=>'NATIVE_HIDDEN'
+,p_attribute_01=>'Y'
 );
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(103326418791694043)
@@ -19316,12 +19573,50 @@ wwv_flow_api.create_page_item(
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_attribute_01=>'Y'
 );
+wwv_flow_api.create_page_da_event(
+ p_id=>wwv_flow_api.id(30675358023830650)
+,p_name=>'RefreshTaskInfo'
+,p_event_sequence=>10
+,p_triggering_element_type=>'REGION'
+,p_triggering_region_id=>wwv_flow_api.id(104690495475276480)
+,p_bind_type=>'bind'
+,p_bind_event_type=>'apexafterrefresh'
+);
+wwv_flow_api.create_page_da_action(
+ p_id=>wwv_flow_api.id(30951105707241801)
+,p_event_id=>wwv_flow_api.id(30675358023830650)
+,p_event_result=>'TRUE'
+,p_action_sequence=>10
+,p_execute_on_page_init=>'Y'
+,p_action=>'PLUGIN_MULEDEV.SERVER_REGION_REFRESH'
+,p_attribute_01=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare',
+'  l_task varchar2(32765);',
+'  l_status varchar2(100);',
+'begin',
+'  if :P204_PARSE_EXEC_ID is not null then',
+'    select ''<b>Name:</b> ''||taskname||decode(task_subname,null,null,'':''||task_subname)||',
+'             ''; <b>Started:</b> ''||to_char(started,''YYYY-MON-DD HH24:MI:SS.FF3'')||',
+'             ''; <b>Finished:</b> ''||nvl(to_char(finished,''YYYY-MON-DD HH24:MI:SS.FF3''),''N/A'')||',
+'             ''; <b>CPU:</b> ''||nvl(to_char(cpu_time),''N/A'')||',
+'             '' sec; <b>Elapsed:</b> ''||nvl(to_char(elapsed_time),''N/A'')||',
+'             '' sec; <b>Status:</b> ''||status,status into l_task,l_status',
+'      from v$opas_task_queue where tq_id=:P204_PARSE_EXEC_ID;      ',
+'  end if;',
+'  htp.p(l_task);',
+'exception',
+'  when others then htp.p(sqlerrm);',
+'end;'))
+,p_attribute_02=>'p204_task_info_div'
+,p_attribute_04=>'10'
+,p_attribute_05=>'REPLACE'
+);
 wwv_flow_api.create_page_process(
  p_id=>wwv_flow_api.id(103223014952018733)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
-,p_process_name=>'SetItems'
+,p_process_name=>'InitItems'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
 '  SELECT',
@@ -19338,7 +19633,8 @@ wwv_flow_api.create_page_process(
 '    PARSED_KEEP_FOREVER,',
 '    report_content,',
 '    nvl(source_retention,''N/A''),',
-'    nvl(parsed_retention,''N/A'')',
+'    nvl(parsed_retention,''N/A''),',
+'    tq_id',
 '  into ',
 '    :P204_PROJ_ID,',
 '    :P204_FILENAME,',
@@ -19353,7 +19649,8 @@ wwv_flow_api.create_page_process(
 '    :P204_PARSED_KEEP_FOREVER,',
 '    :P204_FILE_ID,',
 '    :P204_SOURCE_RETENTION,',
-'    :P204_PARSED_RETENTION',
+'    :P204_PARSED_RETENTION,',
+'    :P204_PARSE_EXEC_ID',
 '  FROM',
 '    V$TRC_FILES',
 '  where trc_file_id = :P204_TRC_FILE_ID;',
@@ -19377,35 +19674,20 @@ wwv_flow_api.create_page_process(
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'declare',
 '  l_finished v$opas_task_queue.finished%type;',
-'  l_task_log varchar2(32765);',
+'  --l_task_log varchar2(32765);',
 'begin',
-'  if :P204_PARSE_EXEC_ID is null then',
-'    begin',
-'      select max(tq_id) into :P204_PARSE_EXEC_ID ',
-'        from v$opas_task_queue ',
-'       where taskname=''TRC_PARSEFILE'' ',
-'         and (status=''STARTED'' ',
-'              or',
-'             (status = ''RUNNING'' and job_name in (select job_name from user_scheduler_running_jobs))',
-'              or ',
-'             (coalesce(finished,queued) >= sysdate - 15/24/60)',
-'             );',
-'    exception',
-'      when no_data_found then :P204_PARSE_EXEC_ID:=null;',
-'    end;',
-'  end if;',
 '  if :P204_PARSE_EXEC_ID is not null then',
 '    select finished into l_finished from v$opas_task_queue where tq_id=:P204_PARSE_EXEC_ID;',
 '    if systimestamp>l_finished+15/24/60 then',
 '      :P204_PARSE_EXEC_ID:=null;',
-'    else  ',
-'      select ''Name: ''||taskname||decode(task_subname,null,null,'':''||task_subname)||',
-'             ''; Started: ''||to_char(started,''YYYY-MON-DD HH24:MI:SS.FF3'')||',
-'             ''; Finished: ''||nvl(to_char(finished,''YYYY-MON-DD HH24:MI:SS.FF3''),''N/A'')||',
-'             ''; CPU: ''||nvl(to_char(cpu_time),''N/A'')||',
-'             ''; Elapsed: ''||nvl(to_char(elapsed_time),''N/A'')||',
-'             ''; Status: ''||status into :P204_TASK_HEADER',
-'      from v$opas_task_queue where tq_id=:P204_PARSE_EXEC_ID order by 1 desc;      ',
+'--    else  ',
+'--      select ''Name: ''||taskname||decode(task_subname,null,null,'':''||task_subname)||',
+'--             ''; Started: ''||to_char(started,''YYYY-MON-DD HH24:MI:SS.FF3'')||',
+'--             ''; Finished: ''||nvl(to_char(finished,''YYYY-MON-DD HH24:MI:SS.FF3''),''N/A'')||',
+'--             ''; CPU: ''||nvl(to_char(cpu_time),''N/A'')||',
+'--             ''; Elapsed: ''||nvl(to_char(elapsed_time),''N/A'')||',
+'--             ''; Status: ''||status into :P204_TASK_HEADER',
+'--      from v$opas_task_queue where tq_id=:P204_PARSE_EXEC_ID order by 1 desc;      ',
 '    end if;',
 '  end if;',
 'end;',
@@ -19439,13 +19721,6 @@ wwv_flow_api.create_page_process(
 'begin',
 '  TRC_FILE_API.parse_file_async(P_TRC_FILE_ID => :P204_TRC_FILE_ID, P_TQ_ID => :P204_PARSE_EXEC_ID);',
 'end;',
-'--declare',
-'--  L_TASKNAME VARCHAR2(128) := ''TRC_TEST'';',
-'--begin',
-'--  :P204_PARSE_EXEC_ID:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => L_TASKNAME) ;',
-'--  COREMOD_TASKS.set_task_param (p_tq_id => :P204_PARSE_EXEC_ID, p_name => ''B1'', p_num_par=> :P204_PARSE_EXEC_ID);',
-'--  COREMOD_TASKS.queue_task ( p_tq_id => :P204_PARSE_EXEC_ID ) ;',
-'--end;',
 ''))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(103215181992018683)
@@ -21666,9 +21941,25 @@ wwv_flow_api.create_page(
 ,p_step_sub_title_type=>'TEXT_WITH_SUBSTITUTIONS'
 ,p_autocomplete_on_off=>'OFF'
 ,p_group_id=>wwv_flow_api.id(103684571582167342)
+,p_html_page_header=>'<meta http-equiv="refresh" content="&P303_PAGE_REFRESH_INTERVAL.">'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190130141338'
+,p_last_upd_yyyymmddhh24miss=>'20190131174845'
+);
+wwv_flow_api.create_page_plug(
+ p_id=>wwv_flow_api.id(30951364504241803)
+,p_plug_name=>'AutoRefresh'
+,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
+,p_plug_template=>wwv_flow_api.id(105084245843958177)
+,p_plug_display_sequence=>26
+,p_include_in_reg_disp_sel_yn=>'Y'
+,p_plug_display_point=>'BODY'
+,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
+,p_plug_display_condition_type=>'VAL_OF_ITEM_IN_COND_EQ_COND2'
+,p_plug_display_when_condition=>'P303_STATUS'
+,p_plug_display_when_cond2=>'MONITOR'
+,p_attribute_01=>'N'
+,p_attribute_02=>'HTML'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(103783162975644867)
@@ -21996,7 +22287,7 @@ wwv_flow_api.create_worksheet_rpt(
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(122132688544919845)
 ,p_plug_name=>'Session Params'
-,p_region_template_options=>'#DEFAULT#:is-expanded:t-Region--scrollBody'
+,p_region_template_options=>'#DEFAULT#:js-useLocalStorage:is-expanded:t-Region--scrollBody'
 ,p_plug_template=>wwv_flow_api.id(105073209492958155)
 ,p_plug_display_sequence=>25
 ,p_include_in_reg_disp_sel_yn=>'Y'
@@ -23104,7 +23395,7 @@ wwv_flow_api.create_jet_chart_series(
 '    case when client_id=''; '' then null else ''CLI: ''||client_id||''; '' end ||',
 '    case when machine is null then null else ''MACH: ''||machine||''; '' end ||',
 '    case when ecid=''; '' then null else ''ECID: ''||ecid||''; '' end ||',
-'    case when username is null then null else ''UID: ''||username||''; '' end,1,250)',
+'    case when username is null then null else ''UID: ''||username||''; '' end,1,240) || '' '' || round(100*smpls/sum(smpls)over(),2) ||''%''',
 '    identity$,',
 '    smpls sec',
 'from (',
@@ -23489,7 +23780,7 @@ wwv_flow_api.create_jet_chart_series(
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'select sql_id||''(''||round(100*sec/tot,2)||''%) ''||sql_text sql_id, sec, sql_id sql_id1 from ',
-'  (SELECT c.sql_id, smpls sec, sum(smpls)over() tot, cast(substr(q.sql_text,1,20) as varchar2(20)) sql_text',
+'  (SELECT c.sql_id, smpls sec, sum(smpls)over() tot, cast(substr(q.sql_text,1,40) as varchar2(40)) sql_text',
 '     FROM asha_cube c, opas_qry_cache q',
 '    where c.sess_id = :P303_SESS_ID and c.g2=0 and c.sql_id=q.sql_id(+)',
 '    ORDER BY 2 desc ',
@@ -24290,6 +24581,49 @@ wwv_flow_api.create_page_button(
 ,p_security_scheme=>wwv_flow_api.id(103683328942143765)
 );
 wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(30674320875830640)
+,p_name=>'P303_PAGE_REFRESH_INTERVAL'
+,p_item_sequence=>40
+,p_item_plug_id=>wwv_flow_api.id(30951364504241803)
+,p_display_as=>'NATIVE_HIDDEN'
+,p_attribute_01=>'Y'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(30951223869241802)
+,p_name=>'P303_MONITOR_AUTO_REFRESH'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_api.id(30951364504241803)
+,p_item_default=>'1'
+,p_prompt=>'Monitor Auto Refresh'
+,p_display_as=>'NATIVE_RADIOGROUP'
+,p_lov=>'STATIC:Auto Refresh;1,Manual Refresh;2'
+,p_begin_on_new_line=>'N'
+,p_colspan=>2
+,p_field_template=>wwv_flow_api.id(105135891214958300)
+,p_item_template_options=>'#DEFAULT#'
+,p_lov_display_extra=>'NO'
+,p_attribute_01=>'2'
+,p_attribute_02=>'SUBMIT'
+,p_attribute_03=>'N'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(30951420759241804)
+,p_name=>'P303_REFRESH_RATE'
+,p_item_sequence=>5
+,p_item_plug_id=>wwv_flow_api.id(30951364504241803)
+,p_item_default=>'10'
+,p_prompt=>'Refresh Rate'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'STATIC:3 seconds;3,5 seconds;5,10 seconds;10,15 seconds;15,20 seconds;20,25 seconds;25,30 seconds;30,45 seconds;45,30 seconds;30'
+,p_cHeight=>1
+,p_colspan=>2
+,p_field_template=>wwv_flow_api.id(105135891214958300)
+,p_item_template_options=>'#DEFAULT#'
+,p_lov_display_extra=>'NO'
+,p_attribute_01=>'SUBMIT'
+,p_attribute_03=>'N'
+);
+wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(91740920053943931)
 ,p_name=>'P303_FILTER_SELECTED'
 ,p_item_sequence=>10
@@ -24743,7 +25077,6 @@ wwv_flow_api.create_page_process(
 '    asha_cube_sess s, asha_cube_projects p',
 '  where sess_id=:P303_SESS_ID and s.sess_proj_id=p.proj_id;',
 '',
-'',
 '  l_params:=ASHA_CUBE_PKG.get_sess_pars(:P303_SESS_ID);',
 '  ',
 '  :P303_DB_LINK:=l_params(ASHA_CUBE_PKG.c_dblink);',
@@ -24972,6 +25305,27 @@ wwv_flow_api.create_page_process(
 'END;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(122806550915880069)
+);
+wwv_flow_api.create_page_process(
+ p_id=>wwv_flow_api.id(30674727864830644)
+,p_process_sequence=>40
+,p_process_point=>'BEFORE_HEADER'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'RefreshPageCalc'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare',
+'  l_status varchar2(100);',
+'begin',
+'  select sess_status into l_status from asha_cube_sess where sess_id=:P303_SESS_ID;',
+'  if l_status in (''INQUEUE'',''CALCULATING'') then',
+'    :P303_PAGE_REFRESH_INTERVAL:=5;',
+'  elsif l_status in (''MONITOR'') and :P303_MONITOR_AUTO_REFRESH = 1 then',
+'    :P303_PAGE_REFRESH_INTERVAL:=nvl(:P303_REFRESH_RATE,10);',
+'  else    ',
+'    :P303_PAGE_REFRESH_INTERVAL:=null;  ',
+'  end if;',
+'end;'))
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 );
 end;
 /
@@ -33977,7 +34331,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(122912880450952719)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190122104029'
+,p_last_upd_yyyymmddhh24miss=>'20190131151228'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(133054806686047722)
@@ -34334,6 +34688,7 @@ wwv_flow_api.create_page_plug(
 ,p_plug_display_sequence=>3
 ,p_include_in_reg_disp_sel_yn=>'Y'
 ,p_plug_display_point=>'BODY'
+,p_plug_source=>'<div id="p404_task_info_div"></div>'
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 ,p_plug_display_condition_type=>'ITEM_IS_NOT_NULL'
 ,p_plug_display_when_condition=>'P404_TQ_ID'
@@ -34367,6 +34722,19 @@ wwv_flow_api.create_page_plug(
 ,p_menu_id=>wwv_flow_api.id(105037718949957989)
 ,p_plug_source_type=>'NATIVE_BREADCRUMB'
 ,p_menu_template_id=>wwv_flow_api.id(105137186351958327)
+);
+wwv_flow_api.create_page_button(
+ p_id=>wwv_flow_api.id(122997905426772348)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_api.id(134419423711630164)
+,p_button_name=>'Task'
+,p_button_action=>'REDIRECT_PAGE'
+,p_button_template_options=>'#DEFAULT#:t-Button--gapTop:t-Button--padBottom'
+,p_button_template_id=>wwv_flow_api.id(105136390946958319)
+,p_button_image_alt=>'Task Info'
+,p_button_position=>'BELOW_BOX'
+,p_button_redirect_url=>'f?p=&APP_ID.:121:&SESSION.::&DEBUG.:RP:P121_TQ_ID:&P404_TQ_ID.'
+,p_security_scheme=>wwv_flow_api.id(122912880450952719)
 );
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(123006333982772372)
@@ -34507,22 +34875,6 @@ wwv_flow_api.create_page_button(
 ,p_button_condition_type=>'PLSQL_EXPRESSION'
 ,p_grid_new_grid=>false
 ,p_security_scheme=>wwv_flow_api.id(122913147327954849)
-);
-wwv_flow_api.create_page_button(
- p_id=>wwv_flow_api.id(122997905426772348)
-,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_api.id(134419423711630164)
-,p_button_name=>'Task'
-,p_button_action=>'REDIRECT_PAGE'
-,p_button_template_options=>'#DEFAULT#:t-Button--gapTop:t-Button--padBottom'
-,p_button_template_id=>wwv_flow_api.id(105136390946958319)
-,p_button_image_alt=>'Task Info'
-,p_button_position=>'BODY'
-,p_button_redirect_url=>'f?p=&APP_ID.:121:&SESSION.::&DEBUG.:RP:P121_TQ_ID:&P404_TQ_ID.'
-,p_grid_new_grid=>false
-,p_grid_new_row=>'N'
-,p_grid_column=>10
-,p_security_scheme=>wwv_flow_api.id(122912880450952719)
 );
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(30765213342683373)
@@ -34737,12 +35089,8 @@ wwv_flow_api.create_page_item(
 ,p_name=>'P404_TASK_HEADER'
 ,p_item_sequence=>5
 ,p_item_plug_id=>wwv_flow_api.id(134419423711630164)
-,p_display_as=>'NATIVE_DISPLAY_ONLY'
-,p_field_template=>wwv_flow_api.id(105135891214958300)
-,p_item_template_options=>'#DEFAULT#'
-,p_attribute_01=>'N'
-,p_attribute_02=>'VALUE'
-,p_attribute_04=>'N'
+,p_display_as=>'NATIVE_HIDDEN'
+,p_attribute_01=>'Y'
 );
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(123002016979772362)
@@ -34875,6 +35223,45 @@ wwv_flow_api.create_page_item(
 ,p_attribute_01=>'NONE'
 ,p_attribute_02=>'N'
 );
+wwv_flow_api.create_page_da_event(
+ p_id=>wwv_flow_api.id(30675054905830647)
+,p_name=>'RefreshTaskInfo'
+,p_event_sequence=>10
+,p_triggering_element_type=>'REGION'
+,p_triggering_region_id=>wwv_flow_api.id(134419423711630164)
+,p_bind_type=>'bind'
+,p_bind_event_type=>'apexafterrefresh'
+);
+wwv_flow_api.create_page_da_action(
+ p_id=>wwv_flow_api.id(30675151269830648)
+,p_event_id=>wwv_flow_api.id(30675054905830647)
+,p_event_result=>'TRUE'
+,p_action_sequence=>10
+,p_execute_on_page_init=>'Y'
+,p_action=>'PLUGIN_MULEDEV.SERVER_REGION_REFRESH'
+,p_attribute_01=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare',
+'  l_task varchar2(32765);',
+'  l_status varchar2(100);',
+'begin',
+'  if :P404_TQ_ID is not null then',
+'    select ''<b>Name:</b> ''||taskname||decode(task_subname,null,null,'':''||task_subname)||',
+'             ''; <b>Started:</b> ''||to_char(started,''YYYY-MON-DD HH24:MI:SS.FF3'')||',
+'             ''; <b>Finished:</b> ''||nvl(to_char(finished,''YYYY-MON-DD HH24:MI:SS.FF3''),''N/A'')||',
+'             ''; <b>CPU:</b> ''||nvl(to_char(cpu_time),''N/A'')||',
+'             '' sec; <b>Elapsed:</b> ''||nvl(to_char(elapsed_time),''N/A'')||',
+'             '' sec; <b>Status:</b> ''||status,status into l_task,l_status',
+'      from v$opas_task_queue where tq_id=:P404_TQ_ID;      ',
+'  end if;',
+'  htp.p(l_task);',
+'  --if l_status in (''SUCCEEDED'',''FAILED'') then :P404_PAGEREFRESH:=1; else :P404_PAGEREFRESH := null; end if;',
+'exception',
+'  when others then htp.p(sqlerrm);',
+'end;'))
+,p_attribute_02=>'p404_task_info_div'
+,p_attribute_04=>'10'
+,p_attribute_05=>'REPLACE'
+);
 wwv_flow_api.create_page_process(
  p_id=>wwv_flow_api.id(123009735569772399)
 ,p_process_sequence=>10
@@ -34956,14 +35343,14 @@ wwv_flow_api.create_page_process(
 '    select finished into l_finished from v$opas_task_queue where tq_id=:P404_TQ_ID;',
 '    if systimestamp>l_finished+15/24/60 then',
 '      :P404_TQ_ID:=null;',
-'    else  ',
-'      select ''Name: ''||taskname||decode(task_subname,null,null,'':''||task_subname)||',
-'             ''; Started: ''||to_char(started,''YYYY-MON-DD HH24:MI:SS.FF3'')||',
-'             ''; Finished: ''||nvl(to_char(finished,''YYYY-MON-DD HH24:MI:SS.FF3''),''N/A'')||',
-'             ''; CPU: ''||nvl(to_char(cpu_time),''N/A'')||',
-'             '' sec; Elapsed: ''||nvl(to_char(elapsed_time),''N/A'')||',
-'             '' sec; Status: ''||status into :P404_TASK_HEADER',
-'      from v$opas_task_queue where tq_id=:P404_TQ_ID order by 1 desc;      ',
+'--    else  ',
+'--      select ''Name: ''||taskname||decode(task_subname,null,null,'':''||task_subname)||',
+'--             ''; Started: ''||to_char(started,''YYYY-MON-DD HH24:MI:SS.FF3'')||',
+'--             ''; Finished: ''||nvl(to_char(finished,''YYYY-MON-DD HH24:MI:SS.FF3''),''N/A'')||',
+'--             ''; CPU: ''||nvl(to_char(cpu_time),''N/A'')||',
+'--             '' sec; Elapsed: ''||nvl(to_char(elapsed_time),''N/A'')||',
+'--             '' sec; Status: ''||status into :P404_TASK_HEADER',
+'--      from v$opas_task_queue where tq_id=:P404_TQ_ID order by 1 desc;      ',
 '    end if;',
 '  end if;',
 'exception',

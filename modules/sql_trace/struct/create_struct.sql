@@ -35,7 +35,8 @@ file_source         varchar2(128) REFERENCES opas_db_links ( DB_LINK_NAME ),
 file_content        number REFERENCES opas_files ( file_id ),
 report_content      number REFERENCES opas_files ( file_id ),
 source_keep_forever varchar2(1) default 'N' not null,
-parsed_keep_forever varchar2(1) default 'N' not null
+parsed_keep_forever varchar2(1) default 'N' not null,
+tq_id               number
 );
 
 create index idx_trc_file_proj   on trc_files(proj_id);
