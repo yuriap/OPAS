@@ -122,6 +122,18 @@ prompt CREATE OR REPLACE
 select text from user_source where name='COREMOD_INTEGRATION' and type='PACKAGE BODY' order by line;
 prompt /
 spool off
+
+spool &COREMODPATH.\COREMOD_EXPIMP_SPEC.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='COREMOD_EXPIMP' and type='PACKAGE' order by line;
+prompt /
+spool off
+spool &COREMODPATH.\COREMOD_EXPIMP_BODY.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='COREMOD_EXPIMP' and type='PACKAGE BODY' order by line;
+prompt /
+spool off
+
 --=============================================================================================
 --=============================================================================================
 --=============================================================================================
@@ -195,6 +207,15 @@ prompt CREATE OR REPLACE
 select text from user_source where name='TRC_REPORT' and type='PACKAGE BODY' order by line;
 prompt /
 
+spool &COREMODPATH.\TRC_EXPIMP_SPEC.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='TRC_EXPIMP' and type='PACKAGE' order by line;
+prompt /
+spool off
+spool &COREMODPATH.\TRC_EXPIMP_BODY.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='TRC_EXPIMP' and type='PACKAGE BODY' order by line;
+prompt /
 
 --=============================================================================================
 --=============================================================================================
@@ -245,6 +266,18 @@ spool off
 spool &COREMODPATH.\ASHA_PROJ_LCC_BODY.SQL
 prompt CREATE OR REPLACE
 select text from user_source where name='ASHA_PROJ_LCC' and type='PACKAGE BODY' order by line;
+prompt /
+spool off
+
+
+spool &COREMODPATH.\ASHA_EXPIMP_SPEC.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='ASHA_EXPIMP' and type='PACKAGE' order by line;
+prompt /
+spool off
+spool &COREMODPATH.\ASHA_EXPIMP_BODY.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='ASHA_EXPIMP' and type='PACKAGE BODY' order by line;
 prompt /
 spool off
 
@@ -329,6 +362,18 @@ prompt CREATE OR REPLACE
 select text from user_source where name='AWRWH_CALC_ASH_CUBE' and type='FUNCTION' order by line;
 prompt /
 spool off
+
+spool &COREMODPATH.\AWRWH_EXPIMP_SPEC.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='AWRWH_EXPIMP' and type='PACKAGE' order by line;
+prompt /
+spool off
+spool &COREMODPATH.\AWRWH_EXPIMP_BODY.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='AWRWH_EXPIMP' and type='PACKAGE BODY' order by line;
+prompt /
+spool off
+
 --=============================================================================================
 --=============================================================================================
 --=============================================================================================

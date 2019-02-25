@@ -87,6 +87,14 @@ package body COREMOD_API as
     when no_data_found then raise_application_error(-20000,'Script "'||p_script_id||'" not found.');
   end;
 
+  function getmodver(p_module opas_modules.modname%type) return varchar2 RESULT_CACHE
+  is
+    l_res opas_config.cvalue%type;
+  begin
+    select modver into l_res from opas_modules where modname=p_module;
+    return l_res;
+  end;
+
   procedure register_dblink(p_db_link_name varchar2,
                             p_db_link_displ_name varchar2,
                             p_owner varchar2,
@@ -264,7 +272,6 @@ package body COREMOD_API as
   begin
     release_resource(g_handle);
   end;
-
 
 end COREMOD_API;
 /

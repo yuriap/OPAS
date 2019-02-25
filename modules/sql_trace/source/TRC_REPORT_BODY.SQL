@@ -558,7 +558,7 @@ order siblings by pos]';
     l_file := COREFILE_API.create_file(P_MODNAME => TRC_FILE_API.gMODNAME,
                                        P_FILE_TYPE => 'Extended SQL Trace Report',
                                        P_FILE_NAME => l_trc_file.filename||'.html',
-                                       P_MIMETYPE => 'HTML',
+                                       P_MIMETYPE => COREMOD_REPORT_UTILS.gReportMimeType,
                                        P_OWNER => l_trc_file.OWNER);
 
     COREFILE_API.get_locator(l_file,l_file_content);

@@ -124,7 +124,8 @@ tq_id       number references opas_task_queue(tq_id) on delete cascade,
 PAR_NAME    varchar2(100),
 num_par     number,
 varchar_par varchar2(4000),
-date_par    date
+date_par    date,
+list_par    varchar2(4000)
 );
 
 create index idx_opas_task_parstske on opas_task_pars(tq_id);
@@ -185,7 +186,7 @@ create index idx_opas_files_mod on opas_files(modname);
 
 create table opas_reports (
 report_id      NUMBER GENERATED ALWAYS AS IDENTITY primary key,
-parent_id      number references opas_reports(report_id) on delete cascade,
+parent_id      number references opas_reports(report_id) on delete set null,
 modname        varchar2(128) references opas_modules(modname) on delete cascade,
 tq_id          number references opas_task_queue(tq_id) on delete set null,
 report_content number REFERENCES opas_files ( file_id ),
@@ -261,3 +262,58 @@ trg_prnt_entity_id   number
 
 create index idx_opas_integration_src on opas_integration(int_key,src_prnt_entity_id,src_entity_id);
 create index idx_opas_integration_trg on opas_integration(int_key,trg_prnt_entity_id,trg_entity_id);
+
+
+---------------------------------------------------------------------------------------------
+--Export/Import
+---------------------------------------------------------------------------------------------
+create table opas_expimp_sessions (
+sess_id        NUMBER GENERATED ALWAYS AS IDENTITY primary key,
+tq_id          number references opas_task_queue(tq_id) on delete set null,
+expimp_file    number REFERENCES opas_files ( file_id ),
+created        timestamp default systimestamp,
+owner          varchar2(128) default 'PUBLIC' not null,
+sess_type      varchar2(3) check (sess_type in ('IMP','EXP')),
+status         varchar2(32) default 'NEW'
+)
+;
+create index idx_opas_expimp_sessions_tq   on opas_expimp_sessions(tq_id);
+
+create table opas_expimp_metadata (
+sess_id        NUMBER references opas_expimp_sessions(sess_id) on delete cascade,
+modname        varchar2(128) references opas_modules(modname) on delete cascade,
+import_prc     varchar2(128),
+file_descr     varchar2(4000),
+src_version    varchar2(128),
+src_core_version varchar2(128)
+);
+
+create index idx_opas_expimp_metadata_mod   on opas_expimp_metadata(modname);
+create index idx_opas_expimp_metadata_sess   on opas_expimp_metadata(sess_id);
+
+create table opas_expimp_compat (
+modname        varchar2(128) references opas_modules(modname) on delete cascade,
+src_version    varchar2(100),
+trg_version    varchar2(100)
+);
+
+create or replace view v$opas_expimp_sessions as
+select 
+    x.sess_id,
+    x.tq_id,
+    x.expimp_file file_id,
+    x.created,
+    x.owner,
+    decode(x.sess_type,'EXP','Export','IMP','Import','Unknown: '||x.sess_type) sess_type,
+    x.status,
+    m.modname,
+    m.import_prc,
+    m.file_descr,
+    m.src_version,
+    m.src_core_version,
+    dbms_lob.getlength(f.file_contentb) fsize,
+    f.file_name,
+	case when m.MODNAME is not null then to_char(x.created + TO_DSINTERVAL(COREMOD_API.getconf('EXPIMPSESS',m.MODNAME)||' 00:00:00'),'YYYY-MON-DD HH24:MI' ) else null end expiration
+from opas_expimp_sessions x, opas_expimp_metadata m, opas_files f
+where x.owner=decode(x.owner,'PUBLIC',x.owner,nvl(V('APP_USER'),'~^'))
+and x.sess_id=m.sess_id and x.expimp_file=f.file_id(+);

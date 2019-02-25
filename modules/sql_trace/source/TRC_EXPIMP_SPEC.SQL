@@ -1,0 +1,7 @@
+CREATE OR REPLACE
+PACKAGE TRC_EXPIMP AS
+
+  procedure init;
+
+END TRC_EXPIMP;
+/

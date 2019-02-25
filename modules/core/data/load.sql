@@ -16,11 +16,15 @@ INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RE
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','REPORT','WIDESECT',     1500, 'Custom reports wide section width, pixels');
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','REPORT','SUPERWIDESECT',1800, 'Custom reports super wide section width, pixels');
 
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','EXPIMP','EXPIMPDIR','&OPASEXPIMP_DIR.', 'Directory object for EXP/IMP operation');
+INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','EXPIMP','EXPIMPVER','12.2', 'Compatibility level for EXP/IMP dump');
+
 insert into opas_groups (group_id,group_name,group_descr) values (0, 'Administrators','Full set of rights');
 insert into opas_groups (group_id,group_name,group_descr) values (1, 'Reas-write users','All application functions');
 insert into opas_groups (group_id,group_name,group_descr) values (2, 'Read-only users','Read-only functions');
 insert into opas_groups (group_id,group_name,group_descr) values (3, 'No access users','No access to any functionality');
 
+INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '&MODVER.',  '&MODVER.');
 		   
 INSERT INTO 
   opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)

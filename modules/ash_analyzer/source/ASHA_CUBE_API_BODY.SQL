@@ -94,7 +94,7 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
      where parent_id = p_sess_id;
 
     --set the same retrntion for related reports
-    for i in (select * from asha_cube_reports where sess_id=p_sess_id) loop
+    for i in (select * from asha_cube_reports where sess_id=p_sess_id or sess_id in (select sess_id from asha_cube_sess where parent_id = p_sess_id)) loop
       set_report_retention(i.report_id,p_sess_retention_days);
     end loop;
 
@@ -136,7 +136,7 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
 --  =============================================================================================================================================
 --  =============================================================================================================================================
 --  =============================================================================================================================================
-
+/*
   procedure create_report(p_report_type      varchar2,
                           p_proj_id          asha_cube_reports.proj_id%type,
                           p_sess_id          asha_cube_reports.sess_id%type,
@@ -162,6 +162,37 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
 
     insert into asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
     select p_proj_id,report_id,p_sess_id,get_cube_retention(p_sess_id),null from opas_reports where parent_id=l_report_id;
+
+    commit;
+  end;
+*/
+  procedure gather_recursive_reports
+  is
+  begin
+    for i in (select r.report_id, a.report_retention, a.sess_id, a.proj_id from asha_cube_reports a, opas_reports r where a.created > sysdate - 1/24 and r.report_id=a.report_id) loop
+      insert into asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
+      select i.proj_id,report_id,i.sess_id,i.report_retention,null from opas_reports where parent_id=i.report_id and (report_id) not in (select report_id from asha_cube_reports);
+    end loop;
+    commit;
+  end;
+
+  procedure create_memsql_report(p_proj_id          asha_cube_reports.proj_id%type,
+                                 p_sess_id          asha_cube_reports.sess_id%type default null,
+                                 p_sql_id           varchar2,
+                                 p_dblink           varchar2)
+  is
+    l_proj asha_cube_projects%rowtype;
+    l_report_id opas_reports.report_id%type;
+  begin
+    l_proj:=ASHA_PROJ_API.getproject(p_proj_id,true);
+
+    l_report_id := coremod_reports.queue_report_sql_memory_stats(p_modname => gMODNAME, p_owner => l_proj.owner, p_sql_id => p_sql_id, p_dblink => p_dblink);
+
+    INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
+    VALUES                        (p_proj_id,l_report_id,p_sess_id,get_cube_retention(p_sess_id),null);
+
+    --insert into asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
+    --select p_proj_id,report_id,p_sess_id,get_cube_retention(p_sess_id),null from opas_reports where parent_id=l_report_id;
 
     commit;
   end;
@@ -193,8 +224,8 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
     INSERT INTO asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
     VALUES                        (p_proj_id,l_report_id,p_sess_id,get_cube_retention(p_sess_id),null);
 
-    insert into asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
-    select p_proj_id,report_id,p_sess_id,get_cube_retention(p_sess_id),null from opas_reports where parent_id=l_report_id;
+    --insert into asha_cube_reports (proj_id,report_id,sess_id,report_retention,report_note)
+    --select p_proj_id,report_id,p_sess_id,get_cube_retention(p_sess_id),null from opas_reports where parent_id=l_report_id;
 
     commit;
   end;

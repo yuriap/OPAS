@@ -1,5 +1,5 @@
 define MODNM=ASH_ANALYZER
-define MODVER="3.4.4"
+@@version.sql
 --Core installation script
 conn sys/&localsys.@&localdb. as sysdba
 
@@ -41,6 +41,30 @@ end;
 /
 
 begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'ASHA_EXP_PROJ',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin ASHA_EXPIMP.export_proj (p_proj_ids => coremod_tasks.t_ids(<B1>), p_exp_sess_id => <B2>) ; end;');
+end;
+/
+
+begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'ASHA_EXP_CUBE',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin ASHA_EXPIMP.export_cube (p_sess_ids => coremod_tasks.t_ids(<B1>), p_exp_sess_id => <B2>) ; end;');
+end;
+/
+
+begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'ASHA_IMP_PROCESSING',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin ASHA_EXPIMP.import_processing (p_exp_sess_id => <B1>, p_proj_id => <B2>) ; end;');
+end;
+/
+
+begin
     dbms_scheduler.create_program(
                               program_name             => 'OPAS_ASHA_DIC_PRG',
                               program_type             => 'PLSQL_BLOCK',
@@ -64,3 +88,8 @@ begin
 end;
 /
 commit;
+
+begin
+  ASHA_EXPIMP.init();
+end;
+/

@@ -1,5 +1,5 @@
 define MODNM=AWR_WAREHOUSE
-define MODVER="4.3.2"
+@@version.sql
 
 --remote scheme setup
 conn sys/&remotesys.@&remotedb. as sysdba
@@ -65,3 +65,8 @@ END;
 /
 
 commit;
+
+begin
+  AWRWH_EXPIMP.init();
+end;
+/

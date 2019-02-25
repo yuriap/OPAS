@@ -701,6 +701,8 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
     l_interval  number;
 
     l_crsr sys_refcursor;
+    l_lops_ind number;
+    l_module varchar2(100) := 'ASHA Cube calculating';
   begin
     coremod_log.log('Start calc_cube. p_sess_id: '||p_sess_id,'DEBUG');
 
@@ -717,26 +719,12 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
     COREMOD_LOG.Start_SQL_TRACE('ASHA_CUBE_PKG.CALC_CUBE');
     ----------------------------------------------------
 
-    /*if g_allpars.pa_monitor then
-      select max(sample_time)+0.5/24/3600 into l_start_dt from asha_cube where sess_id=p_sess_id;
-      l_interval:=g_allpars.pa_end_dt-g_allpars.pa_start_dt;
-      if l_start_dt is null then
-        l_start_dt:=g_allpars.pa_start_dt;
-        l_end_dt:=g_allpars.pa_end_dt;
-      else
-        execute immediate 'select systimestamp from dual@'||g_allpars.pa_dblink into l_end_dt;
-        l_start_dt:=l_end_dt-l_interval;
-      end if;
-    else
-      l_start_dt:=g_allpars.pa_start_dt;
-      l_end_dt:=g_allpars.pa_end_dt;
-    end if;*/
+    COREMOD_API.init_longops(l_module,'section','sections',6,l_lops_ind);
+    COREMOD_API.start_longops_section ( l_module, 'Preparing');
 
     l_start_dt:=g_allpars.pa_start_dt;
     l_end_dt:=g_allpars.pa_end_dt;
 
-
---coremod_log.log('g_allpars.pa_dblink: '||g_allpars.pa_dblink,'DEBUG');
     if g_allpars.pa_dblink <> '$LOCAL$' then
       if instr(g_allpars.pa_inst_id,'-1')>0 then
         open l_crsr for select inst_id from asha_cube_racnodes_cache where src_dblink=g_allpars.pa_dblink and inst_id<>-1 order by 1;
@@ -776,7 +764,6 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
       end if;
     else
       if g_allpars.pa_source = 'AWR' then
-        --raise_application_error(-20000,'AWR Warehouse is under construction');
         l_dbid     := g_allpars.pa_DBID;
         l_min_snap := g_allpars.pa_START_SNAP;
         l_max_snap := g_allpars.pa_END_SNAP;
@@ -823,6 +810,10 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
     coremod_log.log('l_end_dt:   '||to_char(l_end_dt,c_datetime_fmt),'DEBUG');
     coremod_log.log('l_interval: '||l_interval,'DEBUG');
     ----------------------------------------------------
+    --=====================================================================
+    COREMOD_API.end_longops_section(1,l_lops_ind);
+    COREMOD_API.start_longops_section ( l_module, 'Calcualting main cube');
+    --=====================================================================
     calc_main_cube(p_sess_id => p_sess_id,
                    p_source => g_allpars.pa_source,
                    p_dblink => g_allpars.pa_dblink,
@@ -836,8 +827,11 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
                    p_max_snap => l_max_snap,
                    p_monitor => g_allpars.pa_monitor,
                    p_snap_ash => g_allpars.pa_snap_ash);
-
-      calc_metric_cube
+    --=====================================================================
+    COREMOD_API.end_longops_section(1,l_lops_ind);
+    COREMOD_API.start_longops_section ( l_module, 'Calcualting metrics cube');
+    --=====================================================================
+    calc_metric_cube
                   (p_sess_id => p_sess_id,
                    p_source => g_allpars.pa_source,
                    p_dblink => g_allpars.pa_dblink,
@@ -854,8 +848,11 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
                    p_metricgroup_id => g_allpars.pa_metricgroup_id,
                    p_metricagg => g_allpars.pa_metricagg,
                    p_snap_ash => g_allpars.pa_snap_ash);
-
-      calc_block_cube (p_sess_id => p_sess_id,
+    --=====================================================================
+    COREMOD_API.end_longops_section(1,l_lops_ind);
+    COREMOD_API.start_longops_section ( l_module, 'Calcualting blockers cube');
+    --=====================================================================
+    calc_block_cube (p_sess_id => p_sess_id,
                    p_source => g_allpars.pa_source,
                    p_dblink => g_allpars.pa_dblink,
                    p_start_dt => l_start_dt,
@@ -868,8 +865,11 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
                    p_monitor => g_allpars.pa_monitor,
                    p_block_analyze => g_allpars.pa_block_analyze,
                    p_snap_ash => g_allpars.pa_snap_ash);
-
-      calc_unknown_cube
+    --=====================================================================
+    COREMOD_API.end_longops_section(1,l_lops_ind);
+    COREMOD_API.start_longops_section ( l_module, 'Calcualting unknown cube');
+    --=====================================================================
+    calc_unknown_cube
                   (p_sess_id => p_sess_id,
                    p_source => g_allpars.pa_source,
                    p_dblink => g_allpars.pa_dblink,
@@ -883,8 +883,11 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
                    p_monitor => g_allpars.pa_monitor,
                    p_unknown_analyze => g_allpars.pa_unknown_analyze,
                    p_snap_ash => g_allpars.pa_snap_ash);
-
-      calc_top_sess_cube
+    --=====================================================================
+    COREMOD_API.end_longops_section(1,l_lops_ind);
+    COREMOD_API.start_longops_section ( l_module, 'Calcualting top sessions cube');
+    --=====================================================================
+    calc_top_sess_cube
                   (p_sess_id => p_sess_id,
                    p_source => g_allpars.pa_source,
                    p_dblink => g_allpars.pa_dblink,
@@ -899,6 +902,9 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
                    p_top_sess => g_allpars.pa_top_sess,
                    p_snap_ash => g_allpars.pa_snap_ash);
     commit;
+    --==================================================
+    COREMOD_API.end_longops_section(1,l_lops_ind);
+    --==================================================
 
     COREMOD_LOG.Stop_SQL_GATHER_STAT('ASHA_CUBE_PKG.CALC_CUBE');
     COREMOD_LOG.Stop_SQL_TRACE('ASHA_CUBE_PKG.CALC_CUBE');

@@ -70,6 +70,11 @@ V 4.6.2
 V 4.6.3
 V 4.6.4
  - cube local AWR is empty
+ -.- shortcat monitor on SE - task running forever
+ -.- explain plan for AWR SQL report "INSERT STATEMENT REMOTE", must be executed remotelly.
+ .- move child cube
+ .- queueing AWR report can take quite a time if the search of recursive queries is slow in coremod_reports.queue_report_sql_awr_stats
+V 4.6.5
 ============================================================================================================================
  todo
  .- multiuser monitor and snapper, a link between monitor and snapper to stop one another
@@ -122,8 +127,13 @@ V 4.6.2
 V 4.6.3
  .- autorefresahble
 V 4.6.4
+ .- query search, not like is required
+ .- separate window for cube properties
+ -.- another attempt to process already loaded file
+ .- cleanup imp sess file and EI$ tables after session is finished 
+V 4.6.5 
  - doc: each module, list of features, install guide
- - query search, not like is required
+ - UI to cancel staged import session
 ============================================================================================================================
 getcomph
 ============

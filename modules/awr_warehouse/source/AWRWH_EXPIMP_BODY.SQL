@@ -1,0 +1,10 @@
+CREATE OR REPLACE
+PACKAGE BODY AWRWH_EXPIMP AS
+
+  procedure init AS
+  BEGIN
+    null; --TBD
+  END init;
+
+END AWRWH_EXPIMP;
+/

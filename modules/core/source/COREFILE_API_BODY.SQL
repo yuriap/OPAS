@@ -75,5 +75,67 @@ PACKAGE BODY COREFILE_API AS
     return l_size;
   end;
 
+  procedure put_file_to_fs(p_blob blob, p_filename varchar2, p_dir varchar2)
+  is
+    l_file      UTL_FILE.FILE_TYPE;
+    l_buffer    RAW(32767);
+    l_amount    BINARY_INTEGER := 32767;
+    l_pos       INTEGER := 1;
+    l_blob_len  INTEGER;
+  BEGIN
+    coremod_log.log('COREFILE_API.put_file_to_fs: '||p_filename||';'||p_dir,'DEBUG');
+    l_blob_len := DBMS_LOB.getlength(p_blob);
+
+    -- Open the destination file.
+    l_file := UTL_FILE.fopen(p_dir,p_filename,'wb', 32767);
+
+    -- Read chunks of the BLOB and write them to the file
+    -- until complete.
+    WHILE l_pos < l_blob_len LOOP
+      DBMS_LOB.read(p_blob, l_amount, l_pos, l_buffer);
+      UTL_FILE.put_raw(l_file, l_buffer, TRUE);
+      l_pos := l_pos + l_amount;
+    END LOOP;
+
+    -- Close the file.
+    UTL_FILE.fclose(l_file);
+
+  EXCEPTION
+    WHEN OTHERS THEN
+      -- Close the file if something goes wrong.
+      IF UTL_FILE.is_open(l_file) THEN
+        UTL_FILE.fclose(l_file);
+      END IF;
+      RAISE;
+  END;
+
+  procedure get_file_from_fs(p_file_id opas_files.file_id%type, p_filename varchar2, p_dir varchar2)
+  is
+    l_bfile             bfile := bfilename(p_dir, p_filename);
+    l_blob              blob;
+  begin
+    get_locator_for_storage(p_file_id,l_blob);
+    dbms_lob.open(l_bfile, dbms_lob.lob_readonly);
+    dbms_lob.open(l_blob, dbms_lob.lob_readwrite);
+    dbms_lob.loadfromfile(dest_lob      => l_blob,
+                          src_lob       => l_bfile,
+                          amount        => dbms_lob.getlength(l_bfile));
+    dbms_lob.close(l_bfile);
+    dbms_lob.close(l_blob);
+  end;
+
+  procedure remove_file_from_fs(p_filename varchar2,
+                                p_dir varchar2)
+  is
+    l_exists       BOOLEAN;
+    l_file_length  NUMBER;
+    l_blocksize    NUMBER;
+  begin
+    coremod_log.log('COREFILE_API.remove_file_from_fs: '||p_filename||';'||p_dir,'DEBUG');
+    UTL_FILE.fgetattr(p_dir, p_filename, l_exists, l_file_length, l_blocksize);
+    if l_exists then
+      UTL_FILE.FREMOVE ( location => p_dir, filename => p_filename);
+    end if;
+  end;
 END COREFILE_API;
 /

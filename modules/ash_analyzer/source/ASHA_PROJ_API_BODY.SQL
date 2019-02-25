@@ -180,6 +180,19 @@ package body ASHA_PROJ_API as
       end if;
     end loop;
     commit;
+
+    begin
+      ASHA_EXPIMP.cleanup_expimp();
+      coremod_log.log('ASHA Exp/Imp sessions cleaned');
+    exception
+      when others then
+        coremod_log.log('ASHA Exp/Imp sessions components error: '||sqlerrm);
+        coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
+        coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+    end;
+    commit;
+
+    ASHA_CUBE_API.gather_recursive_reports();
   end;
 
   procedure lock_project(p_proj_id asha_cube_projects.proj_id%type)is
@@ -272,6 +285,12 @@ package body ASHA_PROJ_API as
     update asha_cube_sess set sess_proj_id=p_new_proj_id where sess_id=p_sess_id;
     for i in (select report_id from asha_cube_reports where nvl(sess_id,-1) = p_sess_id) loop
       move_report(i.report_id,p_new_proj_id);
+    end loop;
+
+    --child cubes
+    for i in (select sess_id from asha_cube_sess where parent_id=p_sess_id)
+    loop
+      move_cube(i.sess_id,p_new_proj_id);
     end loop;
   end;
 

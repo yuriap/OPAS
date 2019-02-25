@@ -1,5 +1,8 @@
 define MODNM=OPASCORE
-define MODVER="1.3.2"
+
+@@version.sql
+@@install_config.sql
+
 --Core installation script
 conn sys/&localsys.@&localdb. as sysdba
 
@@ -41,4 +44,18 @@ begin
                                p_task_body => 'begin coremod_report_utils.execute_report (p_report_id => <B1>) ; end;');
 end;
 /
+
+begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'OPAS_UPLOAD_IMP_FILE',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin COREMOD_EXPIMP.import_file (p_exp_sess_id => <B1>) ; end;');
+end;
+/
+
 commit;
+
+begin
+  COREMOD_EXPIMP.init();
+end;
+/

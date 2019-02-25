@@ -203,13 +203,18 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     if l_report_type = gSQL_MEMORY_REPORT then
       l_file_type := 'SQL Memory stats report';
       l_file_name := 'opas_sql_'||get_reppar_c(p_report_id,gparSQLID)||'.html';
-      l_mime := 'HTML';
+      l_mime := gReportMimeType;
       l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBLINK: '||case when get_reppar_c(p_report_id,gparDBLINK,false) is not null then get_reppar_c(p_report_id,gparDBLINK) else 'Local' end;
       l_report := coremod_reports.getreport_sql_memory_stats(p_sql_id => get_reppar_c(p_report_id,gparSQLID),
                                                              p_dblink => case when get_reppar_c(p_report_id,gparDBLINK,false) is not null then COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)) else null end);
+      begin
+        coremod_reports.queue_report_sql_memory_stats_recursive(p_report_id);
+      exception
+        when others then coremod_tasks.log('Exception at coremod_reports.queue_report_sql_memory_stats_recursive: '||sqlerrm);
+      end;
     elsif l_report_type = gSQL_AWR_REPORT then
       l_file_type := 'SQL AWR stats report';
-      l_mime := 'HTML';
+      l_mime := gReportMimeType;
 
       l_report := coremod_reports.getreport_sql_awr_stats(p_sql_id       => get_reppar_c(p_report_id,gparSQLID),
                                                           p_dblink       => case when get_reppar_c(p_report_id,gparDBLINK,false) is not null then COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)) else null end,
@@ -219,9 +224,14 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
                                                           p_max_snap     => get_reppar_n(p_report_id,gparMAX_SNAP,false),
                                                           p_filename     => l_file_name,
                                                           p_displ_params => l_displ_params);
+      begin
+        coremod_reports.queue_report_sql_awr_stats_recursive(p_report_id);
+      exception
+        when others then coremod_tasks.log('Exception at coremod_reports.queue_report_sql_awr_stats_recursive: '||sqlerrm);
+      end;
     elsif l_report_type = qAWRRPT then
       l_file_type := 'AWR report';
-      l_mime := 'HTML';
+      l_mime := gReportMimeType;
       if get_reppar_c(p_report_id,gparDBLINK,false) is null then
 
         l_report := coremod_reports.getreport_awrrpt(get_reppar_n(p_report_id,gparDBID),
@@ -237,7 +247,7 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
       end if;
     elsif l_report_type = qSQAWRRPT then
       l_file_type := 'SQL AWR report';
-      l_mime := 'HTML';
+      l_mime := gReportMimeType;
 
       if get_reppar_c(p_report_id,gparDBLINK,false) is null then
         l_report := coremod_reports.getreport_sqawrrpt(get_reppar_c(p_report_id,gparSQLID),
@@ -255,7 +265,7 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
       end if;
     elsif l_report_type = qAWRDIFF then
       l_file_type := 'AWR Diff report';
-      l_mime := 'HTML';
+      l_mime := gReportMimeType;
 
       if get_reppar_c(p_report_id,gparDBLINK,false) is null then
         l_report := coremod_reports.getreport_diffrpt(get_reppar_n(p_report_id,gparDBID),
@@ -279,7 +289,7 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
       end if;
     elsif l_report_type = qASHRPT then
       l_file_type := 'ASH report';
-      l_mime := 'HTML';
+      l_mime := gReportMimeType;
 
       if get_reppar_c(p_report_id,gparDBLINK,false) is null then
         l_report := coremod_reports.getreport_ashrpt(get_reppar_n(p_report_id,gparDBID),
@@ -326,6 +336,8 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     select report_content into l_report_content from opas_reports where report_id=p_report_id;
     delete from opas_reports where report_id=p_report_id;
     COREFILE_API.delete_file(l_report_content);
+  exception
+    when no_data_found then raise_application_error(-20000,'Report not found: '||p_report_id);
   end;
 
 --=============================================================================================
@@ -1219,6 +1231,45 @@ end;]';
                    and (SQL_FULLTEXT like ']'||p_sql_search_str||q'[' or upper(SQL_FULLTEXT) like upper(']'||p_sql_search_str||q'['))
                 ) ]' || case when p_result_limit = 0 then null else ' where rownum <= '||p_result_limit end || q'[ order by nn#]';
     end if;
+  end;
+
+  function get_sql_search_query(p_srcdb varchar2, p_sql_search_expr varchar2, p_use_cache varchar2 default 'N', p_result_limit number default 0) return varchar2
+  is
+    l_dblink varchar2(512);
+    l_sql    varchar2(32765);
+  begin
+    if (p_srcdb is null and p_sql_search_expr is null) or p_sql_search_expr is null then
+      l_sql := q'[select /*+ qb_name(OPAS_SEARCH) */ 1 nn#, 'Local query cache' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,2000) as varchar2(2000)) sql_text from opas_qry_cache
+                 where 1=2]';
+    elsif p_srcdb is null or p_srcdb = '$LOCAL$' then
+      l_sql := q'[select nn#, source_tab, source_db, sql_id, sql_text from (select * from
+               (select /*+ qb_name(OPAS_SEARCH) */ 1 nn#, 'Local query cache' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,2000) as varchar2(2000)) sql_text from opas_qry_cache
+                 where 'Y'=']'||p_use_cache||q'['
+                union all
+                select 2 nn#, 'Local AWR repository' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,2000) as varchar2(2000)) sql_text from dba_hist_sqltext
+                 where sql_text not like '%qb_name(OPAS_SEARCH)%'
+                union all
+                select 3 nn#, 'Local V$SQL' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(SQL_FULLTEXT,1,2000) as varchar2(2000)) sql_text from gv$sql
+                  where sql_fulltext not like '%qb_name(OPAS_SEARCH)%'
+                ) where ]'||p_sql_search_expr||q'[ ) ]' || case when p_result_limit = 0 then null else ' where rownum <= '||p_result_limit end || q'[ order by nn#]';
+    else
+      l_dblink := COREMOD_API.get_ora_dblink(p_srcdb);
+      l_sql := q'[select nn#, source_tab, source_db, sql_id, sql_text from (select * from (
+                select /*+ qb_name(OPAS_SEARCH) */ 1 nn#, 'Local query cache' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,2000) as varchar2(2000)) sql_text from opas_qry_cache
+                 where 'Y'=']'||p_use_cache||q'['
+                union all
+                select 2 nn#, 'Local AWR repository' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,2000) as varchar2(2000)) sql_text from dba_hist_sqltext
+                 where sql_text not like '%Local AWR repository%'
+                union all
+                select 3 nn#, 'Remote AWR repository' source_tab, ']'||p_srcdb||q'[' source_db, sql_id, cast(substr(sql_text,1,2000) as varchar2(2000)) sql_text from dba_hist_sqltext@]'||p_srcdb||q'[ a
+                 where sql_text not like '%Remote AWR repository%' and sql_text not like '%Remote V$SQL%' and sql_text not like '%l_rc:=UTL_COMPRESS.LZ_COMPRESS%'
+                union all
+                select 4 nn#, 'Remote V$SQL' source_tab, ']'||p_srcdb||q'[' source_db, sql_id, cast(substr(SQL_FULLTEXT,1,2000) as varchar2(2000)) sql_text from gv$sql@]'||p_srcdb||q'[ b
+                 where SQL_FULLTEXT not like '%Remote AWR repository%' and SQL_FULLTEXT not like '%Remote V$SQL%' and SQL_FULLTEXT not like '%l_rc:=UTL_COMPRESS.LZ_COMPRESS%'
+                ) where ]'||p_sql_search_expr||q'[ )]' || case when p_result_limit = 0 then null else ' where rownum <= '||p_result_limit end || q'[ order by nn#]';
+    end if;
+    coremod_log.log(l_sql,'DEBUG');
+    return l_sql;
   end;
 
   function get_sql_qry_txt(p_srcdb varchar2, p_sql_id varchar2) return clob AS

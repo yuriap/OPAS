@@ -204,6 +204,7 @@ package body AWRWH_PROJ_API as
 	  end if;
 	end loop;
     commit;
+    AWRWH_REPORT_API.gather_recursive_reports();
   end;
 
   procedure lock_project(p_proj_id awrwh_projects.proj_id%type)is

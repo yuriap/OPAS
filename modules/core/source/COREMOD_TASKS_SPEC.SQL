@@ -1,6 +1,8 @@
 CREATE OR REPLACE
 package coremod_tasks as
 
+  type t_ids          is table of number;
+
   procedure cleanup_tasks;
 
   procedure create_task(p_taskname   opas_task.taskname%type,
@@ -16,6 +18,8 @@ package coremod_tasks as
   procedure set_task_param(p_tq_id opas_task_queue.tq_id%type, p_name opas_task_pars.par_name%type, p_num_par number);
   procedure set_task_param(p_tq_id opas_task_queue.tq_id%type, p_name opas_task_pars.par_name%type, p_varchar_par varchar2);
   procedure set_task_param(p_tq_id opas_task_queue.tq_id%type, p_name opas_task_pars.par_name%type, p_date_par date);
+  procedure set_task_param_list(p_tq_id opas_task_queue.tq_id%type, p_name opas_task_pars.par_name%type, p_list_par varchar2);
+  function  lsttochr(p_list t_ids) return varchar2;
 
   procedure create_task_job;
   procedure execute_task_proc; --job coord proc

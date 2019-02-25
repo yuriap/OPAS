@@ -492,9 +492,13 @@ end;]';
     return l_report_id;
   end;
 
-  function queue_report_sql_memory_stats(p_modname varchar2, p_owner varchar2, p_sql_id varchar2, p_dblink varchar2) return opas_reports.report_id%type
+  procedure queue_report_sql_memory_stats_recursive(p_report_id opas_reports.report_id%type)
   is
-    l_report_id opas_reports.report_id%type;
+    l_modname                 opas_reports.modname%type;
+    l_owner varchar2(128)  := COREMOD_REPORT_UTILS.get_reppar_c(p_report_id,COREMOD_REPORT_UTILS.gparOWNER);
+    l_sql_id varchar2(128) := COREMOD_REPORT_UTILS.get_reppar_c(p_report_id,COREMOD_REPORT_UTILS.gparSQLID);
+    l_dblink varchar2(128) := COREMOD_REPORT_UTILS.get_reppar_c(p_report_id,COREMOD_REPORT_UTILS.gparDBLINK,false);
+
     l_sql varchar2(32765) := replace(replace(
            q'[select sql_id from (
               select sql_id, count(1) cnt
@@ -503,28 +507,34 @@ end;]';
                  and sql_id<>top_level_sql_id
                group by sql_id
               having count(1) > 60
-               order by cnt desc)]','<dblink>',case when p_dblink is null then null else '@'||p_dblink end),'<sql_id>',p_sql_id);
+               order by cnt desc)]','<dblink>',case when l_dblink is null then null else '@'||l_dblink end),'<sql_id>',l_sql_id);
     l_crsr sys_refcursor;
-    l_sql_id varchar2(100);
-    l_main_report opas_reports.report_id%type;
     l_rec_report  opas_reports.report_id%type;
   begin
-    --main query report
-    l_main_report := queue_report_sql_memory_stats_i(p_modname, p_owner, p_sql_id, p_dblink, null);
-    commit;
-
+    select modname into l_modname from opas_reports where report_id=p_report_id;
     --recursive queries
     open l_crsr for l_sql;
     loop
       fetch l_crsr into l_sql_id;
       exit when l_crsr%notfound;
-      l_rec_report := queue_report_sql_memory_stats_i(p_modname, p_owner, l_sql_id, p_dblink, l_main_report);
+      l_rec_report := queue_report_sql_memory_stats_i(l_modname, l_owner, l_sql_id, l_dblink, p_report_id);
     end loop;
     close l_crsr;
     commit;
-    return l_main_report;
   exception
     when others then raise_application_error(-20000,sqlerrm||chr(10)||l_sql);
+  end;
+
+  function queue_report_sql_memory_stats(p_modname varchar2, p_owner varchar2, p_sql_id varchar2, p_dblink varchar2) return opas_reports.report_id%type
+  is
+    l_main_report opas_reports.report_id%type;
+  begin
+    --main query report
+    l_main_report := queue_report_sql_memory_stats_i(p_modname, p_owner, p_sql_id, p_dblink, null);
+    commit;
+    return l_main_report;
+  exception
+    when others then raise_application_error(-20000,sqlerrm);
   end;
 
   function getreport_sql_memory_stats(p_sql_id varchar2, p_dblink varchar2) return coremod_report_utils.t_output_lines
@@ -1106,16 +1116,17 @@ end;]';
     return l_report_id;
   end;
 
-  function queue_report_sql_awr_stats(p_modname varchar2,
-                                      p_owner varchar2,
-                                      p_sql_id varchar2,
-                                      p_dblink varchar2,
-                                      p_report_limit number,
-                                      p_dbid number default null,
-                                      p_min_snap number default null,
-                                      p_max_snap number default null) return opas_reports.report_id%type
+  procedure queue_report_sql_awr_stats_recursive(p_report_id opas_reports.report_id%type)
   is
-    l_report_id opas_reports.report_id%type;
+    l_modname                 opas_reports.modname%type;
+    l_owner varchar2(128)  := COREMOD_REPORT_UTILS.get_reppar_c(p_report_id,COREMOD_REPORT_UTILS.gparOWNER);
+    l_sql_id varchar2(128) := COREMOD_REPORT_UTILS.get_reppar_c(p_report_id,COREMOD_REPORT_UTILS.gparSQLID);
+    l_dblink varchar2(128) := COREMOD_REPORT_UTILS.get_reppar_c(p_report_id,COREMOD_REPORT_UTILS.gparDBLINK,false);
+    l_report_limit number  := COREMOD_REPORT_UTILS.get_reppar_n(p_report_id,COREMOD_REPORT_UTILS.gparREP_LIMIT,false);
+    l_dbid number          := COREMOD_REPORT_UTILS.get_reppar_n(p_report_id,COREMOD_REPORT_UTILS.gparDBID,false);
+    l_min_snap number      := COREMOD_REPORT_UTILS.get_reppar_n(p_report_id,COREMOD_REPORT_UTILS.gparMIN_SNAP,false);
+    l_max_snap number      := COREMOD_REPORT_UTILS.get_reppar_n(p_report_id,COREMOD_REPORT_UTILS.gparMAX_SNAP,false);
+
     l_sql varchar2(32765) := replace(replace(replace(
            q'[select sql_id from (
               select sql_id, count(1) cnt
@@ -1125,33 +1136,44 @@ end;]';
                  and <limits>
                group by sql_id
               having count(1) > 6
-               order by cnt desc)]','<dblink>',case when p_dblink is null then null else '@'||p_dblink end),
-                                    '<sql_id>',p_sql_id),
-                                    '<limits>', case when nvl(p_report_limit,0)>0
-                                                       then 'SAMPLE_TIME<(sysdate-'||p_report_limit||')'
-                                                     when nvl(p_report_limit,-1)=0
+               order by cnt desc)]','<dblink>',case when l_dblink is null then null else '@'||l_dblink end),
+                                    '<sql_id>',l_sql_id),
+                                    '<limits>', case when nvl(l_report_limit,0)>0
+                                                       then 'SAMPLE_TIME<(sysdate-'||l_report_limit||')'
+                                                     when nvl(l_report_limit,-1)=0
                                                        then '1=1'
-                                                     when p_dbid is not null and p_min_snap is not null and p_max_snap is not null
-                                                       then 'dbid='||p_dbid||' and snap_id between '||p_min_snap||' and '||p_max_snap
+                                                     when l_dbid is not null and l_min_snap is not null and l_max_snap is not null
+                                                       then 'dbid='||l_dbid||' and snap_id between '||l_min_snap||' and '||l_max_snap
                                                      else '1=2'
                                                  end);
     l_crsr sys_refcursor;
-    l_sql_id varchar2(100);
-    l_main_report opas_reports.report_id%type;
     l_rec_report  opas_reports.report_id%type;
   begin
-    --main query report
-    l_main_report := queue_report_sql_awr_stats_i(p_modname, p_owner, p_sql_id, p_dblink, p_report_limit, p_dbid, p_min_snap, p_max_snap, null);
-    commit;
-
+    select modname into l_modname from opas_reports where report_id=p_report_id;
     --recursive queries
     open l_crsr for l_sql;
     loop
       fetch l_crsr into l_sql_id;
       exit when l_crsr%notfound;
-      l_rec_report := queue_report_sql_awr_stats_i(p_modname, p_owner, l_sql_id, p_dblink, p_report_limit, p_dbid, p_min_snap, p_max_snap, l_main_report);
+      l_rec_report := queue_report_sql_awr_stats_i(l_modname, l_owner, l_sql_id, l_dblink, l_report_limit, l_dbid, l_min_snap, l_max_snap, p_report_id);
     end loop;
     close l_crsr;
+    commit;
+  end;
+
+  function queue_report_sql_awr_stats(p_modname varchar2,
+                                      p_owner varchar2,
+                                      p_sql_id varchar2,
+                                      p_dblink varchar2,
+                                      p_report_limit number,
+                                      p_dbid number default null,
+                                      p_min_snap number default null,
+                                      p_max_snap number default null) return opas_reports.report_id%type
+  is
+    l_main_report opas_reports.report_id%type;
+  begin
+    --main query report
+    l_main_report := queue_report_sql_awr_stats_i(p_modname, p_owner, p_sql_id, p_dblink, p_report_limit, p_dbid, p_min_snap, p_max_snap, null);
     commit;
     return l_main_report;
   end;

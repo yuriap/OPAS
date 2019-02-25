@@ -17,13 +17,13 @@ PACKAGE ASHA_CUBE_API AS
   procedure pin_cube_sqls(p_sess_id             asha_cube_sess.sess_id%type default null,
                           p_sess_retention_days asha_cube_sess.sess_retention_days%type,
                           p_sql_id              varchar2 default null);
-
+  /*
   procedure create_report(p_report_type      varchar2,
                           p_proj_id          asha_cube_reports.proj_id%type,
                           p_sess_id          asha_cube_reports.sess_id%type,
                           p_sql_id           varchar2,
                           p_dblink           varchar2,
-                          p_limit            number default 0);
+                          p_limit            number default 0);*/
 
   procedure edit_report_properties(p_report_id          asha_cube_reports.report_id%type,
                                    p_report_retention   asha_cube_reports.report_retention%type,
@@ -32,6 +32,21 @@ PACKAGE ASHA_CUBE_API AS
   procedure delete_report(p_proj_id          asha_cube_reports.proj_id%type,
                           p_report_id          asha_cube_reports.report_id%type);
 
+  procedure gather_recursive_reports;
+--=============================================================================================================================================
+  procedure create_memsql_report(p_proj_id          asha_cube_reports.proj_id%type,
+                                 p_sess_id          asha_cube_reports.sess_id%type default null,
+                                 p_sql_id           varchar2,
+                                 p_dblink           varchar2);
+--=============================================================================================================================================
+  procedure create_awrsql_report(p_proj_id          asha_cube_reports.proj_id%type,
+                                 p_sess_id          asha_cube_reports.sess_id%type default null,
+                                 p_sql_id           varchar2,
+                                 p_dblink           varchar2,
+                                 p_limit            number,
+                                 p_dbid             number,
+                                 p_min_snap         number,
+                                 p_max_snap         number);
 --=============================================================================================================================================
   procedure create_report_awrrpt(p_proj_id      asha_cube_reports.proj_id%type,
                                  p_dbid         number,
@@ -69,15 +84,6 @@ PACKAGE ASHA_CUBE_API AS
                                  p_instance_num varchar2,
                                  p_dblink       varchar2 default null,
                                  p_sess_id      asha_cube_reports.sess_id%type default null);
---=============================================================================================================================================
-  procedure create_awrsql_report(p_proj_id          asha_cube_reports.proj_id%type,
-                                 p_sess_id          asha_cube_reports.sess_id%type default null,
-                                 p_sql_id           varchar2,
-                                 p_dblink           varchar2,
-                                 p_limit            number,
-                                 p_dbid             number,
-                                 p_min_snap         number,
-                                 p_max_snap         number);
 
 END ASHA_CUBE_API;
 /

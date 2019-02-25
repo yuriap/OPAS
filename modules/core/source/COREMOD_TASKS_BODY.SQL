@@ -17,6 +17,16 @@ package body coremod_tasks as
 
   function get_curr_tq_id return opas_task_queue.tq_id%type is begin return gTQ_ID; end;
 
+  function  lsttochr(p_list t_ids) return varchar2
+  is
+    l_ret varchar2(4000);
+  begin
+    for i in 1..p_list.count loop
+      l_ret:=l_ret||p_list(i)||',';
+    end loop;
+    return rtrim(l_ret,',');
+  end;
+
   procedure log(p_msg opas_log.msg%type, p_tq_id opas_task_queue.tq_id%type default null)
   is
     PRAGMA AUTONOMOUS_TRANSACTION;
@@ -86,6 +96,15 @@ package body coremod_tasks as
     on (t.tq_id = s.id and t.par_name=s.nm)
     when matched then update set date_par = s.val
     when not matched then insert (tq_id,par_name,date_par) values (s.id, s.nm, s.val);
+  end;
+
+  procedure set_task_param_list(p_tq_id opas_task_queue.tq_id%type, p_name opas_task_pars.par_name%type, p_list_par varchar2)
+  is
+  begin
+    merge into OPAS_TASK_PARS t using (select p_tq_id id, p_name nm, p_list_par val from dual) s
+    on (t.tq_id = s.id and t.par_name=s.nm)
+    when matched then update set list_par = s.val
+    when not matched then insert (tq_id,par_name,list_par) values (s.id, s.nm, s.val);
   end;
 
   procedure queue_task(p_tq_id opas_task_queue.tq_id%type)
@@ -223,13 +242,17 @@ package body coremod_tasks as
           l_task_body:=replace(l_task_body,'<'||i.par_name||'>',i.num_par);
         when i.varchar_par is not null then
           l_task_body:=replace(l_task_body,'<'||i.par_name||'>',q'[']'||i.varchar_par||q'[']');
+        when i.list_par is not null then
+          l_task_body:=replace(l_task_body,'<'||i.par_name||'>',i.list_par);
         when i.date_par is not null then
           raise_application_error(-20000,'Not implemented parameter type: DATE');
+        else
+          raise_application_error(-20000,'Null parameter passed');
       end case;
     end loop;
     log('Start task: '||l_task.taskname,p_tq_id);
     execute immediate l_task_body;
-    log('End task',p_tq_id);
+    log('End task: '||l_task.taskname,p_tq_id);
     set_task_finished(p_tq_id,gtqSUCCEEDED);
     gTQ_ID:=null;
   exception

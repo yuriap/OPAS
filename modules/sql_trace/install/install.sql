@@ -1,5 +1,5 @@
 define MODNM=SQL_TRACE
-define MODVER="2.2.2"
+@@version.sql
 --Extended SQL Trace installation script
 conn sys/&localsys.@&localdb. as sysdba
 
@@ -32,3 +32,8 @@ begin
 end;
 /
 commit;
+
+begin
+  TRC_EXPIMP.init();
+end;
+/

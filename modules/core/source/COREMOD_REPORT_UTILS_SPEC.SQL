@@ -3,6 +3,8 @@ PACKAGE COREMOD_REPORT_UTILS AS
 
   type t_output_lines is table of varchar2(32767) index by pls_integer;
 
+  gReportMimeType          constant varchar2(32) := 'TEXT/HTML';
+
   gDTFMT                   constant varchar2(32) := 'YYYYMMDDHH24MISS';
   gShortDTFMT              constant varchar2(32) := 'YYYYMMDDHH24MI';
 
@@ -144,6 +146,7 @@ PACKAGE COREMOD_REPORT_UTILS AS
   function get_sql_qry_txt(p_srcdb varchar2, p_sql_id varchar2) return clob;
   procedure pin_sql_in_cache(p_sql_id varchar2, p_days number default 180);
   function get_sql_search_query(p_srcdb varchar2, p_sql_search_str varchar2, p_use_cache varchar2 default 'N', p_result_limit number default 0) return varchar2;
+  function get_sql_search_query(p_srcdb varchar2, p_sql_search_expr varchar2, p_use_cache varchar2 default 'N', p_result_limit number default 0) return varchar2;
 
 end;
 /

@@ -1,0 +1,10 @@
+CREATE OR REPLACE
+PACKAGE BODY TRC_EXPIMP AS
+
+  procedure init AS
+  BEGIN
+    null; --TBD
+  END init;
+
+END TRC_EXPIMP;
+/

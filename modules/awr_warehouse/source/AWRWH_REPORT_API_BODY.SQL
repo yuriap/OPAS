@@ -184,6 +184,18 @@ PACKAGE BODY AWRWH_REPORT_API AS
 --  =============================================================================================================================================
 --  =============================================================================================================================================
 --  =============================================================================================================================================
+  procedure gather_recursive_reports
+  is
+  begin
+    for i in (select r.report_id, a.report_retention, a.dump_id, a.proj_id from awrwh_reports a, opas_reports r where a.created > sysdate - 1/24 and r.report_id=a.report_id) loop
+      insert into awrwh_reports
+            (proj_id,  report_id,dump_id,  report_retention,  report_note,created)
+      select i.proj_id,report_id,i.dump_id,i.report_retention,null,       systimestamp from opas_reports where parent_id=i.report_id and report_id not in (select report_id from awrwh_reports);
+    end loop;
+    commit;
+  end;
+
+/*
   procedure create_report(p_report_type      varchar2,
                               p_proj_id          awrwh_projects.proj_id%type,
                               p_sql_id           varchar2,
@@ -212,7 +224,26 @@ PACKAGE BODY AWRWH_REPORT_API AS
 
     commit;
   end;
+*/
+  procedure create_memsql_report(p_proj_id          awrwh_projects.proj_id%type,
+                                 p_sql_id           varchar2,
+                                 p_dblink           varchar2)
+  is
+    l_proj awrwh_projects%rowtype;
+    l_report_id opas_reports.report_id%type;
+  begin
+    l_proj:=AWRWH_PROJ_API.getproject(p_proj_id,true);
 
+    l_report_id := coremod_reports.queue_report_sql_memory_stats(p_modname => AWRWH_API.gMODNAME, p_owner => l_proj.owner, p_sql_id => p_sql_id, p_dblink => p_dblink);
+
+    INSERT INTO awrwh_reports (proj_id,report_id,dump_id,dump_id_2,report_retention,report_note,created)
+                       VALUES (p_proj_id,l_report_id,null,null,default,null,systimestamp);
+
+--    insert into awrwh_reports (proj_id,report_id,dump_id,report_retention,report_note,created)
+--    select p_proj_id,report_id,p_dump_id,null,null,systimestamp from opas_reports where parent_id=l_report_id;
+
+    commit;
+  end;
   procedure create_awrsql_report(p_proj_id          awrwh_projects.proj_id%type,
                                  p_sql_id           varchar2,
                                  p_dblink           varchar2,
@@ -240,8 +271,8 @@ PACKAGE BODY AWRWH_REPORT_API AS
     INSERT INTO awrwh_reports (proj_id,report_id,dump_id,dump_id_2,report_retention,report_note,created)
                        VALUES (p_proj_id,l_report_id,p_dump_id,null,default,null,systimestamp);
 
-    insert into awrwh_reports (proj_id,report_id,dump_id,report_retention,report_note,created)
-    select p_proj_id,report_id,p_dump_id,null,null,systimestamp from opas_reports where parent_id=l_report_id;
+--    insert into awrwh_reports (proj_id,report_id,dump_id,report_retention,report_note,created)
+--    select p_proj_id,report_id,p_dump_id,null,null,systimestamp from opas_reports where parent_id=l_report_id;
 
     commit;
   end;
@@ -385,7 +416,7 @@ PACKAGE BODY AWRWH_REPORT_API AS
 
     l_file_type := 'AWR Comparison report';
     l_file_name := 'opas_awrcomp_'||l_fn_suff||'.html';
-    l_mime := 'HTML';
+    l_mime := COREMOD_REPORT_UTILS.gReportMimeType;
 
     --l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBLINK: '||get_reppar_c(p_report_id,gparDBLINK);
 

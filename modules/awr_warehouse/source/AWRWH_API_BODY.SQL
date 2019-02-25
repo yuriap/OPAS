@@ -5,36 +5,9 @@ PACKAGE BODY AWRWH_API AS
 
   procedure put_file_to_fs(p_blob blob, p_filename varchar2, p_dir varchar2)
   is
-    l_file      UTL_FILE.FILE_TYPE;
-    l_buffer    RAW(32767);
-    l_amount    BINARY_INTEGER := 32767;
-    l_pos       INTEGER := 1;
-    l_blob_len  INTEGER;
   BEGIN
     coremod_log.log('AWRWH_API.put_file_to_fs: '||p_filename||';'||p_dir,'DEBUG');
-    l_blob_len := DBMS_LOB.getlength(p_blob);
-
-    -- Open the destination file.
-    l_file := UTL_FILE.fopen(p_dir,p_filename,'wb', 32767);
-
-    -- Read chunks of the BLOB and write them to the file
-    -- until complete.
-    WHILE l_pos < l_blob_len LOOP
-      DBMS_LOB.read(p_blob, l_amount, l_pos, l_buffer);
-      UTL_FILE.put_raw(l_file, l_buffer, TRUE);
-      l_pos := l_pos + l_amount;
-    END LOOP;
-
-    -- Close the file.
-    UTL_FILE.fclose(l_file);
-
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- Close the file if something goes wrong.
-      IF UTL_FILE.is_open(l_file) THEN
-        UTL_FILE.fclose(l_file);
-      END IF;
-      RAISE;
+    COREFILE_API.put_file_to_fs(p_blob,p_filename,p_dir);
   END;
 
   procedure remove_file_from_fs(p_filename varchar2,
@@ -42,9 +15,7 @@ PACKAGE BODY AWRWH_API AS
   is
   begin
     coremod_log.log('AWRWH_API.remove_file_from_fs: '||p_filename||';'||p_dir,'DEBUG');
-    UTL_FILE.FREMOVE (
-     location => p_dir,
-     filename => p_filename);
+    COREFILE_API.remove_file_from_fs(p_filename,p_dir);
   end;
 
   procedure remote_awr_load(p_stg_user varchar2,
