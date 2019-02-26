@@ -37,6 +37,7 @@ PACKAGE COREMOD_EXPIMP AS
 
   procedure queue_execution_session(p_exp_sess_id opas_expimp_sessions.sess_id%type,
                                     p_tq_id       opas_expimp_sessions.tq_id%type);
+  procedure discard_staged_session(p_exp_sess_id opas_expimp_sessions.sess_id%type);
 
   --called from task
   --step 1 of execution exp/imp session

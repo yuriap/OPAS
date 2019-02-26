@@ -230,8 +230,8 @@ PACKAGE BODY ASHA_EXPIMP AS
         select * into l_proj from ei$asha_cube_projects; --must be a single row
 
         INSERT INTO asha_cube_projects
-                  ( proj_name, owner, created, status, proj_note, keep_forever, is_public)
-           VALUES ( l_proj.proj_name || ' (imported)', COREMOD_API.gDefaultOwner, l_proj.created, l_proj.status, l_proj.proj_note, 'Y' /*l_proj.keep_forever*/, l_proj.is_public) returning proj_id into l_proj.PROJ_ID;
+                  ( proj_name, owner, created, status, proj_note, keep_forever, is_public, priority)
+           VALUES ( l_proj.proj_name || ' (imported)', COREMOD_API.gDefaultOwner, l_proj.created, l_proj.status, l_proj.proj_note, 'Y' /*l_proj.keep_forever*/, l_proj.is_public, nvl(l_proj.prioroty,100)) returning proj_id into l_proj.PROJ_ID;
 
         update ei$asha_cube_projects set PROJ_ID = l_proj.PROJ_ID;
         :a1 := l_proj.PROJ_ID;

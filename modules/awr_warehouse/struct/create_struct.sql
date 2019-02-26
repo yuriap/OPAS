@@ -11,7 +11,8 @@ created             timestamp     default systimestamp not null,
 status              varchar2(10)  default 'NEW' not null,
 proj_note           clob,
 keep_forever        varchar2(1) default 'N' not null,
-is_public           varchar2(1) default 'Y' not null
+is_public           varchar2(1) default 'Y' not null,
+priority            number default 10
 );
 
 create table awrwh_srcdblink2projects (

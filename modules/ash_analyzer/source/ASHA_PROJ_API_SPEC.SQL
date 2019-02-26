@@ -14,7 +14,8 @@ package ASHA_PROJ_API as
                            p_proj_id  out asha_cube_projects.proj_id%type);
 
   procedure edit_project  (p_proj_id      asha_cube_projects.proj_id%type,
-                           p_proj_name    asha_cube_projects.proj_name%type);
+                           p_proj_name    asha_cube_projects.proj_name%type,
+                           p_priority     asha_cube_projects.priority%type);
 
   procedure set_project_security
                         (p_proj_id        asha_cube_projects.proj_id%type,

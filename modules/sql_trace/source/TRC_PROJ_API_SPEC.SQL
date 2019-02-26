@@ -14,7 +14,8 @@ package TRC_PROJ_API as
                            p_proj_id  out trc_projects.proj_id%type);
 
   procedure edit_project  (p_proj_id      trc_projects.proj_id%type,
-                           p_proj_name    trc_projects.proj_name%type);
+                           p_proj_name    trc_projects.proj_name%type,
+                           p_priority     trc_projects.priority%type);
 
   procedure set_project_security
                         (p_proj_id        trc_projects.proj_id%type,

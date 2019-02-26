@@ -132,8 +132,10 @@ V 4.6.4
  -.- another attempt to process already loaded file
  .- cleanup imp sess file and EI$ tables after session is finished 
 V 4.6.5 
+ .- UI to cancel staged import session
+V4.6.6
  - doc: each module, list of features, install guide
- - UI to cancel staged import session
+
 ============================================================================================================================
 getcomph
 ============

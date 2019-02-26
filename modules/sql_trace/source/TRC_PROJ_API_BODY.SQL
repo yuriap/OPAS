@@ -30,7 +30,8 @@ package body TRC_PROJ_API as
   end create_project;
 
   procedure edit_project  (p_proj_id      trc_projects.proj_id%type,
-                           p_proj_name    trc_projects.proj_name%type) as
+                           p_proj_name    trc_projects.proj_name%type,
+                           p_priority     trc_projects.priority%type) as
     l_curproj trc_projects%rowtype;
   begin
     l_curproj:=getproject(p_proj_id, true);
@@ -38,7 +39,8 @@ package body TRC_PROJ_API as
 
     UPDATE trc_projects
        SET
-           proj_name = p_proj_name
+           proj_name = p_proj_name,
+           priority  = p_priority
      WHERE proj_id = p_proj_id;
 
   end edit_project;

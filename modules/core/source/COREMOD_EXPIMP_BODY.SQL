@@ -227,6 +227,12 @@ PACKAGE BODY COREMOD_EXPIMP AS
     set_status(p_exp_sess_id, gstINQUEUE);
   end;
 
+  procedure discard_staged_session(p_exp_sess_id opas_expimp_sessions.sess_id%type)
+  is
+  begin
+    update opas_expimp_sessions set status = gstFAILED where sess_id = p_exp_sess_id and status=gstNEXTSTAGE;
+  end;
+
   procedure start_execution_session(p_exp_sess_id opas_expimp_sessions.sess_id%type)
   is
     l_cnt number;
@@ -482,8 +488,12 @@ PACKAGE BODY COREMOD_EXPIMP AS
   begin
     for i in (select s.expimp_file, s.sess_id from opas_expimp_sessions s,
                             opas_expimp_metadata m
-               where s.sess_id=m.sess_id and m.modname=p_modname
-                 and created < sysdate - p_retention_days)
+               where s.sess_id=m.sess_id
+                 and (
+                      (created < sysdate - p_retention_days and m.modname=p_modname) or
+                      (created < sysdate - 10/24/60 and status = gstFAILED)
+                     )
+            )
     loop
       delete from opas_expimp_sessions where sess_id=i.sess_id;
 
