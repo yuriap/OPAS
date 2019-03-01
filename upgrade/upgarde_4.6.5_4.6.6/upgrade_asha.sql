@@ -17,6 +17,7 @@ end retention
 from asha_cube_projects x
 where owner=decode(owner,'PUBLIC',owner,decode(is_public,'Y',owner,nvl(V('APP_USER'),'~^')));
 
+delete from opas_expimp_compat where modname='&MODNM.';
 INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '&MODVER.',  '&MODVER.');
 commit;
 
