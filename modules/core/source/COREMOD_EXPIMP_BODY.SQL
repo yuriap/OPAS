@@ -299,10 +299,10 @@ PACKAGE BODY COREMOD_EXPIMP AS
     --load to opas_files and return ID
     l_file := COREFILE_API.create_file(P_MODNAME => l_modname,
                                        P_FILE_TYPE => 'OPAS Exp/Imp file',
-                                       P_FILE_NAME => l_exp_file_name||'.DMP',
+                                       P_FILE_NAME => l_exp_file_name||'.DMP.LZ',
                                        P_MIMETYPE => 'APPLICATION/OCTET-STREAM',
                                        P_OWNER => l_owner);
-    COREFILE_API.get_file_from_fs(l_file,l_exp_file_name||'.DMP', COREMOD_API.getconf(P_KEY => 'EXPIMPDIR',P_MODULE => COREMOD_API.gMODNAME));
+    COREFILE_API.get_file_from_fs(l_file,l_exp_file_name||'.DMP', COREMOD_API.getconf(P_KEY => 'EXPIMPDIR',P_MODULE => COREMOD_API.gMODNAME), p_compress => true);
     COREFILE_API.remove_file_from_fs(l_exp_file_name||'.DMP', COREMOD_API.getconf(P_KEY => 'EXPIMPDIR',P_MODULE => COREMOD_API.gMODNAME));
     update opas_expimp_sessions set expimp_file=l_file where sess_id = p_exp_sess_id;
     commit;
@@ -398,7 +398,7 @@ PACKAGE BODY COREMOD_EXPIMP AS
        and s.expimp_file=f.file_id;
 
     COREFILE_API.remove_file_from_fs(l_exp_file_name, COREMOD_API.getconf(P_KEY => 'EXPIMPDIR',P_MODULE => COREMOD_API.gMODNAME));
-    COREFILE_API.put_file_to_fs (P_BLOB => l_file, P_FILENAME => l_exp_file_name, P_DIR => COREMOD_API.getconf(P_KEY => 'EXPIMPDIR',P_MODULE => COREMOD_API.gMODNAME)) ;
+    COREFILE_API.put_file_to_fs (P_BLOB => l_file, P_FILENAME => l_exp_file_name, P_DIR => COREMOD_API.getconf(P_KEY => 'EXPIMPDIR',P_MODULE => COREMOD_API.gMODNAME), p_uncompress => true) ;
 
     datapump_import_ei_tables(l_exp_file_name);
 

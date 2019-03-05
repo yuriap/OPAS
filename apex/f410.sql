@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   15:08 Tuesday February 26, 2019
+--   Date and Time:   11:43 Tuesday March 5, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190226150732'
+,p_last_upd_yyyymmddhh24miss=>'20190301125115'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -18402,7 +18402,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(105334237137436873)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190226124822'
+,p_last_upd_yyyymmddhh24miss=>'20190226152056'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(109378596642458356)
@@ -18455,7 +18455,7 @@ wwv_flow_api.create_report_region(
 'order by priority, created desc;'))
 ,p_ajax_enabled=>'Y'
 ,p_query_row_template=>wwv_flow_api.id(110379349483998120)
-,p_query_num_rows=>4
+,p_query_num_rows=>8
 ,p_query_options=>'DERIVED_REPORT_COLUMNS'
 ,p_query_show_nulls_as=>'-'
 ,p_query_no_data_found=>'No project has been created yet.'
@@ -19424,7 +19424,7 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(105283604989258887)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181119153323'
+,p_last_upd_yyyymmddhh24miss=>'20190226152139'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(116650692642262849)
@@ -19500,7 +19500,7 @@ wwv_flow_api.create_page_item(
 ,p_name=>'P202_PROJ_NAME'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_api.id(116650692642262849)
-,p_prompt=>'Proj Name'
+,p_prompt=>'Project Name'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
 ,p_field_template=>wwv_flow_api.id(105135891214958300)
@@ -21273,7 +21273,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(103683328942143765)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190226150547'
+,p_last_upd_yyyymmddhh24miss=>'20190226151944'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(119789861137154911)
@@ -21320,7 +21320,7 @@ wwv_flow_api.create_report_region(
 'order by priority, created desc;'))
 ,p_ajax_enabled=>'Y'
 ,p_query_row_template=>wwv_flow_api.id(110379349483998120)
-,p_query_num_rows=>5
+,p_query_num_rows=>8
 ,p_query_options=>'DERIVED_REPORT_COLUMNS'
 ,p_query_show_nulls_as=>'-'
 ,p_query_no_data_found=>'No project has been created yet.'
@@ -22743,7 +22743,7 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(103684571582167342)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181121122433'
+,p_last_upd_yyyymmddhh24miss=>'20190226152156'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(127071786401094914)
@@ -22819,7 +22819,7 @@ wwv_flow_api.create_page_item(
 ,p_name=>'P302_PROJ_NAME'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_api.id(127071786401094914)
-,p_prompt=>'Proj Name'
+,p_prompt=>'Project Name'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
 ,p_field_template=>wwv_flow_api.id(105135891214958300)
@@ -29207,7 +29207,7 @@ wwv_flow_api.create_page(
 ,p_html_page_header=>'<meta http-equiv="refresh" content="&P311_PAGE_REFRESH_INTERVAL.">'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190225113301'
+,p_last_upd_yyyymmddhh24miss=>'20190301125115'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(30954140043241831)
@@ -29309,7 +29309,7 @@ wwv_flow_api.create_page_plug(
 );
 wwv_flow_api.create_report_region(
  p_id=>wwv_flow_api.id(30955996632241849)
-,p_name=>'Select cubes'
+,p_name=>'Selected cubes'
 ,p_template=>wwv_flow_api.id(105084245843958177)
 ,p_display_sequence=>50
 ,p_include_in_reg_disp_sel_yn=>'Y'
@@ -29368,7 +29368,7 @@ wwv_flow_api.create_report_columns(
 ,p_query_column_id=>3
 ,p_column_alias=>'SESS_ID'
 ,p_column_display_sequence=>3
-,p_column_heading=>'Sess Id'
+,p_column_heading=>'Remove'
 ,p_use_as_row_header=>'N'
 ,p_column_link=>'f?p=&APP_ID.:311:&SESSION.::&DEBUG.:RP:P311_CUBE2REMOVE:#SESS_ID#'
 ,p_column_linktext=>'<img src="#IMAGE_PREFIX#app_ui/img/icons/apex-edit-pencil.png" class="apex-edit-pencil" alt="">'
@@ -29437,7 +29437,7 @@ wwv_flow_api.create_report_columns(
 ,p_query_column_id=>2
 ,p_column_alias=>'FSIZE'
 ,p_column_display_sequence=>2
-,p_column_heading=>'Fsize'
+,p_column_heading=>'Download'
 ,p_use_as_row_header=>'N'
 ,p_column_format=>'DOWNLOAD:OPAS_FILES:FILE_CONTENTB:FILE_ID::FILE_MIMETYPE:FILE_NAME:::attachment::'
 ,p_derived_column=>'N'
@@ -34999,7 +34999,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(122912880450952719)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190226125339'
+,p_last_upd_yyyymmddhh24miss=>'20190226152109'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(149439406111735634)
@@ -35053,7 +35053,7 @@ wwv_flow_api.create_report_region(
 'order by priority, created desc;'))
 ,p_ajax_enabled=>'Y'
 ,p_query_row_template=>wwv_flow_api.id(110379349483998120)
-,p_query_num_rows=>4
+,p_query_num_rows=>8
 ,p_query_options=>'DERIVED_REPORT_COLUMNS'
 ,p_query_show_nulls_as=>'-'
 ,p_query_no_data_found=>'No project has been created yet.'
@@ -36454,7 +36454,7 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(123036395099748426)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181221124809'
+,p_last_upd_yyyymmddhh24miss=>'20190226152211'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(156875525069726166)
@@ -36530,7 +36530,7 @@ wwv_flow_api.create_page_item(
 ,p_name=>'P402_PROJ_NAME'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_api.id(156875525069726166)
-,p_prompt=>'Proj Name'
+,p_prompt=>'Project Name'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
 ,p_field_template=>wwv_flow_api.id(105135891214958300)

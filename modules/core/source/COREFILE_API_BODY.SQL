@@ -75,16 +75,24 @@ PACKAGE BODY COREFILE_API AS
     return l_size;
   end;
 
-  procedure put_file_to_fs(p_blob blob, p_filename varchar2, p_dir varchar2)
+  procedure put_file_to_fs(p_blob blob, p_filename varchar2, p_dir varchar2, p_uncompress boolean default false)
   is
     l_file      UTL_FILE.FILE_TYPE;
     l_buffer    RAW(32767);
     l_amount    BINARY_INTEGER := 32767;
     l_pos       INTEGER := 1;
     l_blob_len  INTEGER;
+    l_blob      blob;
   BEGIN
     coremod_log.log('COREFILE_API.put_file_to_fs: '||p_filename||';'||p_dir,'DEBUG');
-    l_blob_len := DBMS_LOB.getlength(p_blob);
+
+    if p_uncompress then
+      l_blob := UTL_COMPRESS.LZ_UNCOMPRESS(src => p_blob);
+    else
+      l_blob := p_blob;
+    end if;
+
+    l_blob_len := DBMS_LOB.getlength(l_blob);
 
     -- Open the destination file.
     l_file := UTL_FILE.fopen(p_dir,p_filename,'wb', 32767);
@@ -92,7 +100,7 @@ PACKAGE BODY COREFILE_API AS
     -- Read chunks of the BLOB and write them to the file
     -- until complete.
     WHILE l_pos < l_blob_len LOOP
-      DBMS_LOB.read(p_blob, l_amount, l_pos, l_buffer);
+      DBMS_LOB.read(l_blob, l_amount, l_pos, l_buffer);
       UTL_FILE.put_raw(l_file, l_buffer, TRUE);
       l_pos := l_pos + l_amount;
     END LOOP;
@@ -109,19 +117,28 @@ PACKAGE BODY COREFILE_API AS
       RAISE;
   END;
 
-  procedure get_file_from_fs(p_file_id opas_files.file_id%type, p_filename varchar2, p_dir varchar2)
+  procedure get_file_from_fs(p_file_id opas_files.file_id%type, p_filename varchar2, p_dir varchar2, p_compress boolean default false)
   is
     l_bfile             bfile := bfilename(p_dir, p_filename);
     l_blob              blob;
+    l_tmp               blob;
   begin
     get_locator_for_storage(p_file_id,l_blob);
+
     dbms_lob.open(l_bfile, dbms_lob.lob_readonly);
-    dbms_lob.open(l_blob, dbms_lob.lob_readwrite);
-    dbms_lob.loadfromfile(dest_lob      => l_blob,
-                          src_lob       => l_bfile,
-                          amount        => dbms_lob.getlength(l_bfile));
+
+    if p_compress then
+      DBMS_LOB.CREATETEMPORARY (lob_loc => l_tmp, cache => true, dur => DBMS_LOB.SESSION);
+      l_tmp:=UTL_COMPRESS.LZ_COMPRESS (src => l_bfile);
+      DBMS_LOB.COPY (dest_lob    => l_blob, src_lob     => l_tmp, amount => DBMS_LOB.LOBMAXSIZE);
+    else
+      dbms_lob.open(l_blob, dbms_lob.lob_readwrite);
+      dbms_lob.loadfromfile(dest_lob      => l_blob,
+                            src_lob       => l_bfile,
+                            amount        => dbms_lob.getlength(l_bfile));
+      dbms_lob.close(l_blob);
+    end if;
     dbms_lob.close(l_bfile);
-    dbms_lob.close(l_blob);
   end;
 
   procedure remove_file_from_fs(p_filename varchar2,

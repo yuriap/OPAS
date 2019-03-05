@@ -75,6 +75,9 @@ V 4.6.4
  .- move child cube
  .- queueing AWR report can take quite a time if the search of recursive queries is slow in coremod_reports.queue_report_sql_awr_stats
 V 4.6.5
+V 4.6.6
+V 4.6.7
+ - when run AWR report from memory cube ASHA, DBID is empty
 ============================================================================================================================
  todo
  .- multiuser monitor and snapper, a link between monitor and snapper to stop one another
@@ -133,8 +136,10 @@ V 4.6.4
  .- cleanup imp sess file and EI$ tables after session is finished 
 V 4.6.5 
  .- UI to cancel staged import session
-V4.6.6
+V 4.6.6
+V 4.6.7
  - doc: each module, list of features, install guide
+ - multiple move operation
 
 ============================================================================================================================
 getcomph

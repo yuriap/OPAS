@@ -27,8 +27,9 @@ PACKAGE COREFILE_API AS
   function get_file_size(p_file_id opas_files.file_id%type) return number;
 
   --FS
-  procedure put_file_to_fs(p_blob blob, p_filename varchar2, p_dir varchar2);
-  procedure get_file_from_fs(p_file_id opas_files.file_id%type, p_filename varchar2, p_dir varchar2);
+  procedure put_file_to_fs(p_blob blob, p_filename varchar2, p_dir varchar2, p_uncompress boolean default false);
+  procedure get_file_from_fs(p_file_id opas_files.file_id%type, p_filename varchar2, p_dir varchar2, p_compress boolean default false);
   procedure remove_file_from_fs(p_filename varchar2, p_dir varchar2);
+
 END COREFILE_API;
 /
