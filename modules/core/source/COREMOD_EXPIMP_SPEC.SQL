@@ -14,6 +14,8 @@ PACKAGE COREMOD_EXPIMP AS
   gstFAILED    constant varchar2(32) := 'FAILED';
   gstNEXTSTAGE constant varchar2(32) := 'NEXTSTAGE';
 
+  gparSOURCEUSER constant varchar2(32) := 'SOURCEUSER';
+
   procedure init;
   procedure init(p_prefix varchar2, p_table_lst t_object_names);
   procedure create_ei_table(p_table varchar2, p_prefix varchar2);
@@ -56,5 +58,12 @@ PACKAGE COREMOD_EXPIMP AS
                                 p_retention_days number);
   procedure cleanup_expimp_session(p_exp_sess_id opas_expimp_sessions.sess_id%type,
                                    p_inlcuding_metadata boolean default true);
+
+  --session parameters
+  procedure set_param(p_sess_id opas_expimp_params.sess_id%type,
+                      p_par_name opas_expimp_params.par_name%type,
+                      p_par_value opas_expimp_params.par_value%type);
+  function  get_param(p_sess_id opas_expimp_params.sess_id%type,
+                      p_par_name opas_expimp_params.par_name%type) return opas_expimp_params.par_value%type;
 END COREMOD_EXPIMP;
 /

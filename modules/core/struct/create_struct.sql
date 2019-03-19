@@ -291,6 +291,14 @@ src_core_version varchar2(128)
 create index idx_opas_expimp_metadata_mod   on opas_expimp_metadata(modname);
 create index idx_opas_expimp_metadata_sess   on opas_expimp_metadata(sess_id);
 
+create table opas_expimp_params (
+sess_id        NUMBER references opas_expimp_sessions(sess_id) on delete cascade,
+par_name       varchar2(128),
+par_value      varchar2(4000)
+);
+
+create index idx_opas_expimp_params_sess   on opas_expimp_params(sess_id);
+
 create table opas_expimp_compat (
 modname        varchar2(128) references opas_modules(modname) on delete cascade,
 src_version    varchar2(100),

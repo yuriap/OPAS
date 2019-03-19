@@ -78,7 +78,9 @@ package body ASHA_PROJ_API as
 
 
   procedure cleanup_project(p_proj_id asha_cube_projects.proj_id%type, p_mode number, p_use_retention boolean) as
-    l_done    number := 0;
+    l_done     number := 0;
+    type t_ids is table of number;
+    l_ids t_ids;
   begin
 
     --delete expired sessions
@@ -114,15 +116,22 @@ package body ASHA_PROJ_API as
       coremod_log.log('ASHA Reports: '||l_done||' removed');
 
     elsif not p_use_retention then
-
-      for i in (select * from asha_cube_reports where proj_id = p_proj_id)
-      loop
-        --coremod_report_utils.drop_report(i.report_id);
-        ASHA_CUBE_API.delete_report(p_proj_id, i.report_id);
-      end loop;
-      --delete from asha_cube_reports where proj_id=p_proj_id;
-      delete from asha_cube_sess where sess_proj_id=p_proj_id;
-
+      if p_mode in (c_ALL, c_PARSEDDATA) then
+        for i in (select * from asha_cube_reports where proj_id = p_proj_id)
+        loop
+          ASHA_CUBE_API.delete_report(p_proj_id, i.report_id);
+        end loop;
+      end if;
+      if p_mode in (c_ALL, c_SOURCEDATA) then
+        delete from asha_cube_sess where sess_proj_id=p_proj_id returning sess_id bulk collect into l_ids;
+        for i in 1..l_ids.count loop
+          COREMOD_INTEGRATION.remove_integration
+            (  p_int_key => 'AWRWH2ASH_DUMP2CUBE',
+               p_modname => 'ASH_ANALYZER',
+               P_PRNT_ENTITY_ID => p_proj_id,
+               P_ENTITY_ID => l_ids(i)) ;
+        end loop;
+      end if;
     end if;
 
   end cleanup_project;

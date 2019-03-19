@@ -77,6 +77,7 @@ V 4.6.4
 V 4.6.5
 V 4.6.6
 V 4.6.7
+V 4.6.8
  - when run AWR report from memory cube ASHA, DBID is empty
 ============================================================================================================================
  todo
@@ -138,8 +139,10 @@ V 4.6.5
  .- UI to cancel staged import session
 V 4.6.6
 V 4.6.7
+V 4.6.8
  - doc: each module, list of features, install guide
  - multiple move operation
+ - show report parameters right after its creation
 
 ============================================================================================================================
 getcomph

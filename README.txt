@@ -1,2 +1,2 @@
-Oracle Performance Analytic Suite Version 4.6.7 PROD
+Oracle Performance Analytic Suite Version 4.6.8 PROD
 (former AWR Tools)

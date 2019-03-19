@@ -4,6 +4,31 @@ PACKAGE BODY COREMOD_EXPIMP AS
   g_Lock_Handle     varchar2(100);
   g_lops_ind        number;
 
+  --session parameters
+  procedure set_param(p_sess_id opas_expimp_params.sess_id%type,
+                      p_par_name opas_expimp_params.par_name%type,
+                      p_par_value opas_expimp_params.par_value%type)
+  is
+  begin
+    merge into opas_expimp_params t
+    using (select p_sess_id sess_id, p_par_name par_name, p_par_value par_value from dual) s
+    on (t.sess_id=s.sess_id and t.par_name=s.par_name)
+    when matched then update set t.par_value=s.par_value
+    when not matched then insert (t.sess_id,t.par_name,t.par_value) values (s.sess_id,s.par_name,s.par_value);
+  end;
+
+  function  get_param(p_sess_id opas_expimp_params.sess_id%type,
+                      p_par_name opas_expimp_params.par_name%type) return opas_expimp_params.par_value%type
+  is
+    l_res opas_expimp_params.par_value%type;
+  begin
+    select par_value into l_res from opas_expimp_params where sess_id=p_sess_id and par_name=p_par_name;
+    return l_res;
+  exception
+    when no_data_found then return null;
+  end;
+
+
   procedure init_file_name_for_export(p_file_name out opas_files.file_name%type)
   is
   begin
@@ -131,7 +156,8 @@ PACKAGE BODY COREMOD_EXPIMP AS
       raise;
   end;
 
-  procedure datapump_import_ei_tables(p_filename opas_files.file_name%type)
+  procedure datapump_import_ei_tables(p_filename opas_files.file_name%type,
+                                      p_sess_id opas_expimp_sessions.sess_id%type)
   is
     l_dp_handle       NUMBER;
     l_last_job_state  VARCHAR2(30) := 'UNDEFINED';
@@ -158,15 +184,21 @@ PACKAGE BODY COREMOD_EXPIMP AS
       directory => COREMOD_API.getconf(P_KEY => 'EXPIMPDIR',P_MODULE => COREMOD_API.gMODNAME),
       filetype  => DBMS_DATAPUMP.KU$_FILE_TYPE_LOG_FILE);
 
-    DBMS_DATAPUMP.metadata_filter(
-      handle => l_dp_handle,
-      name   => 'NAME_EXPR',
-      value  => 'like ''EI$%''');
+--    DBMS_DATAPUMP.metadata_filter(
+--      handle => l_dp_handle,
+--      name   => 'NAME_EXPR',
+--      value  => 'like ''EI$%''');
 
     DBMS_DATAPUMP.SET_PARAMETER(
       handle => l_dp_handle,
       name   => 'TABLE_EXISTS_ACTION',
       value  => 'TRUNCATE');
+
+   DBMS_DATAPUMP.METADATA_REMAP (
+      handle      => l_dp_handle,
+      name        => 'REMAP_SCHEMA',
+      old_value   => nvl(upper(get_param(p_sess_id => datapump_import_ei_tables.p_sess_id, p_par_name => gparSOURCEUSER)),'OPAS45'),
+      value       => user);
 
     DBMS_DATAPUMP.start_job(l_dp_handle);
 
@@ -400,7 +432,7 @@ PACKAGE BODY COREMOD_EXPIMP AS
     COREFILE_API.remove_file_from_fs(l_exp_file_name, COREMOD_API.getconf(P_KEY => 'EXPIMPDIR',P_MODULE => COREMOD_API.gMODNAME));
     COREFILE_API.put_file_to_fs (P_BLOB => l_file, P_FILENAME => l_exp_file_name, P_DIR => COREMOD_API.getconf(P_KEY => 'EXPIMPDIR',P_MODULE => COREMOD_API.gMODNAME), p_uncompress => true) ;
 
-    datapump_import_ei_tables(l_exp_file_name);
+    datapump_import_ei_tables(l_exp_file_name, p_exp_sess_id);
 
     COREFILE_API.remove_file_from_fs(l_exp_file_name, COREMOD_API.getconf(P_KEY => 'EXPIMPDIR',P_MODULE => COREMOD_API.gMODNAME));
 

@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   11:43 Tuesday March 5, 2019
+--   Date and Time:   14:11 Tuesday March 19, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -37,7 +37,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 
 -- Application Statistics:
 --   Pages:                     69
---     Items:                  361
+--     Items:                  362
 --     Computations:             3
 --     Validations:              2
 --     Processes:              172
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190301125115'
+,p_last_upd_yyyymmddhh24miss=>'20190319130903'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -15280,7 +15280,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_width=>'1400'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190225143032'
+,p_last_upd_yyyymmddhh24miss=>'20190319130903'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(51216701005664707)
@@ -15649,6 +15649,7 @@ wwv_flow_api.create_page_item(
 ,p_prompt=>'File to Upload'
 ,p_display_as=>'NATIVE_FILE'
 ,p_cSize=>30
+,p_begin_on_new_line=>'N'
 ,p_field_template=>wwv_flow_api.id(105135891214958300)
 ,p_item_template_options=>'#DEFAULT#'
 ,p_attribute_01=>'APEX_APPLICATION_TEMP_FILES'
@@ -15662,6 +15663,23 @@ wwv_flow_api.create_page_item(
 ,p_item_plug_id=>wwv_flow_api.id(207028318680182877)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_attribute_01=>'Y'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(51335824295135729)
+,p_name=>'P134_SOURCEUSER'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_api.id(51216701005664707)
+,p_item_default=>'OPAS45'
+,p_prompt=>'Source user name'
+,p_display_as=>'NATIVE_TEXT_FIELD'
+,p_cSize=>30
+,p_colspan=>2
+,p_field_template=>wwv_flow_api.id(105135891214958300)
+,p_item_template_options=>'#DEFAULT#'
+,p_attribute_01=>'N'
+,p_attribute_02=>'N'
+,p_attribute_04=>'TEXT'
+,p_attribute_05=>'BOTH'
 );
 wwv_flow_api.create_page_da_event(
  p_id=>wwv_flow_api.id(51233763410086612)
@@ -15782,6 +15800,9 @@ wwv_flow_api.create_page_process(
 '        COREMOD_EXPIMP.queue_import_file (  P_EXPIMP_FILE => L_FILE_ID,',
 '                                            P_TQ_ID => :P134_TQ_ID,',
 '                                            P_EXP_SESS_ID => :P134_EXP_SESS_ID) ;   ',
+'                                            ',
+'        COREMOD_EXPIMP.set_param(:P134_EXP_SESS_ID,COREMOD_EXPIMP.gparSOURCEUSER,:P134_SOURCEUSER);',
+'        ',
 '        :P134_STAGE:=''CALCULATING'';    ',
 '        :P134_PAGE_REFRESH_INTERVAL:=30;',
 '      end loop; ',
