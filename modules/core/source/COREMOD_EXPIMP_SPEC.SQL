@@ -5,7 +5,7 @@ PACKAGE COREMOD_EXPIMP AS
   type t_id_mapping   is table of number index by pls_integer;
 
   gTabPref     constant varchar2(10):='EI$';
-  gTableList   constant t_object_names := t_object_names('OPAS_REPORTS','OPAS_REPORTS_PARS','OPAS_FILES','OPAS_EXPIMP_METADATA','OPAS_QRY_CACHE');
+  gTableList   constant t_object_names := t_object_names('OPAS_REPORTS','OPAS_REPORTS_PARS','OPAS_FILES','OPAS_EXPIMP_METADATA','OPAS_QRY_CACHE','OPAS_EXPIMP_PARAMS');
 
   gstNEW       constant varchar2(32) := 'NEW';
   gstINQUEUE   constant varchar2(32) := 'INQUEUE';
@@ -63,7 +63,12 @@ PACKAGE COREMOD_EXPIMP AS
   procedure set_param(p_sess_id opas_expimp_params.sess_id%type,
                       p_par_name opas_expimp_params.par_name%type,
                       p_par_value opas_expimp_params.par_value%type);
-  function  get_param(p_sess_id opas_expimp_params.sess_id%type,
-                      p_par_name opas_expimp_params.par_name%type) return opas_expimp_params.par_value%type;
+  function  get_param(p_sess_id          opas_expimp_params.sess_id%type,
+                      p_par_name         opas_expimp_params.par_name%type) return opas_expimp_params.par_value%type;
+
+  --commonly used procedures
+  procedure load_expimp_tables_to_ei(p_exp_sess_id opas_expimp_sessions.sess_id%type);
+  procedure import_common_data_from_ei;
+
 END COREMOD_EXPIMP;
 /

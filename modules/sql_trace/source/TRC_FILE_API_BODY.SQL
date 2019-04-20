@@ -139,13 +139,9 @@ PACKAGE BODY TRC_FILE_API AS
     COREFILE_API.delete_file(l_trc_file.file_content);
   end;
 
-  procedure remove_parsed_data_i(p_trc_file_id trc_files.trc_file_id%type)
+  procedure remove_parsed_data_ii(p_trc_file_id trc_files.trc_file_id%type)
   is
-    l_trc_file         trc_files%rowtype;
   begin
-    coremod_log.log('TRC_FILE_API.remove_parsed_data_i: '||p_trc_file_id,'DEBUG');
-    l_trc_file:=get_file(p_trc_file_id,true);
-    TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_archive);
     delete from trc_stat where trc_file_id=p_trc_file_id;
     delete from trc_wait where trc_file_id=p_trc_file_id;
     delete from trc_binds where trc_file_id=p_trc_file_id;
@@ -155,6 +151,16 @@ PACKAGE BODY TRC_FILE_API AS
     delete from trc_trans where trc_file_id=p_trc_file_id;
     delete from trc_session where trc_file_id=p_trc_file_id;
     update trc_files set parsed=null where trc_file_id=p_trc_file_id;
+  end;
+
+  procedure remove_parsed_data_i(p_trc_file_id trc_files.trc_file_id%type)
+  is
+    l_trc_file         trc_files%rowtype;
+  begin
+    coremod_log.log('TRC_FILE_API.remove_parsed_data_i: '||p_trc_file_id,'DEBUG');
+    l_trc_file:=get_file(p_trc_file_id,true);
+    TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_archive);
+    remove_parsed_data_ii(p_trc_file_id);
   end;
 
   procedure remove_report_i(p_trc_file_id trc_files.trc_file_id%type)
@@ -206,6 +212,7 @@ PACKAGE BODY TRC_FILE_API AS
     end loop;
   end;
 
+/*
   procedure cleanup_for_reparse(p_trc_file_id trc_files.trc_file_id%type,
                                 P_KEEP_PARSED boolean,
                                 P_KEEP_REPORT boolean)
@@ -217,7 +224,7 @@ PACKAGE BODY TRC_FILE_API AS
 	if not P_KEEP_PARSED then remove_parsed_data_i(p_trc_file_id); end if;
 	if not P_KEEP_REPORT then remove_report_i     (p_trc_file_id); end if;
   end;
-
+*/
   procedure delete_file (P_TRC_FILE_ID trc_files.trc_file_id%type,
                          P_KEEP_SOURCE boolean,
                          P_KEEP_PARSED boolean,
@@ -231,8 +238,8 @@ PACKAGE BODY TRC_FILE_API AS
       compress_file(P_TRC_FILE_ID);
     elsif not P_KEEP_SOURCE and not P_KEEP_PARSED and P_KEEP_REPORT then
       archive_file(P_TRC_FILE_ID);
-    elsif (P_KEEP_SOURCE and P_KEEP_PARSED and not P_KEEP_REPORT) or (P_KEEP_SOURCE and not P_KEEP_PARSED and not P_KEEP_REPORT) then
-      cleanup_for_reparse(P_TRC_FILE_ID,P_KEEP_PARSED,P_KEEP_REPORT);
+--    elsif (P_KEEP_SOURCE and P_KEEP_PARSED and not P_KEEP_REPORT) or (P_KEEP_SOURCE and not P_KEEP_PARSED and not P_KEEP_REPORT) then
+--      cleanup_for_reparse(P_TRC_FILE_ID,P_KEEP_PARSED,P_KEEP_REPORT);
     else
       raise_application_error(-20000,'Unimplemented file action');
     end if;
@@ -308,27 +315,25 @@ PACKAGE BODY TRC_FILE_API AS
     coremod_log.log('TRC_FILE_API.parse_file: '||p_trc_file_id,'DEBUG');
     l_trc_file:=get_file(p_trc_file_id,false);
 
-    if l_trc_file.parsed is null or l_trc_file.report_content is null then
-    begin
-      TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_startparse);	 --autonomous
+    if l_trc_file.report_content is not null or l_trc_file.parsed is not null then
+      remove_parsed_data_ii(p_trc_file_id);
+      remove_report_i(p_trc_file_id);
+      commit;
+    end if;
 
-      if l_trc_file.parsed is null then
-        TRC_PROCESSFILE.parse_file(p_trc_file_id);
-      end if;
+    TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_startparse);	 --autonomous
 
-      if l_trc_file.report_content is null then
-        trc_report.getreport(p_trc_file_id);
-      end if;
+    TRC_PROCESSFILE.parse_file(p_trc_file_id);
+    trc_report.getreport(p_trc_file_id);
 
-      TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_finishparse);
+    TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_finishparse);
 
     exception
       when others then
         rollback;
+        coremod_log.log('TRC_FILE_API.parse_file error: '||sqlerrm);
         TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_failparse);
         raise_application_error(-20000,'parse_file exception: '||sqlerrm);
-    end;
-    end if;
   end;
 END TRC_FILE_API;
 /

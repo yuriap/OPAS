@@ -24,6 +24,8 @@ insert into opas_groups (group_id,group_name,group_descr) values (1, 'Reas-write
 insert into opas_groups (group_id,group_name,group_descr) values (2, 'Read-only users','Read-only functions');
 insert into opas_groups (group_id,group_name,group_descr) values (3, 'No access users','No access to any functionality');
 
+INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '1.3.5',  '&MODVER.');
+INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '1.3.6',  '&MODVER.');
 INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '&MODVER.',  '&MODVER.');
 		   
 INSERT INTO 

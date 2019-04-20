@@ -92,11 +92,11 @@ package body TRC_PROJ_API as
   begin
     l_curproj:=getproject(p_proj_id, true);
 
+    cleanup_project(p_proj_id=>p_proj_id, p_mode => c_ALL, p_use_retention => false);
+
 	if not p_is_purge then
       TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_drop);
 	end if;
-
-    cleanup_project(p_proj_id=>p_proj_id, p_mode => c_ALL, p_use_retention => false);
 
     delete from trc_projects where proj_id=p_proj_id;
   end drop_project_i;
@@ -135,6 +135,17 @@ package body TRC_PROJ_API as
 	  end if;
 	end loop;
     commit;
+
+    begin
+      COREMOD_EXPIMP.cleanup_expimp_sess(TRC_FILE_API.gMODNAME, COREMOD_API.getconf(P_KEY => 'EXPIMPSESS',P_MODULE => TRC_FILE_API.gMODNAME));
+      coremod_log.log('SQL Trace Exp/Imp sessions cleaned');
+    exception
+      when others then
+        coremod_log.log('SQL Trace Exp/Imp sessions components error: '||sqlerrm);
+        coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
+        coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+    end;
+    commit;
   end;
 
   procedure lock_project(p_proj_id trc_projects.proj_id%type)is
@@ -155,17 +166,17 @@ package body TRC_PROJ_API as
     l_curproj trc_projects%rowtype;
   begin
     l_curproj:=getproject(p_proj_id, true);
-    TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_compress);
 	cleanup_project(p_proj_id=>p_proj_id, p_mode => c_SOURCEDATA, p_use_retention => false);
+    TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_compress);
   end;
 
   procedure archive_project(p_proj_id trc_projects.proj_id%type) as
     l_curproj trc_projects%rowtype;
   begin
     l_curproj:=getproject(p_proj_id, true);
-    TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_archive);
 	cleanup_project(p_proj_id=>p_proj_id, p_mode => c_SOURCEDATA, p_use_retention => false);
 	cleanup_project(p_proj_id=>p_proj_id, p_mode => c_PARSEDDATA, p_use_retention => false);
+    TRC_PROJ_LCC.project_exec_action(l_curproj,TRC_PROJ_LCC.c_project_archive);
   end;
 
   procedure set_note(p_proj_id      trc_projects.proj_id%type,

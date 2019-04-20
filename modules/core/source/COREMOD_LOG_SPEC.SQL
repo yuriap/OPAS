@@ -12,5 +12,8 @@ package COREMOD_LOG is
   procedure Stop_SQL_TRACE(p_name varchar2);
 
   function bool2str(p_bool boolean) return varchar2;
+
+  procedure debug_on;
+  procedure debug_off;
 end;
 /

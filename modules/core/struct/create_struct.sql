@@ -321,7 +321,7 @@ select
     m.src_core_version,
     dbms_lob.getlength(f.file_contentb) fsize,
     f.file_name,
-	case when m.MODNAME is not null then to_char(x.created + TO_DSINTERVAL(COREMOD_API.getconf('EXPIMPSESS',m.MODNAME)||' 00:00:00'),'YYYY-MON-DD HH24:MI' ) else null end expiration
+	case when m.MODNAME is not null then to_char(x.created + to_number(COREMOD_API.getconf('EXPIMPSESS',m.MODNAME)),'YYYY-MON-DD HH24:MI' ) else null end expiration
 from opas_expimp_sessions x, opas_expimp_metadata m, opas_files f
 where x.owner=decode(x.owner,'PUBLIC',x.owner,nvl(V('APP_USER'),'~^'))
 and x.sess_id=m.sess_id and x.expimp_file=f.file_id(+);

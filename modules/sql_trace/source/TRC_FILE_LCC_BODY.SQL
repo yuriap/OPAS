@@ -4,8 +4,9 @@ package body TRC_FILE_LCC as
   function trcfile_check_action(p_trc_file trc_files%rowtype, p_action varchar2) return boolean
   is
     l_status trc_files.status%type:=p_trc_file.status;
+    l_res    boolean;
   begin
-    return
+    l_res :=
       case
         when p_action = c_trcfile_create      and l_status in (c_trcfilestate_new)
                                                and TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent) then true
@@ -23,17 +24,23 @@ package body TRC_FILE_LCC as
                                                and TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent) then true
 		when p_action = c_trcfile_failparse   and l_status in (c_trcfilestate_loaded,c_trcfilestate_parsing)
                                                and TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent) then true
-		when p_action = c_trcfile_reparse     and l_status in (c_trcfilestate_parsed)
-                                               and TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent) then true
-        when p_action = c_trcfile_report_vw   and l_status in (c_trcfilestate_parsed,c_trcfilestate_compressed,c_trcfilestate_archived) and p_trc_file.report_content is not null
+--		when p_action = c_trcfile_reparse     and l_status in (c_trcfilestate_parsed)
+--                                               and TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent) then true
+        when p_action = c_trcfile_report_vw   and (l_status in (c_trcfilestate_parsed,c_trcfilestate_compressed,c_trcfilestate_archived) or (l_status in (c_trcfilestate_loaded) and p_trc_file.report_content is not null))
                                                and TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rocontent) then true
         when p_action = c_trcfile_compress    and l_status in (c_trcfilestate_loaded,c_trcfilestate_parsed)
                                                and TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent) then true
         when p_action = c_trcfile_archive     and l_status in (c_trcfilestate_loaded,c_trcfilestate_parsed,c_trcfilestate_compressed,c_trcfilestate_archived)
-                                               and TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent) then true
+                                               and (TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_archive)
+                                                    or
+                                                    TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_drop)
+                                                    or
+                                                    TRC_PROJ_LCC.project_check_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent)) then true
       else
         false
       end;
+    coremod_log.log('TRC_FILE_LCC.trcfile_check_action: '||p_trc_file.trc_file_id||';'||p_action||';'||p_trc_file.status||';'||case l_res when true then 'TRUE' else 'FALSE' end,'DEBUG');
+    return l_res;
   end;
 
   function trcfile_check_action(p_trc_file_id trc_files.trc_file_id%type, p_action varchar2) return boolean
@@ -82,10 +89,10 @@ package body TRC_FILE_LCC as
       when p_action = c_trcfile_startparse   then trcfile_set_status_a(p_trc_file.trc_file_id,c_trcfilestate_parsing);    TRC_PROJ_LCC.project_exec_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent);
 	  when p_action = c_trcfile_finishparse  then trcfile_set_status  (p_trc_file.trc_file_id,c_trcfilestate_parsed);     TRC_PROJ_LCC.project_exec_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent);
 	  when p_action = c_trcfile_failparse    then trcfile_set_status_a(p_trc_file.trc_file_id,c_trcfilestate_loaded);     TRC_PROJ_LCC.project_exec_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent);
-      when p_action = c_trcfile_reparse      then trcfile_set_status  (p_trc_file.trc_file_id,c_trcfilestate_loaded);     TRC_PROJ_LCC.project_exec_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent);
+      --when p_action = c_trcfile_reparse      then trcfile_set_status  (p_trc_file.trc_file_id,c_trcfilestate_loaded);     TRC_PROJ_LCC.project_exec_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent);
       when p_action = c_trcfile_report_vw    then                                                                         TRC_PROJ_LCC.project_exec_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rocontent);
-      when p_action = c_trcfile_compress     then trcfile_set_status  (p_trc_file.trc_file_id,c_trcfilestate_compressed); TRC_PROJ_LCC.project_exec_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent);
-      when p_action = c_trcfile_archive      then trcfile_set_status  (p_trc_file.trc_file_id,c_trcfilestate_archived);   TRC_PROJ_LCC.project_exec_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent);
+      when p_action = c_trcfile_compress     then trcfile_set_status  (p_trc_file.trc_file_id,c_trcfilestate_compressed); --TRC_PROJ_LCC.project_exec_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent);
+      when p_action = c_trcfile_archive      then trcfile_set_status  (p_trc_file.trc_file_id,c_trcfilestate_archived);   --TRC_PROJ_LCC.project_exec_action(p_trc_file.proj_id,TRC_PROJ_LCC.c_project_rwcontent);
       else
         raise_application_error(-20000,'Unimplemented project action: '||p_action);
       end case;

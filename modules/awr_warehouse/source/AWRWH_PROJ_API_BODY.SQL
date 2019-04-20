@@ -206,6 +206,18 @@ package body AWRWH_PROJ_API as
 	  end if;
 	end loop;
     commit;
+
+    begin
+      COREMOD_EXPIMP.cleanup_expimp_sess(AWRWH_API.gMODNAME, COREMOD_API.getconf(P_KEY => 'EXPIMPSESS',P_MODULE => AWRWH_API.gMODNAME));
+      coremod_log.log('AWRWH Exp/Imp sessions cleaned');
+    exception
+      when others then
+        coremod_log.log('AWRWH Exp/Imp sessions components error: '||sqlerrm);
+        coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
+        coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+    end;
+    commit;
+
     AWRWH_REPORT_API.gather_recursive_reports();
   end;
 

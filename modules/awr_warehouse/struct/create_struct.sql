@@ -50,24 +50,24 @@ create table awrwh_dumps (
     dump_description varchar2(4000),
     dump_name        varchar2(100),
     filebody         number REFERENCES opas_files ( file_id ),
-	source_retention number default 0,
-	parsed_retention number,
-	loaded           timestamp,
-	parsed           timestamp,
-	owner            varchar2(128) not null,
-	tq_id            number
+    source_retention number default 0,
+    parsed_retention number,
+    loaded           timestamp,
+    parsed           timestamp,
+    owner            varchar2(128) not null,
+    tq_id            number
 );
 
 create index idx1_awrwh_dumps_proj on awrwh_dumps(proj_id);
 
 create table awrwh_reports(
     proj_id          NUMBER NOT NULL REFERENCES awrwh_projects ( proj_id )   on delete cascade,
-	report_id        NUMBER NOT NULL REFERENCES opas_reports       ( report_id ) on delete cascade,
-	dump_id          number references awrwh_dumps(dump_id) on delete set null,
-	dump_id_2        number references awrwh_dumps(dump_id) on delete set null,
-	report_retention number,
-	report_note      varchar2(4000),
-	created          timestamp default systimestamp
+    report_id        NUMBER NOT NULL REFERENCES opas_reports       ( report_id ) on delete cascade,
+    dump_id          number references awrwh_dumps(dump_id) on delete set null,
+    dump_id_2        number references awrwh_dumps(dump_id) on delete set null,
+    report_retention number,
+    report_note      varchar2(4000),
+    created          timestamp default systimestamp
 );
 
 rem *_retention: null - default retention, 0 - keep forever, N - keep days

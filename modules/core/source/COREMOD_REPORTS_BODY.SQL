@@ -610,13 +610,38 @@ end;]';
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'SQL text',cname=>'sql_text',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
     COREMOD_REPORT_UTILS.prepare_script(l_script,p_sql_id);
-    l_output.delete;
+/*    l_output.delete;
     if p_dblink is null then
       coremod_report_utils.print_table_html(p_query=>l_script,p_width=>l_middle_sect_width,p_summary=>'SQL text', p_output=> l_output);
     else
       coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>l_middle_sect_width,p_summary=>'SQL text', p_dblink => p_dblink, p_output=> l_output);
     end if;
+    p1(l_output);*/
+
+    l_script:=q'[select * into l_out from (]'||l_script||q'[);]';
+
+    if p_dblink is null then
+      execute immediate q'[declare l_out clob; begin ]'||l_script||q'[ :a1:=l_out; exception when no_data_found then :a1:='SQL Not Found.'; end;]' using out l_plsql_output;
+    else
+      COREMOD_REPORT_UTILS.get_clob_remotelly (
+        P_SQL => l_script,
+        P_DBLINK => p_dblink,
+        P_OUTPUT => l_plsql_output) ;
+    end if;
+
+    l_output.delete;
+
+    COREMOD_REPORT_UTILS.print_text_as_table_new (  P_TEXT => l_plsql_output,
+      P_T_HEADER => 'SQL text',
+      P_WIDTH => l_narrow_sect_width,
+      p_style_tab => 'trctd',
+      p_style_head => 'trchd', --head
+      p_style_r1 => 'trcr1',   --odd rows
+      p_style_r2  => 'trcr2', --even rows
+      P_OUTPUT => l_output) ;
+
     p1(l_output);
+
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
     p(HTF.BR);
@@ -1139,7 +1164,7 @@ end;]';
                order by cnt desc)]','<dblink>',case when l_dblink is null then null else '@'||l_dblink end),
                                     '<sql_id>',l_sql_id),
                                     '<limits>', case when nvl(l_report_limit,0)>0
-                                                       then 'SAMPLE_TIME<(sysdate-'||l_report_limit||')'
+                                                       then 'SAMPLE_TIME>=(sysdate-'||l_report_limit||')'
                                                      when nvl(l_report_limit,-1)=0
                                                        then '1=1'
                                                      when l_dbid is not null and l_min_snap is not null and l_max_snap is not null
@@ -1264,6 +1289,11 @@ end;]';
       execute immediate 'select unique dbid from dba_hist_sqltext'||
                              case when p_dblink is null then null else '@'||p_dblink end ||q'[ where sql_id=']'||p_sql_id||q'[' order by 1]'
         bulk collect into l_dbid;
+      if l_dbid.count=0 then
+        execute immediate 'select dbid from v$database'||
+                             case when p_dblink is null then null else '@'||p_dblink end
+        bulk collect into l_dbid;
+      end if;
     end if;
 
     execute immediate q'[select rtrim(trim(substr(banner,instr(banner,'.')-3,4)),'.') from v$version]' || case when p_dblink is null then null else '@'||p_dblink end || q'[ where banner like 'Oracle Database%']'
@@ -1316,13 +1346,30 @@ end;]';
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'SQL text',cname=>'sql_text',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
 
-    l_script:=q'[select x.sql_text text from dba_hist_sqltext x where sql_id=']'||p_sql_id||q'[' and rownum=1]'||chr(10);
-    l_output.delete;
+    l_script:=q'[select x.sql_text into l_out from dba_hist_sqltext x where sql_id=']'||p_sql_id||q'[' and rownum=1;]'||chr(10);
+
     if p_dblink is null then
-      coremod_report_utils.print_table_html(p_query=>l_script,p_width=>l_narrow_sect_width,p_summary=>'SQL text', p_output=> l_output);
+      --coremod_report_utils.print_table_html(p_query=>l_script,p_width=>l_narrow_sect_width,p_summary=>'SQL text', p_output=> l_output);
+      execute immediate q'[declare l_out clob; begin ]'||l_script||q'[ :a1:=l_out; exception when no_data_found then :a1:='SQL Not Found.'; end;]' using out l_plsql_output;
     else
-      coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>l_narrow_sect_width,p_summary=>'SQL text', p_dblink => p_dblink, p_output=> l_output);
+      --coremod_report_utils.print_table_html_remotelly(p_query=>l_script,p_width=>l_narrow_sect_width,p_summary=>'SQL text', p_dblink => p_dblink, p_output=> l_output);
+      COREMOD_REPORT_UTILS.get_clob_remotelly (
+        P_SQL => l_script,
+        P_DBLINK => p_dblink,
+        P_OUTPUT => l_plsql_output) ;
     end if;
+
+    l_output.delete;
+
+    COREMOD_REPORT_UTILS.print_text_as_table_new (  P_TEXT => l_plsql_output,
+      P_T_HEADER => 'SQL text',
+      P_WIDTH => l_narrow_sect_width,
+      p_style_tab => 'trctd',
+      p_style_head => 'trchd', --head
+      p_style_r1 => 'trcr1',   --odd rows
+      p_style_r2  => 'trcr2', --even rows
+      P_OUTPUT => l_output) ;
+
     p1(l_output);
 
     p(HTF.BR);

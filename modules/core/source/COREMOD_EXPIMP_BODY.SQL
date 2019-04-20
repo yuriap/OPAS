@@ -17,8 +17,8 @@ PACKAGE BODY COREMOD_EXPIMP AS
     when not matched then insert (t.sess_id,t.par_name,t.par_value) values (s.sess_id,s.par_name,s.par_value);
   end;
 
-  function  get_param(p_sess_id opas_expimp_params.sess_id%type,
-                      p_par_name opas_expimp_params.par_name%type) return opas_expimp_params.par_value%type
+  function  get_param(p_sess_id          opas_expimp_params.sess_id%type,
+                      p_par_name         opas_expimp_params.par_name%type) return opas_expimp_params.par_value%type
   is
     l_res opas_expimp_params.par_value%type;
   begin
@@ -29,10 +29,11 @@ PACKAGE BODY COREMOD_EXPIMP AS
   end;
 
 
-  procedure init_file_name_for_export(p_file_name out opas_files.file_name%type)
+  procedure init_file_name_for_export(p_modname opas_expimp_metadata.modname%type,
+                                      p_file_name out opas_files.file_name%type)
   is
   begin
-    p_file_name := 'OPASDATAEXCH_'||DBMS_RANDOM.STRING('X',6);
+    p_file_name := 'OPASDATAEXCH_'||p_modname||'_'||DBMS_RANDOM.STRING('X',4);
   end;
 
   procedure create_ei_table(p_table varchar2, p_prefix varchar2)
@@ -323,8 +324,8 @@ PACKAGE BODY COREMOD_EXPIMP AS
     l_owner   opas_expimp_sessions.owner%type;
     l_exp_file_name opas_files.file_name%type;
   begin
-    init_file_name_for_export(l_exp_file_name);
     select owner,modname into l_owner, l_modname from opas_expimp_sessions s, opas_expimp_metadata m where s.sess_id=m.sess_id and s.sess_id=p_exp_sess_id;
+    init_file_name_for_export(l_modname,l_exp_file_name);
     COREFILE_API.remove_file_from_fs(l_exp_file_name||'.DMP', COREMOD_API.getconf(P_KEY => 'EXPIMPDIR',P_MODULE => COREMOD_API.gMODNAME));
     datapump_export_ei_tables(l_exp_file_name);
     --zip file
@@ -437,6 +438,7 @@ PACKAGE BODY COREMOD_EXPIMP AS
     COREFILE_API.remove_file_from_fs(l_exp_file_name, COREMOD_API.getconf(P_KEY => 'EXPIMPDIR',P_MODULE => COREMOD_API.gMODNAME));
 
     execute immediate 'update ei$opas_expimp_metadata set sess_id=:a1' using p_exp_sess_id;
+    execute immediate 'update ei$opas_expimp_params set sess_id=:a1'   using p_exp_sess_id;
     execute immediate 'merge into opas_expimp_metadata t
     using (select * from ei$opas_expimp_metadata where sess_id=:a1) s
     on (t.sess_id=s.sess_id)
@@ -446,6 +448,8 @@ PACKAGE BODY COREMOD_EXPIMP AS
       t.file_descr  = s.file_descr,
       t.src_version = s.src_version,
       t.src_core_version = s.src_core_version' using p_exp_sess_id;
+
+    execute immediate 'INSERT INTO opas_expimp_params (sess_id,par_name,par_value) select sess_id,par_name,par_value from ei$opas_expimp_params';
 
     select * into l_ei_metadata from opas_expimp_metadata where sess_id=p_exp_sess_id;
 
@@ -518,12 +522,13 @@ PACKAGE BODY COREMOD_EXPIMP AS
   is
     l_cnt number := 0;
   begin
-    for i in (select s.expimp_file, s.sess_id from opas_expimp_sessions s,
-                            opas_expimp_metadata m
+    coremod_log.log('Exp/Imp: '||p_modname||' '||p_retention_days);
+    for i in (select s.expimp_file, s.sess_id from opas_expimp_sessions s, opas_expimp_metadata m
                where s.sess_id=m.sess_id
                  and (
                       (created < sysdate - p_retention_days and m.modname=p_modname) or
-                      (created < sysdate - 10/24/60 and status = gstFAILED)
+                      (created < sysdate - 5/24/60 and status in (gstFAILED)) or
+                      (created < sysdate - 20/24/60 and status in (gstNEXTSTAGE))
                      )
             )
     loop
@@ -542,6 +547,54 @@ PACKAGE BODY COREMOD_EXPIMP AS
       coremod_log.log('Error in COREMOD_EXPIMP.cleanup_expimp_sess: p_modname: '||p_modname||'; '||sqlerrm);
       coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
       raise_application_error(-20000,'Error in COREMOD_EXPIMP.cleanup_expimp_sess: p_modname: '||p_modname||'; '||sqlerrm);
+  end;
+
+  --commonly used procedures
+
+  procedure import_common_data_from_ei
+  is
+  begin
+    execute immediate '
+      declare
+        l_id number;
+      begin
+        for i in (select * from EI$OPAS_FILES s) loop
+          INSERT INTO opas_files (modname,file_type,file_name,file_mimetype,file_contentb,file_contentc,created,owner)
+                          values (i.modname,i.file_type,i.file_name,i.file_mimetype,i.file_contentb,i.file_contentc,i.created,COREMOD_API.gDefaultOwner)
+                          returning file_id into l_id;
+          update EI$OPAS_FILES set new_id=l_id where file_id=i.file_id;
+        end loop;
+
+        -- fix links to files  from reports
+        update EI$OPAS_REPORTS t set report_content=(select new_id from EI$OPAS_FILES s where s.file_id=t.report_content);
+        for i in (select * from EI$OPAS_REPORTS) loop
+          INSERT INTO opas_reports (modname,tq_id,report_content,report_params_displ,parent_id,report_type)
+                             values(i.modname,null,i.report_content,i.report_params_displ,null,i.report_type) returning report_id into l_id;
+          update EI$OPAS_REPORTS set new_id=l_id where report_id=i.report_id;
+        end loop;
+        -- fix links to parent report
+        update opas_reports t set t.parent_id=(select new_id from EI$OPAS_REPORTS i where i.report_id=(select parent_id from EI$OPAS_REPORTS s where t.report_id=s.new_id))
+         where t.report_id in (select new_id from EI$OPAS_REPORTS where parent_id is not null);
+
+        INSERT INTO opas_reports_pars (report_id,par_name,num_par,varchar_par,date_par)
+        select (select new_id from EI$OPAS_REPORTS s where s.report_id=t.report_id) ,par_name,num_par,varchar_par,date_par from ei$opas_reports_pars t;
+
+        merge into OPAS_QRY_CACHE t
+          using (select * from EI$OPAS_QRY_CACHE) s
+        on (t.sql_id=s.sql_id)
+        when matched then update set
+          t.hit_num=t.hit_num+s.hit_num+100
+        when not matched then
+         insert (t.sql_id,t.sql_text,t.created,t.hit_num)
+         values (s.sql_id,s.sql_text,s.created,s.hit_num);
+      end;';
+  end;
+
+  procedure load_expimp_tables_to_ei(p_exp_sess_id opas_expimp_sessions.sess_id%type)
+  is
+  begin
+    execute immediate 'insert into EI$OPAS_EXPIMP_METADATA select x.*, null new_id from OPAS_EXPIMP_METADATA x where sess_id=:a1' using p_exp_sess_id;
+    execute immediate 'insert into EI$OPAS_EXPIMP_PARAMS select x.*, null new_id from OPAS_EXPIMP_PARAMS x where sess_id=:a1' using p_exp_sess_id;
   end;
 END COREMOD_EXPIMP;
 /

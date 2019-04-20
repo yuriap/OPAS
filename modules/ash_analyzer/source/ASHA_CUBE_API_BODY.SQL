@@ -29,8 +29,9 @@ select :p_src_dblink, 'Cluster wide', -1 from dual]' using i.src_dblink,i.src_db
         commit;
       exception
         when others then
-          COREMOD_API.drop_dblink(i.src_dblink, p_suspend => true);
-          coremod_log.log('DB Link: '||i.src_dblink||' has been suspended due to: '||sqlerrm);
+          --COREMOD_API.drop_dblink(i.src_dblink, p_suspend => true);
+          --coremod_log.log('DB Link: '||i.src_dblink||' has been suspended due to: '||sqlerrm);
+          coremod_log.log('DB Link: '||i.src_dblink||' is unavailable now: '||sqlerrm);
       end;
     end loop;
   exception

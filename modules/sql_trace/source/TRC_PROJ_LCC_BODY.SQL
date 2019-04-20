@@ -4,8 +4,9 @@ package body TRC_PROJ_LCC as
   function project_check_action(p_proj trc_projects%rowtype, p_action VARCHAR2) return boolean
   is
     l_status trc_projects.status%type:=p_proj.status;
+    l_res boolean;
   begin
-    return
+    l_res:=
       case
         when p_action = c_project_create    and l_status in (c_projstate_new)                                                                then true
         when p_action = c_project_edit      and l_status in (c_projstate_new,c_projstate_active,c_projstate_compressed,c_projstate_archived) then true
@@ -19,6 +20,8 @@ package body TRC_PROJ_LCC as
       else
         false
       end;
+    coremod_log.log('TRC_PROJ_LCC.project_check_action: '||p_proj.proj_id||';'||p_action||';'||p_proj.status||';'||case l_res when true then 'TRUE' else 'FALSE' end,'DEBUG');
+    return l_res;
   end;
 
   function project_check_action(p_proj_id trc_projects.proj_id%type, p_action VARCHAR2) return boolean

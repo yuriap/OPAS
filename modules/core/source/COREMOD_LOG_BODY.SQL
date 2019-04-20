@@ -1,6 +1,28 @@
 CREATE OR REPLACE
 package body COREMOD_LOG is
 
+  procedure debug_on
+  is
+  begin
+    UPDATE opas_config
+    SET    cvalue = 'DEBUG'
+    WHERE
+    modname = COREMOD_API.gMODNAME
+    AND cgroup = 'LOGGING'
+    AND ckey = 'LOGGING_LEVEL';
+  end;
+
+  procedure debug_off
+  is
+  begin
+    UPDATE opas_config
+    SET    cvalue = 'INFO'
+    WHERE
+    modname = COREMOD_API.gMODNAME
+    AND cgroup = 'LOGGING'
+    AND ckey = 'LOGGING_LEVEL';
+  end;
+
   function bool2str(p_bool boolean) return varchar2
   is
   begin

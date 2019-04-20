@@ -1,8 +1,6 @@
 CREATE OR REPLACE
 PACKAGE BODY ASHA_EXPIMP AS
 
-  --gTabPref constant varchar2(10):='EI$ASHA';
-
   gCubeTables COREMOD_EXPIMP.t_object_names :=
                          COREMOD_EXPIMP.t_object_names('ASHA_CUBE','ASHA_CUBE_BLOCK','ASHA_CUBE_METRICS',
                                                        'ASHA_CUBE_REPORTS','ASHA_CUBE_SEG',
@@ -94,13 +92,11 @@ PACKAGE BODY ASHA_EXPIMP AS
 
   procedure load_proj_tables_i(p_proj_ids    coremod_tasks.t_ids, p_exp_sess_id opas_expimp_sessions.sess_id%type)
   is
+    l_sess_ids    coremod_tasks.t_ids;
   begin
     for k in 1..p_proj_ids.count loop
-      for j in (select sess_id from asha_cube_sess where sess_proj_id=p_proj_ids(k)) loop
-        for i in 1..gCubeTables.count loop
-          execute immediate 'insert into '||COREMOD_EXPIMP.gTabPref||gTableList(i)||' select x.*, null new_id from '||gTableList(i)||' x where sess_id=:a1' using j.sess_id;
-        end loop;
-      end loop;
+      select sess_id bulk collect into l_sess_ids from asha_cube_sess where sess_proj_id=p_proj_ids(k);
+      load_cube_tables_i(l_sess_ids, p_exp_sess_id);
 
       execute immediate 'insert into EI$ASHA_CUBE_REPORTS select x.*, null new_id from ASHA_CUBE_REPORTS x where sess_id is null and proj_id=:a1' using p_proj_ids(k);
 
@@ -110,10 +106,10 @@ PACKAGE BODY ASHA_EXPIMP AS
     end loop;
   end;
 
-  procedure load_comm_tables_i(p_exp_sess_id opas_expimp_sessions.sess_id%type)
+  procedure load_comm_tables_to_ei(p_exp_sess_id opas_expimp_sessions.sess_id%type)
   is
   begin
-    execute immediate 'insert into EI$OPAS_EXPIMP_METADATA select x.*, null new_id from OPAS_EXPIMP_METADATA x where sess_id=:a1' using p_exp_sess_id;
+    --execute immediate 'insert into EI$OPAS_EXPIMP_METADATA select x.*, null new_id from OPAS_EXPIMP_METADATA x where sess_id=:a1' using p_exp_sess_id;
     execute immediate 'insert into EI$OPAS_REPORTS select x.*, null new_id from OPAS_REPORTS x where report_id in (select report_id from EI$ASHA_CUBE_REPORTS)';
     execute immediate 'insert into EI$OPAS_REPORTS_PARS select x.*, null new_id from OPAS_REPORTS_PARS x where report_id in (select report_id from EI$ASHA_CUBE_REPORTS)';
     execute immediate 'insert into EI$OPAS_FILES select x.*, null new_id from OPAS_FILES x where file_id in (select report_content from EI$OPAS_REPORTS)';
@@ -145,7 +141,8 @@ PACKAGE BODY ASHA_EXPIMP AS
     elsif p_proj_ids is not null then
       load_proj_tables_i(p_proj_ids, p_exp_sess_id);
     end if;
-    load_comm_tables_i(p_exp_sess_id);
+    load_comm_tables_to_ei(p_exp_sess_id);
+    COREMOD_EXPIMP.load_expimp_tables_to_ei(p_exp_sess_id);
     commit;
     --==================================================
     COREMOD_API.end_longops_section(1,g_lops_ind);
@@ -178,128 +175,106 @@ PACKAGE BODY ASHA_EXPIMP AS
     export_i(null, p_proj_ids, p_exp_sess_id);
   end;
 
-  procedure import_common_data
+  procedure import_project(p_proj_id in asha_cube_sess.sess_proj_id%type)
   is
   begin
-    execute immediate '
-      declare
-        l_id number;
-      begin
-        for i in (select * from EI$OPAS_FILES s) loop
-          INSERT INTO opas_files (modname,file_type,file_name,file_mimetype,file_contentb,file_contentc,created,owner)
-                          values (i.modname,i.file_type,i.file_name,i.file_mimetype,i.file_contentb,i.file_contentc,i.created,COREMOD_API.gDefaultOwner)
-                          returning file_id into l_id;
-          update EI$OPAS_FILES set new_id=l_id where file_id=i.file_id;
-        end loop;
-
-        -- fix links to files  from reports
-        update EI$OPAS_REPORTS t set report_content=(select new_id from EI$OPAS_FILES s where s.file_id=t.report_content);
-        for i in (select * from EI$OPAS_REPORTS) loop
-          INSERT INTO opas_reports (modname,tq_id,report_content,report_params_displ,parent_id,report_type)
-                             values(i.modname,null,i.report_content,i.report_params_displ,null,i.report_type) returning report_id into l_id;
-          update EI$OPAS_REPORTS set new_id=l_id where report_id=i.report_id;
-        end loop;
-        -- fix links to parent report
-        update opas_reports t set t.parent_id=(select new_id from EI$OPAS_REPORTS i where i.report_id=(select parent_id from EI$OPAS_REPORTS s where t.report_id=s.new_id))
-         where t.report_id in (select new_id from EI$OPAS_REPORTS where parent_id is not null);
-
-        INSERT INTO opas_reports_pars (report_id,par_name,num_par,varchar_par,date_par)
-        select (select new_id from EI$OPAS_REPORTS s where s.report_id=t.report_id) ,par_name,num_par,varchar_par,date_par from ei$opas_reports_pars t;
-
-        merge into OPAS_QRY_CACHE t
-          using (select * from EI$OPAS_QRY_CACHE) s
-        on (t.sql_id=s.sql_id)
-        when matched then update set
-          t.hit_num=t.hit_num+s.hit_num+100
-        when not matched then
-         insert (t.sql_id,t.sql_text,t.created,t.hit_num)
-         values (s.sql_id,s.sql_text,s.created,s.hit_num);
-      end;';
-  end;
-
-  procedure import_project(p_proj_id in out asha_cube_sess.sess_proj_id%type)
-  is
-  begin
-
     if p_proj_id = -1 then
       --create new project
       execute immediate q'[
       declare
         l_proj ei$asha_cube_projects%rowtype;
       begin
-        select * into l_proj from ei$asha_cube_projects; --must be a single row
+        for i in (select * from ei$asha_cube_projects) loop
 
-        INSERT INTO asha_cube_projects
-                  ( proj_name, owner, created, status, proj_note, keep_forever, is_public, priority)
-           VALUES ( l_proj.proj_name || ' (imported)', COREMOD_API.gDefaultOwner, l_proj.created, l_proj.status, l_proj.proj_note, 'Y' /*l_proj.keep_forever*/, l_proj.is_public, nvl(l_proj.priority,100)) returning proj_id into l_proj.PROJ_ID;
+          INSERT INTO asha_cube_projects
+                    ( proj_name, owner, created, status, proj_note, keep_forever, is_public, priority)
+             VALUES ( i.proj_name || ' (imported)', COREMOD_API.gDefaultOwner, i.created, i.status, i.proj_note, 'Y' /*l_proj.keep_forever*/, i.is_public, nvl(i.priority,100)) returning proj_id into l_proj.PROJ_ID;
 
-        update ei$asha_cube_projects set PROJ_ID = l_proj.PROJ_ID;
-        :a1 := l_proj.PROJ_ID;
-      end;]' using out p_proj_id;
-    else
+          update ei$asha_cube_projects set new_id = l_proj.PROJ_ID where proj_id=i.proj_id;
+        end loop;
+      end;]';
+    elsif p_proj_id > 0 then
       --load into existing poject
-      execute immediate 'update ei$asha_cube_projects set PROJ_ID = :a1' using p_proj_id;
+      null;
+    else
+      raise_application_error(-20000,'Invalid project ID for import: '||p_proj_id);
     end if;
   end;
 
-  procedure import_cube(p_proj_id asha_cube_sess.sess_proj_id%type) is
+  procedure import_cube(p_proj_id asha_cube_sess.sess_proj_id%type, p_exp_sess_id    opas_expimp_sessions.sess_id%type) is
   begin
-    if p_proj_id = -1 then raise_application_error(-20000,'Unknown project for import cube'); end if;
-
-    execute immediate '
-      declare
-        p_proj_id number;
+    execute immediate 'declare
+        l_proj_id number;
       begin
-        p_proj_id := :a1;
-      update ei$asha_cube_sess set new_id=asha_sq_cube.nextval;
+        l_proj_id := :a1;
+        update ei$asha_cube_sess set new_id=asha_sq_cube.nextval;
 
-      INSERT INTO asha_cube_sess
-                ( sess_id, sess_proj_id, sess_created, sess_retention_days, sess_status, sess_tq_id, sess_description, sess_tq_id_snap, parent_id)
-           select new_id, p_proj_id, sess_created, 0 /*sess_retention_days*/, sess_status, null, sess_description, null,
-                  case when parent_id is not null then (select new_id from ei$asha_cube_sess i where i.sess_id=s.parent_id) else null end
-             from ei$asha_cube_sess s;
-      INSERT INTO asha_cube_sess_pars ( sess_id, sess_par_nm, sess_par_val)
-           select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id), sess_par_nm, sess_par_val from ei$asha_cube_sess_pars s;
-      INSERT INTO asha_cube (sess_id,sample_time,wait_class,sql_id,event,event_id,module,action,sql_id1,sql_plan_hash_value,segment_id,g1,g2,g3,g4,g5,g6,smpls)
-           select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),sample_time,wait_class,sql_id,event,event_id,module,action,sql_id1,sql_plan_hash_value,segment_id,g1,g2,g3,g4,g5,g6,smpls from ei$asha_cube s;
-      INSERT INTO asha_cube_block (sess_id,session_id,session_serial#,inst_id,sql_id,module,action,blocking_session,blocking_session_serial#,blocking_inst_id,cnt,blocker_id)
-           select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),session_id,session_serial#,inst_id,sql_id,module,action,blocking_session,blocking_session_serial#,blocking_inst_id,cnt,blocker_id from ei$asha_cube_block s;
-      INSERT INTO asha_cube_metrics (sess_id,metric_id,end_time,value)
-           select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),metric_id,end_time,value from ei$asha_cube_metrics s;
-      INSERT INTO asha_cube_reports (proj_id, report_id, sess_id, report_retention, report_note, created)
-           select p_proj_id, (select new_id from EI$OPAS_REPORTS t where s.report_id=t.report_id), (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id), 0 /*report_retention*/, report_note, created from ei$asha_cube_reports s;
-      INSERT INTO asha_cube_seg (sess_id,segment_id,segment_name)
-           select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),segment_id,segment_name from ei$asha_cube_seg s;
-      INSERT INTO asha_cube_snap_ash (sess_id,inst_id,sample_id,sample_time,sample_time_utc,usecs_per_row,is_awr_sample,
-      session_id,session_serial#,session_type,flags,user_id,sql_id,is_sqlid_current,sql_child_number,sql_opcode,force_matching_signature,
-      top_level_sql_id,top_level_sql_opcode,sql_opname,sql_adaptive_plan_resolved,sql_full_plan_hash_value,sql_plan_hash_value,sql_plan_line_id,
-      sql_plan_operation,sql_plan_options,sql_exec_id,sql_exec_start,plsql_entry_object_id,plsql_entry_subprogram_id,plsql_object_id,plsql_subprogram_id,
-      qc_instance_id,qc_session_id,qc_session_serial#,px_flags,event,event_id,event#,seq#,p1text,p1,p2text,p2,p3text,p3,wait_class,wait_class_id,
-      wait_time,session_state,time_waited,blocking_session_status,blocking_session,blocking_session_serial#,blocking_inst_id,blocking_hangchain_info,
-      current_obj#,current_file#,current_block#,current_row#,top_level_call#,top_level_call_name,consumer_group_id,xid,remote_instance#,time_model,
-      in_connection_mgmt,in_parse,in_hard_parse,in_sql_execution,in_plsql_execution,in_plsql_rpc,in_plsql_compilation,in_java_execution,in_bind,in_cursor_close,
-      in_sequence_load,in_inmemory_query,in_inmemory_populate,in_inmemory_prepopulate,in_inmemory_repopulate,in_inmemory_trepopulate,in_tablespace_encryption,
-      capture_overhead,replay_overhead,is_captured,is_replayed,is_replay_sync_token_holder,service_hash,program,module,action,client_id,machine,port,ecid,dbreplay_file_id,
-      dbreplay_call_counter,tm_delta_time,tm_delta_cpu_time,tm_delta_db_time,delta_time,delta_read_io_requests,delta_write_io_requests,delta_read_io_bytes,delta_write_io_bytes,
-      delta_interconnect_io_bytes,delta_read_mem_bytes,pga_allocated,temp_space_allocated,con_dbid,con_id,dbop_name,dbop_exec_id)
-      select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),inst_id,sample_id,sample_time,sample_time_utc,usecs_per_row,is_awr_sample,
-      session_id,session_serial#,session_type,flags,user_id,sql_id,is_sqlid_current,sql_child_number,sql_opcode,force_matching_signature,
-      top_level_sql_id,top_level_sql_opcode,sql_opname,sql_adaptive_plan_resolved,sql_full_plan_hash_value,sql_plan_hash_value,sql_plan_line_id,
-      sql_plan_operation,sql_plan_options,sql_exec_id,sql_exec_start,plsql_entry_object_id,plsql_entry_subprogram_id,plsql_object_id,plsql_subprogram_id,
-      qc_instance_id,qc_session_id,qc_session_serial#,px_flags,event,event_id,event#,seq#,p1text,p1,p2text,p2,p3text,p3,wait_class,wait_class_id,
-      wait_time,session_state,time_waited,blocking_session_status,blocking_session,blocking_session_serial#,blocking_inst_id,blocking_hangchain_info,
-      current_obj#,current_file#,current_block#,current_row#,top_level_call#,top_level_call_name,consumer_group_id,xid,remote_instance#,time_model,
-      in_connection_mgmt,in_parse,in_hard_parse,in_sql_execution,in_plsql_execution,in_plsql_rpc,in_plsql_compilation,in_java_execution,in_bind,in_cursor_close,
-      in_sequence_load,in_inmemory_query,in_inmemory_populate,in_inmemory_prepopulate,in_inmemory_repopulate,in_inmemory_trepopulate,in_tablespace_encryption,
-      capture_overhead,replay_overhead,is_captured,is_replayed,is_replay_sync_token_holder,service_hash,program,module,action,client_id,machine,port,ecid,dbreplay_file_id,
-      dbreplay_call_counter,tm_delta_time,tm_delta_cpu_time,tm_delta_db_time,delta_time,delta_read_io_requests,delta_write_io_requests,delta_read_io_bytes,delta_write_io_bytes,
-      delta_interconnect_io_bytes,delta_read_mem_bytes,pga_allocated,temp_space_allocated,con_dbid,con_id,dbop_name,dbop_exec_id from ei$asha_cube_snap_ash s;
-      INSERT INTO asha_cube_timeline (sess_id,sample_time)
-         select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),sample_time from ei$asha_cube_timeline s;
+        for i in (select * from ei$asha_cube_projects where l_proj_id = -1) loop
+          INSERT INTO asha_cube_sess
+                    ( sess_id, sess_proj_id, sess_created, sess_retention_days, sess_status, sess_tq_id, sess_description, sess_tq_id_snap, parent_id)
+               select new_id, i.new_id, sess_created, 0 /*sess_retention_days*/, sess_status, null, sess_description, null,
+                      case when parent_id is not null then (select new_id from ei$asha_cube_sess i where i.sess_id=s.parent_id) else null end
+                 from ei$asha_cube_sess s where sess_proj_id = i.proj_id;
+          INSERT INTO asha_cube_reports (proj_id, report_id, sess_id, report_retention, report_note, created)
+               select i.new_id,
+                      (select new_id from EI$OPAS_REPORTS t where s.report_id=t.report_id),
+                      (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id), 0 /*report_retention*/, report_note, created
+                 from ei$asha_cube_reports s where proj_id = i.proj_id;
+        end loop;
+
+        for i in (select * from asha_cube_projects where proj_id = l_proj_id) loop
+          INSERT INTO asha_cube_sess
+                    ( sess_id, sess_proj_id, sess_created, sess_retention_days, sess_status, sess_tq_id, sess_description, sess_tq_id_snap, parent_id)
+               select new_id, i.proj_id, sess_created, 0 /*sess_retention_days*/, sess_status, null, sess_description, null,
+                      case when parent_id is not null then (select new_id from ei$asha_cube_sess i where i.sess_id=s.parent_id) else null end
+                 from ei$asha_cube_sess s;
+          INSERT INTO asha_cube_reports (proj_id, report_id, sess_id, report_retention, report_note, created)
+               select i.proj_id,
+                      (select new_id from EI$OPAS_REPORTS t where s.report_id=t.report_id),
+                      (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id), 0 /*report_retention*/, report_note, created
+                 from ei$asha_cube_reports s;
+        end loop;
+
+        INSERT INTO asha_cube_sess_pars ( sess_id, sess_par_nm, sess_par_val)
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id), sess_par_nm, sess_par_val from ei$asha_cube_sess_pars s;
+        INSERT INTO asha_cube (sess_id,sample_time,wait_class,sql_id,event,event_id,module,action,sql_id1,sql_plan_hash_value,segment_id,g1,g2,g3,g4,g5,g6,smpls)
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),sample_time,wait_class,sql_id,event,event_id,module,action,sql_id1,sql_plan_hash_value,segment_id,g1,g2,g3,g4,g5,g6,smpls from ei$asha_cube s;
+        INSERT INTO asha_cube_block (sess_id,session_id,session_serial#,inst_id,sql_id,module,action,blocking_session,blocking_session_serial#,blocking_inst_id,cnt,blocker_id)
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),session_id,session_serial#,inst_id,sql_id,module,action,blocking_session,blocking_session_serial#,blocking_inst_id,cnt,blocker_id from ei$asha_cube_block s;
+        INSERT INTO asha_cube_metrics (sess_id,metric_id,end_time,value)
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),metric_id,end_time,value from ei$asha_cube_metrics s;
+        INSERT INTO asha_cube_seg (sess_id,segment_id,segment_name)
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),segment_id,segment_name from ei$asha_cube_seg s;
+        INSERT INTO asha_cube_snap_ash (sess_id,inst_id,sample_id,sample_time,sample_time_utc,usecs_per_row,is_awr_sample,
+          session_id,session_serial#,session_type,flags,user_id,sql_id,is_sqlid_current,sql_child_number,sql_opcode,force_matching_signature,
+          top_level_sql_id,top_level_sql_opcode,sql_opname,sql_adaptive_plan_resolved,sql_full_plan_hash_value,sql_plan_hash_value,sql_plan_line_id,
+          sql_plan_operation,sql_plan_options,sql_exec_id,sql_exec_start,plsql_entry_object_id,plsql_entry_subprogram_id,plsql_object_id,plsql_subprogram_id,
+          qc_instance_id,qc_session_id,qc_session_serial#,px_flags,event,event_id,event#,seq#,p1text,p1,p2text,p2,p3text,p3,wait_class,wait_class_id,
+          wait_time,session_state,time_waited,blocking_session_status,blocking_session,blocking_session_serial#,blocking_inst_id,blocking_hangchain_info,
+          current_obj#,current_file#,current_block#,current_row#,top_level_call#,top_level_call_name,consumer_group_id,xid,remote_instance#,time_model,
+          in_connection_mgmt,in_parse,in_hard_parse,in_sql_execution,in_plsql_execution,in_plsql_rpc,in_plsql_compilation,in_java_execution,in_bind,in_cursor_close,
+          in_sequence_load,in_inmemory_query,in_inmemory_populate,in_inmemory_prepopulate,in_inmemory_repopulate,in_inmemory_trepopulate,in_tablespace_encryption,
+          capture_overhead,replay_overhead,is_captured,is_replayed,is_replay_sync_token_holder,service_hash,program,module,action,client_id,machine,port,ecid,dbreplay_file_id,
+          dbreplay_call_counter,tm_delta_time,tm_delta_cpu_time,tm_delta_db_time,delta_time,delta_read_io_requests,delta_write_io_requests,delta_read_io_bytes,delta_write_io_bytes,
+          delta_interconnect_io_bytes,delta_read_mem_bytes,pga_allocated,temp_space_allocated,con_dbid,con_id,dbop_name,dbop_exec_id)
+          select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),inst_id,sample_id,sample_time,sample_time_utc,usecs_per_row,is_awr_sample,
+          session_id,session_serial#,session_type,flags,user_id,sql_id,is_sqlid_current,sql_child_number,sql_opcode,force_matching_signature,
+          top_level_sql_id,top_level_sql_opcode,sql_opname,sql_adaptive_plan_resolved,sql_full_plan_hash_value,sql_plan_hash_value,sql_plan_line_id,
+          sql_plan_operation,sql_plan_options,sql_exec_id,sql_exec_start,plsql_entry_object_id,plsql_entry_subprogram_id,plsql_object_id,plsql_subprogram_id,
+          qc_instance_id,qc_session_id,qc_session_serial#,px_flags,event,event_id,event#,seq#,p1text,p1,p2text,p2,p3text,p3,wait_class,wait_class_id,
+          wait_time,session_state,time_waited,blocking_session_status,blocking_session,blocking_session_serial#,blocking_inst_id,blocking_hangchain_info,
+          current_obj#,current_file#,current_block#,current_row#,top_level_call#,top_level_call_name,consumer_group_id,xid,remote_instance#,time_model,
+          in_connection_mgmt,in_parse,in_hard_parse,in_sql_execution,in_plsql_execution,in_plsql_rpc,in_plsql_compilation,in_java_execution,in_bind,in_cursor_close,
+          in_sequence_load,in_inmemory_query,in_inmemory_populate,in_inmemory_prepopulate,in_inmemory_repopulate,in_inmemory_trepopulate,in_tablespace_encryption,
+          capture_overhead,replay_overhead,is_captured,is_replayed,is_replay_sync_token_holder,service_hash,program,module,action,client_id,machine,port,ecid,dbreplay_file_id,
+          dbreplay_call_counter,tm_delta_time,tm_delta_cpu_time,tm_delta_db_time,delta_time,delta_read_io_requests,delta_write_io_requests,delta_read_io_bytes,delta_write_io_bytes,
+          delta_interconnect_io_bytes,delta_read_mem_bytes,pga_allocated,temp_space_allocated,con_dbid,con_id,dbop_name,dbop_exec_id from ei$asha_cube_snap_ash s;
+        INSERT INTO asha_cube_timeline (sess_id,sample_time)
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),sample_time from ei$asha_cube_timeline s;
         INSERT INTO asha_cube_top_sess (sess_id,session_id,session_serial#,inst_id,module,action,program,client_id,machine,ecid,username,smpls)
-         select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),session_id,session_serial#,inst_id,module,action,program,client_id,machine,ecid,username,smpls from ei$asha_cube_top_sess s;
-      INSERT INTO asha_cube_unknown (sess_id,unknown_type,session_type,program,client_id,machine,ecid,username,smpls)
-         select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),unknown_type,session_type,program,client_id,machine,ecid,username,smpls from ei$asha_cube_unknown s;
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),session_id,session_serial#,inst_id,module,action,program,client_id,machine,ecid,username,smpls from ei$asha_cube_top_sess s;
+        INSERT INTO asha_cube_unknown (sess_id,unknown_type,session_type,program,client_id,machine,ecid,username,smpls)
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),unknown_type,session_type,program,client_id,machine,ecid,username,smpls from ei$asha_cube_unknown s;
       end;' using p_proj_id;
   end;
 
@@ -320,12 +295,13 @@ PACKAGE BODY ASHA_EXPIMP AS
     --==================================================
     select * into l_ei_metadata from OPAS_EXPIMP_METADATA where sess_id=p_exp_sess_id;
 
-    import_common_data();
+    COREMOD_EXPIMP.import_common_data_from_ei();
+
     if l_ei_metadata.import_prc=g_ImpTP_Cube then
-      import_cube(l_proj_id);
+      import_cube(l_proj_id,p_exp_sess_id);
     elsif l_ei_metadata.import_prc=g_ImpTP_Project then
       import_project(l_proj_id);
-      import_cube(l_proj_id);
+      import_cube(l_proj_id,p_exp_sess_id);
     else
       raise_application_error(-20000,'Unknown import entry point procedure: '||l_ei_metadata.import_prc);
     end if;
@@ -333,7 +309,9 @@ PACKAGE BODY ASHA_EXPIMP AS
     --==================================================
     COREMOD_API.end_longops_section(1,g_lops_ind);
     COREMOD_EXPIMP.finish_import_session (  P_EXP_SESS_ID => p_exp_sess_id, P_STATUS => COREMOD_EXPIMP.gstFINISHED) ;
-    COREMOD_EXPIMP.cleanup_expimp_session (P_EXP_SESS_ID => p_exp_sess_id, p_inlcuding_metadata => false );
+    if COREMOD_API.getconf('LOGGING_LEVEL',COREMOD_API.gMODNAME)!='DEBUG' then
+      COREMOD_EXPIMP.cleanup_expimp_session (P_EXP_SESS_ID => p_exp_sess_id, p_inlcuding_metadata => false );
+    end if;
   exception
     when others then
       rollback;

@@ -78,7 +78,12 @@ V 4.6.5
 V 4.6.6
 V 4.6.7
 V 4.6.8
- - when run AWR report from memory cube ASHA, DBID is empty
+ .- when run AWR report from memory cube ASHA, DBID is empty
+ -.- awr report to raise some usefull error when sql_id can not be found, add exception handlers for all sections with refereing of logs
+ .- 3kqqfcwu33nxx too big query text is not shown in neither mem or awr report
+ .- adapt import to process multiply projects at once
+ .- sql text viewer does not show query text from local db
+V 5.0.0 
 ============================================================================================================================
  todo
  .- multiuser monitor and snapper, a link between monitor and snapper to stop one another
@@ -140,9 +145,12 @@ V 4.6.5
 V 4.6.6
 V 4.6.7
 V 4.6.8
+ .- SQL Trace and AWRWH got Exp/Imp
+V 5.0.0
  - doc: each module, list of features, install guide
  - multiple move operation
  - show report parameters right after its creation
+ - export cascade by integration
 
 ============================================================================================================================
 getcomph

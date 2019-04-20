@@ -10,7 +10,7 @@ package TRC_FILE_LCC as
   c_trcfile_startparse    constant varchar2(20) :='START PARSE';  -- start parse source data
   c_trcfile_finishparse   constant varchar2(20) :='FINISH PARSE';  -- finish parse source data
   c_trcfile_failparse     constant varchar2(20) :='FAIL PARSE';  -- fail parse source data
-  c_trcfile_reparse       constant varchar2(20) :='REPARSE';
+  --c_trcfile_reparse       constant varchar2(20) :='REPARSE';
   c_trcfile_report_vw     constant varchar2(20) :='VIEW REPORT';  -- view reports
   c_trcfile_compress      constant varchar2(20) :='COMPRESS';
   c_trcfile_archive       constant varchar2(20) :='ARCHIVE';

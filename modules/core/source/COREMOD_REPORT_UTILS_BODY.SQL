@@ -1294,7 +1294,12 @@ end;]';
         begin
           select sql_text into l_output from dba_hist_sqltext where sql_id=p_sql_id and rownum=1;
         exception
-          when no_data_found then null;
+          when no_data_found then
+            begin
+              select sql_fulltext into l_output from gv$sql where sql_id=p_sql_id and rownum=1;
+            exception
+              when no_data_found then null;
+            end;
         end;
 
         if l_output is null and p_srcdb is not null and p_srcdb <> '$LOCAL$' then

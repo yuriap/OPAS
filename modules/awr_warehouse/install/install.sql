@@ -50,6 +50,30 @@ begin
 end;
 /
 
+begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'AWRWH_EXP_PROJ',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin AWRWH_EXPIMP.export_proj (p_proj_ids => coremod_tasks.t_ids(<B1>), p_exp_sess_id => <B2>) ; end;');
+end;
+/
+
+begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'AWRWH_EXP_DUMP',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin AWRWH_EXPIMP.export_dump (p_dump_ids => coremod_tasks.t_ids(<B1>), p_exp_sess_id => <B2>) ; end;');
+end;
+/
+
+begin
+  COREMOD_TASKS.create_task (  p_taskname  => 'AWRWH_IMP_PROCESSING',
+                               p_modname   => '&MODNM.',
+                               p_is_public => 'Y', 
+                               p_task_body => 'begin AWRWH_EXPIMP.import_processing (p_exp_sess_id => <B1>, p_proj_id => <B2>) ; end;');
+end;
+/
+
 BEGIN
   COREMOD_INTEGRATION.register_integration (  P_INT_KEY => AWRWH_API.gintAWRWH2ASH_DUMP2CUBE,
     P_OWNER_MODNAME => 'AWR_WAREHOUSE',
