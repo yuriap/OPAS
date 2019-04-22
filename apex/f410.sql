@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   16:07 Friday April 19, 2019
+--   Date and Time:   11:05 Monday April 22, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190419122919'
+,p_last_upd_yyyymmddhh24miss=>'20190422110509'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -907,6 +907,8 @@ wwv_flow_api.create_flow_computation(
 'begin',
 '  :ASH_ANALYZER_DT_FMT:=ASHA_CUBE_PKG.c_datetime_fmt;',
 'end;'))
+,p_compute_when=>'COREMOD_SEC.is_mod_installed(P_MODNAME => ''ASH_ANALYZER'')'
+,p_compute_when_type=>'PLSQL_EXPRESSION'
 );
 end;
 /

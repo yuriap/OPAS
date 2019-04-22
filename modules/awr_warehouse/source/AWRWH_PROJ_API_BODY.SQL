@@ -92,7 +92,9 @@ package body AWRWH_PROJ_API as
           if nvl(i.source_retention,-1) <> 0 and (i.loaded+nvl(i.source_retention,COREMOD_API.getconf('DUMPETENTION',AWRWH_API.gMODNAME)))<sysdate then
             AWRWH_FILE_LCC.dmpfile_exec_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_putinqueue);
             commit;
-            AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_compress,i.status);
+            AWRWH_FILE_API.exec_file_action(p_dump_id => i.dump_id,
+                                            p_action  => AWRWH_FILE_LCC.c_dmpfile_compress,
+                                            p_start_state => i.status);
             commit;
             coremod_log.log('Dump file removed: '||i.dump_id);
           end if;

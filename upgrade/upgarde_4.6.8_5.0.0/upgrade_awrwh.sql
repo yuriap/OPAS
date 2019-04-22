@@ -13,6 +13,7 @@ set define off
 @../../modules/awr_warehouse/source/AWRWH_EXPIMP_SPEC.SQL
 @../../modules/awr_warehouse/source/AWRWH_EXPIMP_BODY.SQL
 @../../modules/awr_warehouse/source/AWRWH_PROJ_API_BODY.SQL
+@../../modules/awr_warehouse/source/AWRWH_FILE_API_BODY.SQL
 @../../modules/awr_warehouse/source/AWRWH_REPORT_API_BODY.SQL
 
 set define on

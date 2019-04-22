@@ -16,8 +16,8 @@ package body AWRWH_FILE_LCC as
         when p_action = c_dmpfile_startprocess    and l_status in (c_dmpfilestate_inqueue)                                                       then true
         when p_action = c_dmpfile_finishprocess   and l_status in (c_dmpfilestate_processing)                                                    then true
         when p_action = c_dmpfile_failprocess     and l_status in (c_dmpfilestate_processing)                                                    then true
-        when p_action = c_dmpfile_awrload         and l_does_proj_allow_rw and l_status in (c_dmpfilestate_dmploaded)                                                     then true
-        when p_action = c_dmpfile_awrunload       and l_status in (c_dmpfilestate_awrloaded)                                                     then true
+        when p_action = c_dmpfile_awrload         and l_does_proj_allow_rw and l_status in (c_dmpfilestate_dmploaded)                            then true
+        when p_action = c_dmpfile_awrunload       and l_status in (c_dmpfilestate_awrloaded, c_dmpfilestate_compressed)                          then true
         when p_action = c_dmpfile_compress        and l_status in (c_dmpfilestate_dmploaded, c_dmpfilestate_awrloaded)                           then true
         when p_action = c_dmpfile_archive         and l_status in (c_dmpfilestate_dmploaded, c_dmpfilestate_awrloaded,c_dmpfilestate_compressed) then true
         when p_action = c_dmpfile_dropfile        and l_status in (c_dmpfilestate_new, c_dmpfilestate_dmploaded, c_dmpfilestate_awrloaded, c_dmpfilestate_compressed, c_dmpfilestate_archived) then true
@@ -72,7 +72,12 @@ package body AWRWH_FILE_LCC as
                                                     end case;
       when p_action = c_dmpfile_finishprocess  then case
                                                       when p_process_action = c_dmpfile_awrload   then dmpfile_set_status  (p_awrwh_dumps.dump_id,c_dmpfilestate_awrloaded);
-                                                      when p_process_action = c_dmpfile_awrunload then dmpfile_set_status  (p_awrwh_dumps.dump_id,c_dmpfilestate_dmploaded);
+                                                      when p_process_action = c_dmpfile_awrunload then case
+                                                                                                         when p_start_state = c_dmpfilestate_awrloaded then dmpfile_set_status  (p_awrwh_dumps.dump_id,c_dmpfilestate_dmploaded);
+                                                                                                         when p_start_state = c_dmpfilestate_compressed then dmpfile_set_status  (p_awrwh_dumps.dump_id,c_dmpfilestate_archived);
+                                                                                                       else
+                                                                                                         raise_application_error(-20000,'Unable to unload AWR data: dump file action: '||p_action||':'||nvl(p_process_action,'N/A')||':'||nvl(p_start_state,'N/A'));
+                                                                                                       end case;
                                                       when p_process_action = c_dmpfile_compress  then dmpfile_set_status  (p_awrwh_dumps.dump_id,c_dmpfilestate_compressed);
                                                       when p_process_action = c_dmpfile_archive   then dmpfile_set_status  (p_awrwh_dumps.dump_id,c_dmpfilestate_archived);
                                                       when p_process_action = c_dmpfile_dropfile  then dmpfile_set_status  (p_awrwh_dumps.dump_id,c_dmpfilestate_dropped);

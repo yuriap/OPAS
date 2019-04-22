@@ -262,7 +262,7 @@ PACKAGE BODY AWRWH_FILE_API AS
     end case;
 
     if p_action != AWRWH_FILE_LCC.c_dmpfile_dropfile then
-      AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_finishprocess,p_action);
+      AWRWH_FILE_LCC.dmpfile_exec_action(p_dump_id,AWRWH_FILE_LCC.c_dmpfile_finishprocess,p_action,p_start_state);
     end if;
 
     commit;
