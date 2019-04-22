@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   11:05 Monday April 22, 2019
+--   Date and Time:   15:16 Monday April 22, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190422110509'
+,p_last_upd_yyyymmddhh24miss=>'20190422150422'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -23052,7 +23052,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(103683328942143765)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190226112254'
+,p_last_upd_yyyymmddhh24miss=>'20190422150422'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(119827856852483008)
@@ -23190,7 +23190,10 @@ wwv_flow_api.create_report_region(
 '       sess_status,',
 '       sess_tq_id,',
 '       sess_proj_id,',
-'       sess_description',
+'       sess_description,',
+'       (select sess_par_val from asha_cube_sess_pars where sess_id=o.sess_id and sess_par_nm=''START_DT'') START_DT,',
+'       (select sess_par_val from asha_cube_sess_pars where sess_id=o.sess_id and sess_par_nm=''END_DT'') END_DT,',
+'       (select l.display_name from asha_cube_sess_pars i, v$opas_db_links l where i.sess_id=o.sess_id and i.sess_par_nm=''DBLINK'' and l.db_link_name=i.sess_par_val) DBLINK       ',
 '  from (select /*+ NO_ELIMINATE_OBY no_merge */ * ',
 '          from asha_cube_sess',
 '         where sess_proj_id = :P301_PROJ_ID',
@@ -23294,6 +23297,36 @@ wwv_flow_api.create_report_columns(
 ,p_column_alias=>'SESS_DESCRIPTION'
 ,p_column_display_sequence=>9
 ,p_column_heading=>'Description'
+,p_use_as_row_header=>'N'
+,p_derived_column=>'N'
+,p_include_in_export=>'Y'
+);
+wwv_flow_api.create_report_columns(
+ p_id=>wwv_flow_api.id(51337625966135747)
+,p_query_column_id=>10
+,p_column_alias=>'START_DT'
+,p_column_display_sequence=>10
+,p_column_heading=>'Start Date/Time'
+,p_use_as_row_header=>'N'
+,p_derived_column=>'N'
+,p_include_in_export=>'Y'
+);
+wwv_flow_api.create_report_columns(
+ p_id=>wwv_flow_api.id(51337782005135748)
+,p_query_column_id=>11
+,p_column_alias=>'END_DT'
+,p_column_display_sequence=>11
+,p_column_heading=>'End Date/Time'
+,p_use_as_row_header=>'N'
+,p_derived_column=>'N'
+,p_include_in_export=>'Y'
+);
+wwv_flow_api.create_report_columns(
+ p_id=>wwv_flow_api.id(51337887127135749)
+,p_query_column_id=>12
+,p_column_alias=>'DBLINK'
+,p_column_display_sequence=>12
+,p_column_heading=>'DB Link'
 ,p_use_as_row_header=>'N'
 ,p_derived_column=>'N'
 ,p_include_in_export=>'Y'
@@ -23854,6 +23887,9 @@ wwv_flow_api.create_page_item(
 ,p_attribute_04=>'TEXT'
 ,p_attribute_05=>'BOTH'
 );
+end;
+/
+begin
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(103613844082819639)
 ,p_name=>'P301_PAR_TEMPLATE'
@@ -23894,9 +23930,6 @@ wwv_flow_api.create_page_item(
 ,p_attribute_01=>'NONE'
 ,p_attribute_02=>'N'
 );
-end;
-/
-begin
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(103614289065819644)
 ,p_name=>'P301_SESS_ID'
