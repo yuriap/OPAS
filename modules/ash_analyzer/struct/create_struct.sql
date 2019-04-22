@@ -15,7 +15,7 @@ priority            number default 10
 
 create table asha_cube_srcdblink2projects (
 proj_id         number references asha_cube_projects(proj_id) on delete cascade,
-src_dblink      varchar2(128) references opas_db_links (DB_LINK_NAME) on delete cascade
+src_dblink      varchar2(128) references opas_db_links (DB_LINK_NAME) on delete cascade,
 default_dblink  varchar2(1));
 
 create index idx_asha_cube_src2proj_proj on asha_cube_srcdblink2projects(proj_id);

@@ -102,7 +102,7 @@ package body AWRWH_PROJ_API as
           if nvl(i.parsed_retention,-1) <> 0 and (i.parsed+nvl(i.parsed_retention,COREMOD_API.getconf('AWRPARSEDRETENTION',AWRWH_API.gMODNAME)))<sysdate then
             AWRWH_FILE_LCC.dmpfile_exec_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_putinqueue);
             commit;
-            AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_archive,i.status);
+            AWRWH_FILE_API.exec_file_action(i.dump_id,AWRWH_FILE_LCC.c_dmpfile_awrunload,i.status);
             commit;
             coremod_log.log('AWR data removed: '||i.dump_id);
           end if;

@@ -462,7 +462,7 @@ PACKAGE BODY AWRWH_REPORT_API AS
       report_retention = decode(p_report_retention,-1,null,p_report_retention),
       report_note = p_report_note
      where report_id = p_report_id;
-    update asha_cube_reports set
+    update awrwh_reports set
       report_retention = decode(p_report_retention,-1,null,p_report_retention)
      where report_id in (select report_id from opas_reports where parent_id=p_report_id);
   end;

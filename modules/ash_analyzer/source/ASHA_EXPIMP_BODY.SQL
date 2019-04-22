@@ -69,7 +69,6 @@ PACKAGE BODY ASHA_EXPIMP AS
                                       p_proj_id_to_merge asha_cube_projects.proj_id%type,
                                       p_tq_id        out opas_task_queue.tq_id%type)
   is
-    l_proj asha_cube_projects%rowtype;
   begin
     p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => 'ASHA_IMP_PROCESSING', p_task_subname => null) ;
 
