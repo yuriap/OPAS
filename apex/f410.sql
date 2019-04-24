@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   15:16 Monday April 22, 2019
+--   Date and Time:   14:28 Wednesday April 24, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -36,13 +36,13 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 --
 
 -- Application Statistics:
---   Pages:                     73
---     Items:                  404
+--   Pages:                     74
+--     Items:                  407
 --     Computations:             3
 --     Validations:              2
---     Processes:              201
---     Regions:                274
---     Buttons:                226
+--     Processes:              202
+--     Regions:                275
+--     Buttons:                230
 --     Dynamic Actions:         30
 --   Shared Components:
 --     Logic:
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190422150422'
+,p_last_upd_yyyymmddhh24miss=>'20190424142357'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -302,6 +302,17 @@ wwv_flow_api.create_list_item(
 ,p_list_item_disp_cond_type=>'EXISTS'
 ,p_list_item_disp_condition=>'select 1 FROM v$opas_expimp_sessions where created >= sysdate - 60/24/60;'
 ,p_security_scheme=>wwv_flow_api.id(103683091590143762)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_api.create_list_item(
+ p_id=>wwv_flow_api.id(52403652130510596)
+,p_list_item_display_sequence=>1030
+,p_list_item_link_text=>'Upload OPAS File'
+,p_list_item_link_target=>'f?p=&APP_ID.:136:&SESSION.::&DEBUG.::::'
+,p_list_item_icon=>'fa-cloud-file'
+,p_list_item_disp_cond_type=>'PLSQL_EXPRESSION'
+,p_list_item_disp_condition=>'COREMOD_API.getconf(''LOGGING_LEVEL'',COREMOD_API.gMODNAME)=''DEBUG'''
+,p_security_scheme=>wwv_flow_api.id(104594956599693432)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 end;
@@ -1177,9 +1188,11 @@ wwv_flow_api.create_menu_option(
 wwv_flow_api.create_menu_option(
  p_id=>wwv_flow_api.id(103163415749527447)
 ,p_parent_id=>wwv_flow_api.id(103130021144361479)
-,p_short_name=>'Project "&SQL_TRACE_CURRENT_PROJ."'
+,p_short_name=>'SQL Trace Project "&SQL_TRACE_CURRENT_PROJ."'
 ,p_link=>'f?p=&APP_ID.:201:&SESSION.::&DEBUG.:::'
 ,p_page_id=>201
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'SQL_TRACE_CURRENT_PROJ'
 );
 wwv_flow_api.create_menu_option(
  p_id=>wwv_flow_api.id(103222557750018722)
@@ -1200,6 +1213,8 @@ wwv_flow_api.create_menu_option(
 ,p_short_name=>'ASH Analyzer Project "&ASH_ANALYZER_CURRENT_PROJ."'
 ,p_link=>'f?p=&APP_ID.:301:&SESSION.::&DEBUG.:::'
 ,p_page_id=>301
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'ASH_ANALYZER_CURRENT_PROJ'
 );
 wwv_flow_api.create_menu_option(
  p_id=>wwv_flow_api.id(103783504908644875)
@@ -1230,8 +1245,10 @@ wwv_flow_api.create_menu_option(
  p_id=>wwv_flow_api.id(122943423274232159)
 ,p_parent_id=>wwv_flow_api.id(122920331987999509)
 ,p_short_name=>'AWR WareHouse Project "&AWR_WAREHOUSE_CURRENT_PROJ."'
-,p_link=>'f?p=&APP_ID.:401:&SESSION.'
+,p_link=>'f?p=&APP_ID.:401:&SESSION.::&DEBUG.:::'
 ,p_page_id=>401
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'AWR_WAREHOUSE_CURRENT_PROJ'
 );
 wwv_flow_api.create_menu_option(
  p_id=>wwv_flow_api.id(123009073385772386)
@@ -13049,7 +13066,7 @@ wwv_flow_api.create_page(
 ,p_required_role=>wwv_flow_api.id(104595149061694895)
 ,p_dialog_width=>'1000'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181212145655'
+,p_last_upd_yyyymmddhh24miss=>'20190423151545'
 );
 wwv_flow_api.create_report_region(
  p_id=>wwv_flow_api.id(104684904558355616)
@@ -13161,7 +13178,7 @@ wwv_flow_api.create_report_columns(
 ,p_column_link=>'f?p=&APP_ID.:116:&SESSION.::&DEBUG.:RP:P116_ACTION,P116_DB_LINK_NAME:#A_EDIT#,#DB_LINK_NAME#'
 ,p_column_linktext=>'#A_EDIT#'
 ,p_disable_sort_column=>'N'
-,p_report_column_required_role=>wwv_flow_api.id(94867595368325550)
+,p_report_column_required_role=>wwv_flow_api.id(104595396134696210)
 ,p_derived_column=>'N'
 ,p_include_in_export=>'Y'
 );
@@ -15945,6 +15962,138 @@ wwv_flow_api.create_page_process(
 );
 end;
 /
+prompt --application/pages/page_00136
+begin
+wwv_flow_api.create_page(
+ p_id=>136
+,p_user_interface_id=>wwv_flow_api.id(105158246526958455)
+,p_name=>'Load file'
+,p_page_mode=>'MODAL'
+,p_step_title=>'Load file'
+,p_step_sub_title=>'Load file'
+,p_step_sub_title_type=>'TEXT_WITH_SUBSTITUTIONS'
+,p_autocomplete_on_off=>'OFF'
+,p_group_id=>wwv_flow_api.id(104510736374463027)
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_api.id(104594956599693432)
+,p_last_updated_by=>'OPAS40ADM'
+,p_last_upd_yyyymmddhh24miss=>'20190424142357'
+);
+wwv_flow_api.create_page_plug(
+ p_id=>wwv_flow_api.id(172622712607814866)
+,p_plug_name=>'Load from file'
+,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
+,p_plug_template=>wwv_flow_api.id(105084245843958177)
+,p_plug_display_sequence=>20
+,p_plug_display_point=>'BODY'
+,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
+,p_attribute_01=>'N'
+,p_attribute_02=>'HTML'
+);
+wwv_flow_api.create_page_button(
+ p_id=>wwv_flow_api.id(52385696325471069)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_api.id(172622712607814866)
+,p_button_name=>'SaveUploadedFile'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>wwv_flow_api.id(105136390946958319)
+,p_button_image_alt=>'Save'
+,p_button_position=>'BELOW_BOX'
+,p_button_alignment=>'LEFT'
+,p_security_scheme=>wwv_flow_api.id(104594956599693432)
+);
+wwv_flow_api.create_page_branch(
+ p_id=>wwv_flow_api.id(52394421045471107)
+,p_branch_name=>'Go To Page 1'
+,p_branch_action=>'f?p=&APP_ID.:1:&SESSION.::&DEBUG.:RP::&success_msg=#SUCCESS_MSG#'
+,p_branch_point=>'AFTER_PROCESSING'
+,p_branch_type=>'REDIRECT_URL'
+,p_branch_when_button_id=>wwv_flow_api.id(52385696325471069)
+,p_branch_sequence=>20
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(52342853400716605)
+,p_name=>'P136_TYPE'
+,p_item_sequence=>20
+,p_item_plug_id=>wwv_flow_api.id(172622712607814866)
+,p_item_default=>'N'
+,p_prompt=>'Binary'
+,p_display_as=>'NATIVE_YES_NO'
+,p_field_template=>wwv_flow_api.id(105135891214958300)
+,p_item_template_options=>'#DEFAULT#'
+,p_attribute_01=>'APPLICATION'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(52384585576471063)
+,p_name=>'P136_FILE_ID'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_api.id(172622712607814866)
+,p_prompt=>'OPAS File ID'
+,p_display_as=>'NATIVE_TEXT_FIELD'
+,p_cSize=>30
+,p_field_template=>wwv_flow_api.id(105135891214958300)
+,p_item_template_options=>'#DEFAULT#'
+,p_attribute_01=>'N'
+,p_attribute_02=>'N'
+,p_attribute_04=>'TEXT'
+,p_attribute_05=>'BOTH'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(52386087386471074)
+,p_name=>'P136_FILE_UPLOAD'
+,p_item_sequence=>30
+,p_item_plug_id=>wwv_flow_api.id(172622712607814866)
+,p_prompt=>'File to Upload'
+,p_display_as=>'NATIVE_FILE'
+,p_cSize=>30
+,p_field_template=>wwv_flow_api.id(105135891214958300)
+,p_item_template_options=>'#DEFAULT#'
+,p_attribute_01=>'APEX_APPLICATION_TEMP_FILES'
+,p_attribute_09=>'SESSION'
+,p_attribute_10=>'N'
+);
+wwv_flow_api.create_page_process(
+ p_id=>wwv_flow_api.id(52393569655471105)
+,p_process_sequence=>20
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'SaveUploadedFile'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare',
+'  l_select_count number;',
+'begin',
+'  if :P136_FILE_UPLOAD is not null then',
+'					',
+'    select count(ID) into l_select_count',
+'      from apex_application_temp_files',
+'	 where name = :P136_FILE_UPLOAD;',
+'					',
+'	if l_select_count = 1 then',
+'      ',
+'          ',
+'  	  for i in (select id, filename, blob_content',
+'	              from apex_application_temp_files ',
+'                 where name = :P136_FILE_UPLOAD) ',
+'      loop',
+'        if :P136_TYPE=''Y'' then',
+'          UPDATE opas_files SET file_contentb = i.blob_content WHERE file_id = :P136_FILE_ID;  ',
+'        else',
+'          UPDATE opas_files SET file_contentc = i.blob_content WHERE file_id = :P136_FILE_ID;  ',
+'        end if;',
+'      end loop; ',
+'                                    ',
+'    end if;',
+'  else',
+'    raise_application_error(-20000,''File name is empty'');',
+'  end if; ',
+'end;'))
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_api.id(103197711418957856)
+,p_security_scheme=>wwv_flow_api.id(105334105953434876)
+);
+end;
+/
 prompt --application/pages/page_00150
 begin
 wwv_flow_api.create_page(
@@ -16166,7 +16315,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_height=>'600'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190130145336'
+,p_last_upd_yyyymmddhh24miss=>'20190424104145'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(213106360232145279)
@@ -16493,10 +16642,19 @@ wwv_flow_api.create_page_process(
 ,p_process_name=>'SetInitValues'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
-'  if :P150_DEST = ''$LOCAL$'' then',
-'    select dbid into :P151_DBID from dba_hist_database_instance where dbid<>(select dbid from v$database) and rownum=1;',
-'  else  ',
-'    execute immediate q''[select dbid from dba_hist_database_instance@]''||COREMOD_API.get_ora_dblink(:P150_DEST)||'' where rownum=1'' into :P151_DBID;',
+'  if :P151_DBID is null then',
+'    if :P150_DEST = ''$LOCAL$'' then',
+'      if :P150_SOURCE_PAGE=303 and :P303_SOURCE_TAB=''AWR'' then',
+'        :P151_START_SNAP := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_START_SNAP);',
+'        :P151_END_SNAP := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_END_SNAP);',
+'        :P151_DBID := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_DBID);',
+'        :P151_SNAPS := 2;',
+'      else',
+'        select dbid into :P151_DBID from dba_hist_database_instance where dbid<>(select dbid from v$database) and rownum=1;',
+'      end if;',
+'    else  ',
+'      execute immediate q''[select dbid from dba_hist_database_instance@]''||COREMOD_API.get_ora_dblink(:P150_DEST)||'' where rownum=1'' into :P151_DBID;',
+'    end if;',
 '  end if;',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
@@ -16600,6 +16758,7 @@ wwv_flow_api.create_page_process(
 'begin',
 '  :P151_START_SNAP := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_START_SNAP);',
 '  :P151_END_SNAP := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_END_SNAP);',
+'  :P151_DBID := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_DBID);',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(30671593308830612)
@@ -16837,7 +16996,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_height=>'600'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190130114025'
+,p_last_upd_yyyymmddhh24miss=>'20190424104652'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(153007426642302206)
@@ -17080,10 +17239,18 @@ wwv_flow_api.create_page_process(
 ,p_process_name=>'SetInitValues'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
-'  if :P150_DEST = ''$LOCAL$'' then',
-'    select dbid into :P153_DBID from dba_hist_database_instance where dbid<>(select dbid from v$database) and rownum=1;',
-'  else  ',
-'    execute immediate q''[select dbid from dba_hist_database_instance@]''||COREMOD_API.get_ora_dblink(:P150_DEST)||'' where rownum=1'' into :P153_DBID;',
+'  if :P153_DBID is null then',
+'    if :P150_DEST = ''$LOCAL$'' then',
+'      if :P150_SOURCE_PAGE=303 and :P303_SOURCE_TAB=''AWR'' then',
+'        :P153_START_SNAP := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_START_SNAP);',
+'        :P153_END_SNAP := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_END_SNAP);',
+'        :P153_DBID := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_DBID);',
+'      else',
+'        select dbid into :P153_DBID from dba_hist_database_instance where dbid<>(select dbid from v$database) and rownum=1;',
+'      end if;',
+'    else  ',
+'      execute immediate q''[select dbid from dba_hist_database_instance@]''||COREMOD_API.get_ora_dblink(:P150_DEST)||'' where rownum=1'' into :P153_DBID;',
+'    end if;',
 '  end if;',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
@@ -17181,6 +17348,7 @@ wwv_flow_api.create_page_process(
 'begin',
 '  :P153_START_SNAP := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_START_SNAP);',
 '  :P153_END_SNAP := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_END_SNAP);',
+'  :P153_DBID := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_DBID);',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(30671779159830614)
@@ -17205,7 +17373,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_height=>'600'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190130114229'
+,p_last_upd_yyyymmddhh24miss=>'20190424130413'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(183000858855966562)
@@ -17391,8 +17559,7 @@ wwv_flow_api.create_page_item(
 ,p_field_template=>wwv_flow_api.id(105135891214958300)
 ,p_item_template_options=>'#DEFAULT#'
 ,p_lov_display_extra=>'NO'
-,p_inline_help_text=>'All or several nodes produces AWR Global report'
-,p_attribute_01=>'1'
+,p_attribute_01=>'5'
 ,p_attribute_02=>'NONE'
 );
 wwv_flow_api.create_page_item(
@@ -17482,10 +17649,18 @@ wwv_flow_api.create_page_process(
 ,p_process_name=>'SetInitValues'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
-'  if :P150_DEST = ''$LOCAL$'' then',
-'    select dbid into :P154_DBID from dba_hist_database_instance where dbid<>(select dbid from v$database) and rownum=1;',
-'  else  ',
-'    execute immediate q''[select dbid from dba_hist_database_instance@]''||COREMOD_API.get_ora_dblink(:P150_DEST)||'' where rownum=1'' into :P154_DBID;',
+'  if :P154_DBID is null then',
+'    if :P150_DEST = ''$LOCAL$'' then',
+'      if :P150_SOURCE_PAGE=303 and :P303_SOURCE_TAB=''AWR'' then',
+'        :P154_START_SNAP := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_START_SNAP);',
+'        :P154_END_SNAP := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_END_SNAP);',
+'        :P154_DBID := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_DBID);',
+'      else',
+'        select dbid into :P154_DBID from dba_hist_database_instance where dbid<>(select dbid from v$database) and rownum=1;',
+'      end if;',
+'    else  ',
+'      execute immediate q''[select dbid from dba_hist_database_instance@]''||COREMOD_API.get_ora_dblink(:P150_DEST)||'' where rownum=1'' into :P154_DBID;',
+'    end if;',
 '  end if;',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
@@ -17587,6 +17762,7 @@ wwv_flow_api.create_page_process(
 'begin',
 '  :P154_START_SNAP := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_START_SNAP);',
 '  :P154_END_SNAP := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_END_SNAP);',
+'  :P154_DBID := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_DBID);',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(30671944118830616)
@@ -17611,7 +17787,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_height=>'800'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190130115342'
+,p_last_upd_yyyymmddhh24miss=>'20190424110752'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(183046280582381874)
@@ -17980,12 +18156,20 @@ wwv_flow_api.create_page_process(
 ,p_process_name=>'SetInitValues'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
-'  if :P150_DEST = ''$LOCAL$'' then',
-'    select dbid into :P155_DBID1 from dba_hist_database_instance where dbid<>(select dbid from v$database) and rownum=1;',
-'  else  ',
-'    execute immediate q''[select dbid from dba_hist_database_instance@]''||COREMOD_API.get_ora_dblink(:P150_DEST)||'' where rownum=1'' into :P155_DBID1;',
+'  if :P155_DBID1 is null and :P155_DBID2 is null then',
+'    if :P150_DEST = ''$LOCAL$'' then',
+'      if :P150_SOURCE_PAGE=303 and :P303_SOURCE_TAB=''AWR'' then',
+'        :P155_START_SNAP1 := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_START_SNAP);',
+'        :P155_END_SNAP1 := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_END_SNAP);',
+'        :P155_DBID1 := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_DBID);',
+'      else',
+'        select dbid into :P155_DBID1 from dba_hist_database_instance where dbid<>(select dbid from v$database) and rownum=1;',
+'      end if;',
+'    else  ',
+'      execute immediate q''[select dbid from dba_hist_database_instance@]''||COREMOD_API.get_ora_dblink(:P150_DEST)||'' where rownum=1'' into :P155_DBID1;',
+'    end if;',
+'    :P155_DBID2:=:P155_DBID1;',
 '  end if;',
-'  :P155_DBID2:=:P155_DBID1;',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 );
@@ -18098,6 +18282,7 @@ wwv_flow_api.create_page_process(
 'begin',
 '  :P155_START_SNAP1 := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_START_SNAP);',
 '  :P155_END_SNAP1 := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_END_SNAP);',
+'  :P155_DBID1 := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_DBID);',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(30672299227830619)
@@ -18114,6 +18299,7 @@ wwv_flow_api.create_page_process(
 'begin',
 '  :P155_START_SNAP2 := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_START_SNAP);',
 '  :P155_END_SNAP2 := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_END_SNAP);',
+'  :P155_DBID2 := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_DBID);',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(30672382252830620)
@@ -18138,7 +18324,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_height=>'600'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190130121806'
+,p_last_upd_yyyymmddhh24miss=>'20190424131605'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(183085284715150195)
@@ -18411,11 +18597,18 @@ wwv_flow_api.create_page_process(
 ,p_process_name=>'SetInitValues'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
-'  if :P150_DEST = ''$LOCAL$'' then',
-'    select dbid into :P156_DBID from dba_hist_database_instance where dbid<>(select dbid from v$database) and rownum=1;',
-'  else  ',
-'    execute immediate q''[select dbid from dba_hist_database_instance@]''||COREMOD_API.get_ora_dblink(:P150_DEST)||'' where rownum=1'' into :P156_DBID;',
+'  if :P156_DBID is null then',
+'    if :P150_DEST = ''$LOCAL$'' then',
+'      if :P150_SOURCE_PAGE=303 and :P303_SOURCE_TAB=''AWR'' then',
+'        :P156_DBID := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_DBID);',
+'      else',
+'        select dbid into :P156_DBID from dba_hist_database_instance where dbid<>(select dbid from v$database) and rownum=1;',
+'      end if;',
+'    else  ',
+'      execute immediate q''[select dbid from dba_hist_database_instance@]''||COREMOD_API.get_ora_dblink(:P150_DEST)||'' where rownum=1'' into :P156_DBID;',
+'    end if;',
 '  end if;',
+'  ',
 '  :P156_BDATE:=:P156_SNAPS1;',
 '  :P156_EDATE:=:P156_SNAPS2;',
 'end;'))
@@ -18512,6 +18705,7 @@ wwv_flow_api.create_page_process(
 ,p_process_name=>'GetCubeSnaps'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin ',
+'  :P156_DBID := ASHA_CUBE_PKG.get_parameter_db(P_SESS_ID => :P303_SESS_ID,P_PARAM_NAME => ASHA_CUBE_PKG.c_DBID);',
 '  if :P150_DEST = ''$LOCAL$'' then',
 '    execute immediate q''[select unique to_char(end_interval_time,''YYYY-MON-DD HH24:MI'') from dba_hist_snapshot where dbid=]''||:P156_DBID||q''[ and ]'' || ',
 '      COREMOD_REPORT_UTILS.get_inst_list(:P156_INST_ID,''instance_number'') || q''[ and snap_id=]'' ||',
@@ -18791,7 +18985,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(105334237137436873)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190417174506'
+,p_last_upd_yyyymmddhh24miss=>'20190423154454'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(109402001404624447)
@@ -18840,7 +19034,7 @@ wwv_flow_api.create_page_plug(
 '    f.status,',
 '    case when f.file_source is not null then l.display_name else ''Uploaded'' end file_source,',
 '    case when f.file_content is not null then ''Stored'' when f.filename is not null then ''Reference'' end file_storage,',
-'    case when f.file_content is not null then round(COREFILE_API.get_filec_size(f.file_content)/1024) else null end file_size,',
+'    --case when f.file_content is not null then round(COREFILE_API.get_filec_size(f.file_content)/1024) else null end file_size,',
 '    source_retention,',
 '    parsed_retention,',
 '    ''Preview'' Preview,',
@@ -18848,14 +19042,14 @@ wwv_flow_api.create_page_plug(
 '    case when TRC_FILE_LCC.trcfile_check_action_vc(f.trc_file_id,''VIEW REPORT'') = ''Y'' then ''Report'' else null end Report,',
 '    ''Delete''  Del,',
 '    report_content,',
-'    round((nvl(dbms_lob.getlength(s.file_contentb),0)+nvl(dbms_lob.getlength(s.file_contentc),0))/1024,0) src_size_kb,',
-'    round((nvl(dbms_lob.getlength(r.file_contentb),0)+nvl(dbms_lob.getlength(r.file_contentc),0))/1024,0) rpt_size_kb    ',
+'    case when f.file_content is not null then round(COREFILE_API.get_filec_size(f.file_content)/1024) else null end src_size_kb,',
+'    case when f.report_content is not null then round(COREFILE_API.get_filec_size(f.report_content)/1024) else null end rpt_size_kb    ',
 'FROM',
-'    V$TRC_FILES f, v$opas_db_links l, opas_files s, opas_files r',
+'    V$TRC_FILES f, v$opas_db_links l--, opas_files s, opas_files r',
 'where f.proj_id = :P201_PROJ_ID',
 'and f.file_source=l.db_link_name(+)',
-'and f.file_content=s.file_id(+)',
-'and f.report_content=r.file_id(+)',
+'--and f.file_content=s.file_id(+)',
+'--and f.report_content=r.file_id(+)',
 ';'))
 ,p_plug_source_type=>'NATIVE_IR'
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
@@ -19033,15 +19227,6 @@ wwv_flow_api.create_worksheet_column(
 ,p_column_type=>'STRING'
 );
 wwv_flow_api.create_worksheet_column(
- p_id=>wwv_flow_api.id(103325209961694031)
-,p_db_column_name=>'FILE_SIZE'
-,p_display_order=>140
-,p_column_identifier=>'J'
-,p_column_label=>'Size, KB'
-,p_column_type=>'NUMBER'
-,p_column_alignment=>'RIGHT'
-);
-wwv_flow_api.create_worksheet_column(
  p_id=>wwv_flow_api.id(103325299842694032)
 ,p_db_column_name=>'SOURCE_RETENTION'
 ,p_display_order=>150
@@ -19093,7 +19278,7 @@ wwv_flow_api.create_worksheet_rpt(
 ,p_report_alias=>'100698'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
-,p_report_columns=>'TRC_FILE_ID:PREVIEW:OPEN:REPORT:DEL:FILENAME:OWNER:DB_VERSION:CREATED:PARSED:STATUS:FILE_SOURCE:FILE_STORAGE:FILE_SIZE:SOURCE_RETENTION:PARSED_RETENTION:REPORT_CONTENT:SRC_SIZE_KB:RPT_SIZE_KB'
+,p_report_columns=>'TRC_FILE_ID:PREVIEW:OPEN:REPORT:DEL:FILENAME:OWNER:DB_VERSION:CREATED:PARSED:STATUS:FILE_SOURCE:FILE_STORAGE:SOURCE_RETENTION:PARSED_RETENTION:REPORT_CONTENT:SRC_SIZE_KB:RPT_SIZE_KB'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(116890207903032371)
@@ -20206,7 +20391,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(105334237137436873)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190417175104'
+,p_last_upd_yyyymmddhh24miss=>'20190424121625'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(103325878449694038)
@@ -20312,6 +20497,19 @@ wwv_flow_api.create_page_plug(
 ,p_menu_id=>wwv_flow_api.id(105037718949957989)
 ,p_plug_source_type=>'NATIVE_BREADCRUMB'
 ,p_menu_template_id=>wwv_flow_api.id(105137186351958327)
+);
+wwv_flow_api.create_page_button(
+ p_id=>wwv_flow_api.id(51337949218135750)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_api.id(103325878449694038)
+,p_button_name=>'GotoProj'
+,p_button_action=>'REDIRECT_PAGE'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>wwv_flow_api.id(105136390946958319)
+,p_button_image_alt=>'Project'
+,p_button_position=>'BELOW_BOX'
+,p_button_alignment=>'LEFT'
+,p_button_redirect_url=>'f?p=&APP_ID.:201:&SESSION.::&DEBUG.:RP,201:P201_PROJ_ID:&P204_PROJ_ID.'
 );
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(103214452106018681)
@@ -20482,6 +20680,14 @@ wwv_flow_api.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:209:&SESSION.::&DEBUG.:RP,209:P209_MODE,P209_SELECTED,P209_SOURCE_PAGE,P209_PROJ_ID:SINGLE_TRC,&P204_TRC_FILE_ID.,204,&P204_PROJ_ID.'
 ,p_icon_css_classes=>'fa-database-arrow-down'
 ,p_security_scheme=>wwv_flow_api.id(105161069282958568)
+);
+wwv_flow_api.create_page_branch(
+ p_id=>wwv_flow_api.id(52342438612716601)
+,p_branch_action=>'f?p=&APP_ID.:201:&SESSION.::&DEBUG.:RP,201:P201_PROJ_ID:&P204_PROJ_ID.&success_msg=#SUCCESS_MSG#'
+,p_branch_point=>'AFTER_PROCESSING'
+,p_branch_type=>'REDIRECT_URL'
+,p_branch_when_button_id=>wwv_flow_api.id(51337949218135750)
+,p_branch_sequence=>10
 );
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(103043876282146045)
@@ -20771,10 +20977,15 @@ wwv_flow_api.create_page_process(
 '  l_finished v$opas_task_queue.finished%type;',
 'begin',
 '  if :P204_PARSE_EXEC_ID is not null then',
-'    select finished into l_finished from v$opas_task_queue where tq_id=:P204_PARSE_EXEC_ID;',
-'    if systimestamp>l_finished+15/24/60 then',
-'      :P204_PARSE_EXEC_ID:=null;    ',
-'    end if;',
+'    begin',
+'      select finished into l_finished from v$opas_task_queue where tq_id=:P204_PARSE_EXEC_ID;',
+'      if systimestamp>l_finished+15/24/60 then',
+'        :P204_PARSE_EXEC_ID:=null;    ',
+'      end if;',
+'    exception',
+'      when others then ',
+'     :P204_PARSE_EXEC_ID:=null;',
+'    end;',
 '  end if;',
 'end;',
 '',
@@ -23052,7 +23263,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(103683328942143765)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190422150422'
+,p_last_upd_yyyymmddhh24miss=>'20190422170450'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(119827856852483008)
@@ -23193,6 +23404,7 @@ wwv_flow_api.create_report_region(
 '       sess_description,',
 '       (select sess_par_val from asha_cube_sess_pars where sess_id=o.sess_id and sess_par_nm=''START_DT'') START_DT,',
 '       (select sess_par_val from asha_cube_sess_pars where sess_id=o.sess_id and sess_par_nm=''END_DT'') END_DT,',
+'       (select sess_par_val from asha_cube_sess_pars where sess_id=o.sess_id and sess_par_nm=''SOURCE'')||'':''||',
 '       (select l.display_name from asha_cube_sess_pars i, v$opas_db_links l where i.sess_id=o.sess_id and i.sess_par_nm=''DBLINK'' and l.db_link_name=i.sess_par_val) DBLINK       ',
 '  from (select /*+ NO_ELIMINATE_OBY no_merge */ * ',
 '          from asha_cube_sess',
@@ -24439,7 +24651,7 @@ wwv_flow_api.create_page(
 ,p_html_page_header=>'<meta http-equiv="refresh" content="&P303_PAGE_REFRESH_INTERVAL.">'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190221142058'
+,p_last_upd_yyyymmddhh24miss=>'20190424121519'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(30951364504241803)
@@ -27053,6 +27265,18 @@ wwv_flow_api.create_page_button(
 end;
 /
 begin
+wwv_flow_api.create_page_button(
+ p_id=>wwv_flow_api.id(52342560115716602)
+,p_button_sequence=>90
+,p_button_plug_id=>wwv_flow_api.id(122132688544919845)
+,p_button_name=>'GotoProj'
+,p_button_action=>'REDIRECT_PAGE'
+,p_button_template_options=>'#DEFAULT#:t-Button--large:t-Button--simple:t-Button--gapLeft'
+,p_button_template_id=>wwv_flow_api.id(105136390946958319)
+,p_button_image_alt=>'Project'
+,p_button_position=>'RIGHT_OF_TITLE'
+,p_button_redirect_url=>'f?p=&APP_ID.:301:&SESSION.::&DEBUG.:RP,301:P301_PROJ_ID:&P303_PROJ_ID.'
+);
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(91741034352943932)
 ,p_button_sequence=>90
@@ -38384,7 +38608,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(122912880450952719)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190419093338'
+,p_last_upd_yyyymmddhh24miss=>'20190424121401'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(133054806686047722)
@@ -38775,6 +38999,19 @@ wwv_flow_api.create_page_plug(
 ,p_menu_id=>wwv_flow_api.id(105037718949957989)
 ,p_plug_source_type=>'NATIVE_BREADCRUMB'
 ,p_menu_template_id=>wwv_flow_api.id(105137186351958327)
+);
+wwv_flow_api.create_page_button(
+ p_id=>wwv_flow_api.id(52342769031716604)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_api.id(133054806686047722)
+,p_button_name=>'GotoProj'
+,p_button_action=>'REDIRECT_PAGE'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>wwv_flow_api.id(105136390946958319)
+,p_button_image_alt=>'Project'
+,p_button_position=>'BELOW_BOX'
+,p_button_alignment=>'LEFT'
+,p_button_redirect_url=>'f?p=&APP_ID.:401:&SESSION.::&DEBUG.:RP,401:P401_PROJ_ID:&P404_PROJ_ID.'
 );
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(122997905426772348)
@@ -42126,7 +42363,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_height=>'600'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20181228181441'
+,p_last_upd_yyyymmddhh24miss=>'20190424125720'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(212936533197667383)
@@ -42275,7 +42512,6 @@ wwv_flow_api.create_page_item(
 ,p_field_template=>wwv_flow_api.id(105135891214958300)
 ,p_item_template_options=>'#DEFAULT#'
 ,p_lov_display_extra=>'NO'
-,p_inline_help_text=>'All nodes produces AWR Global report'
 ,p_attribute_01=>'5'
 ,p_attribute_02=>'NONE'
 );

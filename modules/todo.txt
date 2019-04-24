@@ -84,6 +84,8 @@ V 4.6.8
  .- adapt import to process multiply projects at once
  .- sql text viewer does not show query text from local db
 V 5.0.0 
+ .- AWR Report from AWR Cube "Cube Snap ID" does not work
+V 5.0.0.4
 ============================================================================================================================
  todo
  .- multiuser monitor and snapper, a link between monitor and snapper to stop one another
