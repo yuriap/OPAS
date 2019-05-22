@@ -297,3 +297,5 @@ create global temporary table trc$tmp_file_content (
 line_number number,
 payload     varchar2(4000))
 on commit delete rows;
+
+@@upgrade_structure_2.3.0-2.3.1.sql

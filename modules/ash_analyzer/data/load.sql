@@ -10,10 +10,7 @@ INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','MO
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','MONITOR',  'ITERATIONSMONITOR',   60,'Number of refresh iteration of cube in Monitor mode');
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','MONITOR',  'SNAP_ASH_FREQ',      0.5,'Frequency sec^-1 of snapping V$SESSION in Monitor mode (Standard Edition)');
 
-INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '3.4.6',  '&MODVER.');
-INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '3.4.7',  '&MODVER.');
-INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '3.4.8',  '&MODVER.');
-INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '&MODVER.',  '&MODVER.');
+@@expimp_compat.sql
 
 declare
  l_tmpl asha_cube_sess_tmpl.tmpl_id%type;

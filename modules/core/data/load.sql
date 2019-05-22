@@ -24,9 +24,7 @@ insert into opas_groups (group_id,group_name,group_descr) values (1, 'Reas-write
 insert into opas_groups (group_id,group_name,group_descr) values (2, 'Read-only users','Read-only functions');
 insert into opas_groups (group_id,group_name,group_descr) values (3, 'No access users','No access to any functionality');
 
-INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '1.3.5',  '&MODVER.');
-INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '1.3.6',  '&MODVER.');
-INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '&MODVER.',  '&MODVER.');
+@@expimp_compat
 		   
 INSERT INTO 
   opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
@@ -54,6 +52,8 @@ INSERT INTO
 INSERT INTO     
   opas_dictionary (modname,dic_name,val,display_val,sparse1,sparse2,sparse3,dic_ordr)
            VALUES ('&MODNM.','REPORT_TYPES','ASH_REPORT'             ,'ASH report (standard)'                    ,156,null,null,60);
+
+@@upgrade_data_1.3.7_1.3.8.sql
 
 set define ~
 

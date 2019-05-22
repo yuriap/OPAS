@@ -4,13 +4,6 @@ package body coremod_tasks as
   g_time number;
   g_cpu_tim number;
 
-  gtqNEW       constant varchar2(10):='NEW';
-  gtqQUEUED    constant varchar2(10):='QUEUED';
-  gtqSTARTED   constant varchar2(10):='STARTED';
-  gtqRUNNING   constant varchar2(10):='RUNNING';
-  gtqSUCCEEDED constant varchar2(10):='SUCCEEDED';
-  gtqFAILED    constant varchar2(10):='FAILED';
-
   gJOBNMPREF   constant varchar2(10):='OPASTASK';
 
   gTQ_ID       number;
@@ -110,13 +103,29 @@ package body coremod_tasks as
   procedure queue_task(p_tq_id opas_task_queue.tq_id%type)
   is
   begin
-    update opas_task_queue set status=gtqQUEUED, queued=systimestamp where tq_id = p_tq_id;
+    update opas_task_queue set status=gtqQUEUED, queued=systimestamp where tq_id = p_tq_id and status=gtqNEW;
+    if sql%rowcount<1 then
+      raise_application_error(-20000,'Unable to change task status ID, Status: '||p_tq_id||', '||gtqQUEUED);
+    end if;
   end;
+
+  procedure cancel_task(p_tq_id opas_task_queue.tq_id%type)
+  is
+  begin
+    update opas_task_queue set status=gtqCanceled where tq_id = p_tq_id and status in (gtqNEW,gtqQUEUED);
+    if sql%rowcount<1 then
+      raise_application_error(-20000,'Unable to change task status ID, Status: '||p_tq_id||', '||gtqCanceled);
+    end if;
+  end;
+
 
   procedure set_task_started(p_tq_id opas_task_queue.tq_id%type, p_job_name opas_task_queue.job_name%type)
   is
   begin
-    update opas_task_queue set status=gtqSTARTED, job_name = p_job_name where tq_id = p_tq_id;
+    update opas_task_queue set status=gtqSTARTED, job_name = p_job_name where tq_id = p_tq_id and status in (gtqQUEUED);
+    if sql%rowcount<1 then
+      raise_application_error(-20000,'Unable to change task status ID, Status: '||p_tq_id||', '||gtqSTARTED);
+    end if;
   end;
 
   procedure set_task_running(p_tq_id opas_task_queue.tq_id%type)
@@ -131,8 +140,15 @@ package body coremod_tasks as
            serial#=(select serial# from gv$session where sid=SYS_CONTEXT('USERENV','SID') and inst_id=SYS_CONTEXT('USERENV','INSTANCE')),
            inst_id=SYS_CONTEXT('USERENV','INSTANCE'),
            status=gtqRUNNING
-     where tq_id=p_tq_id;
+     where tq_id=p_tq_id and status in (gtqSTARTED);
+    if sql%rowcount<1 then
+      raise_application_error(-20000,'Unable to change task status ID, Status: '||p_tq_id||', '||gtqRUNNING);
+    end if;
     commit;
+  exception
+    when others then
+      rollback;
+      raise;
   end;
   procedure set_task_finished(p_tq_id opas_task_queue.tq_id%type, p_status opas_task_queue.status%type)
   is
@@ -145,8 +161,15 @@ package body coremod_tasks as
              cpu_time=g_cpu_tim/100,
              elapsed_time=g_time/100,
              status=p_status
-       where tq_id=p_tq_id;
+       where tq_id=p_tq_id and status in (gtqRUNNING);
+    if sql%rowcount<1 then
+      raise_application_error(-20000,'Unable to change task status ID, Status: '||p_tq_id||', '||p_status);
+    end if;
     commit;
+  exception
+    when others then
+      rollback;
+      raise;
   end;
 
   procedure execute_task_proc is  --job coordinator

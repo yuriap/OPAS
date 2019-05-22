@@ -29,8 +29,8 @@ PACKAGE TRC_FILE_API AS
   procedure set_file_security
                         (p_trc_file_id         trc_files.trc_file_id%type,
                          p_owner               trc_files.owner%type default null,
-                         p_source_keep_forever trc_files.source_keep_forever%type,
-                         p_parsed_keep_forever trc_files.parsed_keep_forever%type);
+                         p_source_retention    trc_files.source_retention%type,
+                         p_parsed_retention    trc_files.parsed_retention%type);
 
   procedure delete_file (P_TRC_FILE_ID trc_files.trc_file_id%type,
                          P_KEEP_SOURCE boolean,
@@ -38,8 +38,10 @@ PACKAGE TRC_FILE_API AS
                          P_KEEP_REPORT boolean);
 
   procedure parse_file_async(p_trc_file_id trc_files.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type);
-  --procedure reparse_file_async(p_trc_file_id trc_files.trc_file_id%type, p_tq_id out opas_task_queue.tq_id%type);
   procedure parse_file(p_trc_file_id trc_files.trc_file_id%type);
+
+  -- for debug only
+  procedure recreate_report(p_trc_file_id trc_files.trc_file_id%type);
 
 END TRC_FILE_API;
 /

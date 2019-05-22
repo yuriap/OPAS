@@ -31,6 +31,161 @@ package body trc_report as
       l_indx := p_report.count + 1;
       p_report(l_indx):=p_line;
     end;
+
+    procedure print_event_histogram(p_table_header varchar2, p_sqlid varchar2 default null)
+    is
+      l_tmpl1         varchar2(32765) := null;
+      l_tmpl2         varchar2(32765) := null;
+      l_colcnt        number := 0;
+    begin
+        p(HTF.BIG(p_table_header));
+        for k in (SELECT sum(ela_32) ela_32, sum(ela_64) ela_64, sum(ela_128) ela_128, sum(ela_256) ela_256, sum(ela_512) ela_512,
+                         sum(ela_1024) ela_1024, sum(ela_2048) ela_2048, sum(ela_4096) ela_4096, sum(ela_8192) ela_8192, sum(ela_16384) ela_16384,
+                         sum(ela_32768) ela_32768, sum(ela_65536) ela_65536, sum(ela_131072) ela_131072, sum(ela_262144) ela_262144, sum(ela_524288) ela_524288,
+                         sum(ela_1048576) ela_1048576, sum(ela_2097152) ela_2097152, sum(ela_4194304) ela_4194304, sum(ela_8388608) ela_8388608, sum(ela_16777216) ela_16777216, sum(ela_33554432) ela_33554432, sum(ELA_GR_32S) ELA_GR_32S
+                    FROM trc$tmp_wait_hist where sqlid=nvl(p_sqlid,sqlid))
+        loop
+          if k.ela_32 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_32)' else 'ela_32' end || ' "Less than 32 us",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_32),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_64 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_64)' else 'ela_64' end || ' "32..64 us",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_64),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_128 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_128)' else 'ela_128' end || ' "64..128 us",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_128),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_256 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_256)' else 'ela_256' end || ' "128..256 us",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_256),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_512 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_512)' else 'ela_512' end || ' "256..512 us",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_512),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_1024 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_1024)' else 'ela_1024' end || ' "512..1024 us",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_1024),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_2048 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_2048)' else 'ela_2048' end || ' "1..2 ms",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_2048),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_4096 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_4096)' else 'ela_4096' end || ' "2..4 ms",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_4096),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_8192 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_8192)' else 'ela_8192' end || ' "4..8 ms",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_8192),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_16384 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_16384)' else 'ela_16384' end || ' "8..16 ms",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_16384),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_32768 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_32768)' else 'ela_32768' end || ' "16..32 ms",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_32768),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_65536 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_65536)' else 'ela_65536' end || ' "32..64 ms",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_65536),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_131072 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_131072)' else 'ela_131072' end || ' "64..128 ms",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_131072),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_262144 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_262144)' else 'ela_262144' end || ' "128..256 ms",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_262144),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_524288 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_524288)' else 'ela_524288' end || ' "256..512 ms",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_524288),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_1048576 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_1048576)' else 'ela_1048576' end || ' "0.5..1 sec",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_1048576),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_2097152 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_2097152)' else 'ela_2097152' end || ' "1..2 sec",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_2097152),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_4194304 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_4194304)' else 'ela_4194304' end || ' "2..4 sec",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_4194304),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_8388608 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_8388608)' else 'ela_8388608' end || ' "4..8 sec",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_8388608),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_16777216 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_16777216)' else 'ela_16777216' end || ' "8..16 sec",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_16777216),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ela_33554432 > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_33554432)' else 'ela_33554432' end || ' "16..32 sec",';
+            l_tmpl2 := l_tmpl2 || 'sum(ela_33554432),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+          if k.ELA_GR_32S > 0 then
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ELA_GR_32S)' else 'ELA_GR_32S' end || ' "More than 32 sec",';
+            l_tmpl2 := l_tmpl2 || 'sum(ELA_GR_32S),';
+            l_colcnt := l_colcnt + 1;
+          end if;
+        end loop;
+        l_sql := q'[select /*+ qb_name(TRC_REP1) */ 0 noprn_lastrow, nam "Event", <CNT> "Times waited", <ELA>/1e6 "Total time, sec", <HISTCOLS>
+from trc$tmp_wait_hist
+where <SQL_ID> <GRPBY>
+union all
+select 1 noprn_lastrow, 'Total:' "Event", sum(CNT) "Times waited", sum(ela)/1e6 "Total time, sec", <HISTCOLSTOT>
+from trc$tmp_wait_hist
+where <SQL_ID>
+order by 1,4 desc]';
+        if p_sqlid is not null then
+          l_sql := replace(replace(replace(replace(l_sql,'<SQL_ID>',q'[sqlid=']'||p_sqlid||q'[']'),'<CNT>','cnt'),'<ELA>','ela'),'<GRPBY>',null);
+        else
+          l_sql := replace(replace(replace(replace(l_sql,'<SQL_ID>','1=1'),'<CNT>','sum(cnt)'),'<ELA>','sum(ela)'),'<GRPBY>',' group by nam');
+        end if;
+        l_sql:=replace(replace(l_sql,'<HISTCOLS>',rtrim(l_tmpl1,',')),'<HISTCOLSTOT>',rtrim(l_tmpl2,','));
+        COREMOD_REPORT_UTILS.print_table_html_new
+                                           (p_query => l_sql,
+                                            p_width => case when l_colcnt <=3 then l_default_width else l_default_width + l_colcnt * 50 end,
+                                            p_summary => p_table_header,
+                                            --p_search varchar2 default null,
+                                            --p_replacement varchar2 default null,
+                                            p_style_tab => 'trctd',
+                                            p_style_head => 'trchd', --head
+                                            p_style_r1 => 'trcr1',   --odd rows
+                                            p_style_r2  => 'trcr2', --even rows
+                                            p_style_finrow => 'trctotr',
+                                            --p_header number default 0,
+                                            --p_break_col varchar2 default null,
+                                            p_output => p_report);
+
+    end;
   begin
     COREMOD_LOG.Start_SQL_GATHER_STAT('TRC_REPORT.GETREPORT_I');
     COREMOD_LOG.Start_SQL_TRACE('TRC_REPORT.GETREPORT_I');
@@ -84,6 +239,42 @@ package body trc_report as
       from trc_wait w, trc_statement st, V$EVENT_NAME ev
      where w.trc_file_id=p_trc_file_id and w.trc_file_id=st.trc_file_id and nam = ev.name
        and w.stmt_id=st.stmt_id  group by nam, st.sqlid, ev.wait_class;
+
+    insert /*+ qb_name(TRC_REP1) */ into trc$tmp_wait_hist
+    (
+    sqlid, wait_class, nam, cnt, ela,
+    ela_32, ela_64, ela_128, ela_256, ela_512,
+    ela_1024, ela_2048, ela_4096, ela_8192, ela_16384,
+    ela_32768, ela_65536, ela_131072, ela_262144, ela_524288,
+    ela_1048576, ela_2097152, ela_4194304, ela_8388608, ela_16777216, ela_33554432, ELA_GR_32S
+    )
+    select st.sqlid, ev.wait_class, nam, count(1) cnt, sum(ela) ela,
+    sum(case when ela <= 32 then 1 else 0 end),
+    sum(case when ela > 32 and ela <= 64 then 1 else 0 end),
+    sum(case when ela > 64 and ela <= 128 then 1 else 0 end),
+    sum(case when ela > 128 and ela <= 256 then 1 else 0 end),
+    sum(case when ela > 256 and ela <= 512 then 1 else 0 end),
+    sum(case when ela > 512 and ela <= 1000 then 1 else 0 end),
+    sum(case when ela > 1000 and ela <= 2000 then 1 else 0 end),
+    sum(case when ela > 2000 and ela <= 4000 then 1 else 0 end),
+    sum(case when ela > 4000 and ela <= 8000 then 1 else 0 end),
+    sum(case when ela > 8000 and ela <= 16000 then 1 else 0 end),
+    sum(case when ela > 16000 and ela <= 32000 then 1 else 0 end),
+    sum(case when ela > 32000 and ela <= 64000 then 1 else 0 end),
+    sum(case when ela > 64000 and ela <= 128000 then 1 else 0 end),
+    sum(case when ela > 128000 and ela <= 256000 then 1 else 0 end),
+    sum(case when ela > 256000 and ela <= 512000 then 1 else 0 end),
+    sum(case when ela > 512000 and ela <= 1000000 then 1 else 0 end),
+    sum(case when ela > 1000000 and ela <= 2000000 then 1 else 0 end),
+    sum(case when ela > 2000000 and ela <= 4000000 then 1 else 0 end),
+    sum(case when ela > 4000000 and ela <= 8000000 then 1 else 0 end),
+    sum(case when ela > 8000000 and ela <= 16000000 then 1 else 0 end),
+    sum(case when ela > 16000000 and ela <= 32000000 then 1 else 0 end),
+    sum(case when ela > 32000000 then 1 else 0 end)
+      from trc_wait w, trc_statement st, V$EVENT_NAME ev
+     where w.trc_file_id=p_trc_file_id and w.trc_file_id=st.trc_file_id and nam = ev.name
+       and w.stmt_id=st.stmt_id
+     group by nam, st.sqlid, ev.wait_class;
 
     insert /*+ qb_name(TRC_REP1) */ into trc$tmp_plan_stats
     select st.sqlid, p.plh, p.id, sum(cnt) cnt, p.pid, p.pos, p.obj, p.op, sum(cr)cr, sum(pr) pr, sum(pw) pw, sum(p.tim) tim, p.cost, p.sz, p.card, sum(p.str)
@@ -165,13 +356,13 @@ package body trc_report as
       l_sql := q'[select * from (
 with call_list as (select 'PARSE' nm from dual union select 'EXEC' from dual union select 'FETCH' from dual union select 'CLOSE' from dual)
 select /*+ qb_name(TRC_REP1) */
-  call_list.nm "Call", count(trc_call.call_type) "Count", sum(c)/1e6 "CPU", sum(e)/1e6 "Elapsed", sum(p) "Disk",
+  call_list.nm "Call", count(trc_call.call_type) "Count", sum(c)/1e6 "CPU, sec", sum(e)/1e6 "Elapsed, sec", sum(p) "Disk",
   sum(cr) "Query", sum(cu) "Current", sum(r) "Rows", sum(mis) "Mis", 0 noprn_lastrow
 from trc_call, call_list where call_type(+)=call_list.nm and trc_file_id(+)=<P_TRC_FILE_ID> and dep(+)=<MIN_DEP>
 group by call_list.nm
 union all
 select
-  'Total:' "Call", count(1) "Count", sum(c)/1e6 "CPU", sum(e)/1e6 "Elapsed", sum(p) "Disk",
+  'Total:' "Call", count(1) "Count", sum(c)/1e6 "CPU, sec", sum(e)/1e6 "Elapsed, sec", sum(p) "Disk",
   sum(cr) "Query", sum(cu) "Current", sum(r) "Rows", sum(mis) "Mis", 1  noprn_lastrow
 from trc_call where trc_file_id=<P_TRC_FILE_ID> and dep=<MIN_DEP>)
 order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';
@@ -196,10 +387,10 @@ order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';
 
       p(HTF.BIG('NonIdle Wait events, time in seconds.'));
 
-      l_sql := q'[select /*+ qb_name(TRC_REP1) */ 0 noprn_lastrow, nam "Event", count(1) "Times waited", sum(ela)/1e6 "Total time", round(avg(ela)/1e6,6) "Avg time", max(ela)/1e6 "Max time", PERCENTILE_CONT(0.95) within group (order by ela)/1e6 "95% Percetile"
+      l_sql := q'[select /*+ qb_name(TRC_REP1) */ 0 noprn_lastrow, nam "Event", count(1) "Times waited", sum(ela)/1e6 "Total time, sec", round(avg(ela)/1e6,6) "Avg time, sec", max(ela)/1e6 "Max time, sec", PERCENTILE_CONT(0.95) within group (order by ela)/1e6 "95% Percetile, sec"
 from trc_wait where trc_file_id=<P_TRC_FILE_ID> and nam not in (select name from V$EVENT_NAME where wait_class='Idle') group by nam
 union all
-select 1 noprn_lastrow, 'Total:' "Event", count(1) "Times waited", sum(ela)/1e6 "Total time", round(avg(ela)/1e6,6) "Avg time", max(ela)/1e6 "Max time", PERCENTILE_CONT(0.95) within group (order by ela)/1e6 "95% Percetile"
+select 1 noprn_lastrow, 'Total:' "Event", count(1) "Times waited", sum(ela)/1e6 "Total time, sec", round(avg(ela)/1e6,6) "Avg time, sec", max(ela)/1e6 "Max time, sec", PERCENTILE_CONT(0.95) within group (order by ela)/1e6 "95% Percetile, sec"
 from trc_wait where trc_file_id=<P_TRC_FILE_ID> and nam not in (select name from V$EVENT_NAME where wait_class='Idle')
 order by 1,4 desc]';
       l_sql:=replace(l_sql,'<P_TRC_FILE_ID>',p_trc_file_id);
@@ -223,11 +414,11 @@ order by 1,4 desc]';
 
       p(HTF.BIG('Idle Wait events, time in seconds.'));
 
-      l_sql := q'[select /*+ qb_name(TRC_REP1) */ 0 noprn_lastrow, nam "Event", count(1) "Times waited", sum(ela)/1e6 "Total time", round(avg(ela)/1e6,6) "Avg time", max(ela)/1e6 "Max time", PERCENTILE_CONT(0.95) within group (order by ela)/1e6 "95% Percetile"
+      l_sql := q'[select /*+ qb_name(TRC_REP1) */ 0 noprn_lastrow, nam "Event", count(1) "Times waited", sum(ela)/1e6 "Total time, sec", round(avg(ela)/1e6,6) "Avg time, sec", max(ela)/1e6 "Max time, sec", PERCENTILE_CONT(0.95) within group (order by ela)/1e6 "95% Percetile, sec"
 from trc_wait where trc_file_id=<P_TRC_FILE_ID> and nam in (select name from V$EVENT_NAME where wait_class='Idle') and row_num!=<P_FIRST_IDLE>
 group by nam
 union all
-select 1 noprn_lastrow, 'Total:' "Event", count(1) "Times waited", sum(ela)/1e6 "Total time", round(avg(ela)/1e6,6) "Avg time", max(ela)/1e6 "Max time", PERCENTILE_CONT(0.95) within group (order by ela)/1e6 "95% Percetile"
+select 1 noprn_lastrow, 'Total:' "Event", count(1) "Times waited", sum(ela)/1e6 "Total time, sec", round(avg(ela)/1e6,6) "Avg time, sec", max(ela)/1e6 "Max time, sec", PERCENTILE_CONT(0.95) within group (order by ela)/1e6 "95% Percetile, sec"
 from trc_wait where trc_file_id=<P_TRC_FILE_ID> and nam in (select name from V$EVENT_NAME where wait_class='Idle') and row_num!=<P_FIRST_IDLE>
 order by 1,4 desc]';
       l_sql:=replace(replace(l_sql,'<P_TRC_FILE_ID>',p_trc_file_id),'<P_FIRST_IDLE>',l_very_first_we);
@@ -246,6 +437,13 @@ order by 1,4 desc]';
                                             --p_break_col varchar2 default null,
                                             p_output => p_report);
 --    end;
+    p(HTF.BR);
+    p(HTF.BR);
+
+    print_event_histogram('Wait events histogram');
+
+    p(HTF.BR);
+    p(HTF.BR);
 
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
@@ -267,8 +465,8 @@ order by 1,4 desc]';
 (select substr(sql_text,1,100)||case when length(sql_text)>100 then '...' else null end from trc_statement s where x.SQL_ID=s.sqlid and rownum=1) sql_text
 from (
 select
-e "ELA", case when <TOTELA> <> 0 then round(100*e/<TOTELA>,2)||'%' else null end "ELA %Tot",
-c "CPU", case when <TOTCPU> <> 0 then round(100*c/<TOTCPU>,2)||'%' else null end "CPU %Tot",
+e "ELA, us", case when <TOTELA> <> 0 then round(100*e/<TOTELA>,2)||'%' else null end "ELA %Tot",
+c "CPU, us", case when <TOTCPU> <> 0 then round(100*c/<TOTCPU>,2)||'%' else null end "CPU %Tot",
 en "Execs",
 ti.sqlid SQL_ID
 from (select sqlid, sum(c) c, sum(e) e, sum(decode(call_type,'EXEC',cnt,0)) en
@@ -385,12 +583,12 @@ where case when ilf=1 and case when <TOTELA> <> 0 then ct.e/<TOTELA> else 0 end 
 with call_list
   as (select 'PARSE' nm from dual union select 'EXEC' from dual union select 'FETCH' from dual union select 'CLOSE' from dual)
 select /*+ qb_name(TRC_REP1) */
-  call_list.nm "Call", cnt "Count", c/1e6 "CPU", e/1e6 "Elapsed", p "Disk", cr "Query", cu "Current", r "Rows", mis "Mis" , 0 noprn_lastrow
+  call_list.nm "Call", cnt "Count", c/1e6 "CPU, sec", e/1e6 "Elapsed, sec", p "Disk", cr "Query", cu "Current", r "Rows", mis "Mis" , 0 noprn_lastrow
   from trc$tmp_call_stats c1, call_list
  where c1.call_type(+)=call_list.nm and c1.sqlid(+)='<SQL_ID>'
 union all
 select
-  'Total:' "Call", sum(cnt) "Count", sum(c)/1e6 "CPU", sum(e)/1e6 "Elapsed", sum(p) "Disk", sum(cr) "Query", sum(cu) "Current", sum(r) "Rows", sum(mis) "Mis", 1  noprn_lastrow
+  'Total:' "Call", sum(cnt) "Count", sum(c)/1e6 "CPU, sec", sum(e)/1e6 "Elapsed, sec", sum(p) "Disk", sum(cr) "Query", sum(cu) "Current", sum(r) "Rows", sum(mis) "Mis", 1  noprn_lastrow
   from trc$tmp_call_stats where sqlid='<SQL_ID>')
 order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';
       l_sql:=replace(l_sql,'<SQL_ID>',i.sqlid);
@@ -414,11 +612,11 @@ order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';
       if l_cnt>0 then
         p(HTF.BIG('Cursor waits'));
 
-        l_sql := q'[select /*+ qb_name(TRC_REP1) */ 0 noprn_lastrow, nam "Event", CNT "Times waited", ela/1e6 "Total time", round(AVG_ELA/1e6,6) "Avg time", MAX_ELA/1e6 "Max time", ELA_95/1e6 "95% Percetile"
+        l_sql := q'[select /*+ qb_name(TRC_REP1) */ 0 noprn_lastrow, nam "Event", CNT "Times waited", ela/1e6 "Total time, sec", round(AVG_ELA/1e6,6) "Avg time, sec", MAX_ELA/1e6 "Max time, sec", ELA_95/1e6 "95% Percetile, sec"
 from trc$tmp_wait_stats
 where sqlid='<SQL_ID>'
 union all
-select 1 noprn_lastrow, 'Total:' "Event", sum(CNT) "Times waited", sum(ela)/1e6 "Total time", null "Avg time", max(MAX_ELA)/1e6 "Max time", null "95% Percetile"
+select 1 noprn_lastrow, 'Total:' "Event", sum(CNT) "Times waited, sec", sum(ela)/1e6 "Total time, sec", null "Avg time, sec", max(MAX_ELA)/1e6 "Max time, sec", null "95% Percetile, sec"
 from trc$tmp_wait_stats
 where sqlid='<SQL_ID>'
 order by 1,4 desc]';
@@ -439,6 +637,8 @@ order by 1,4 desc]';
                                             p_output => p_report);
 
         p(HTF.BR);
+        print_event_histogram('Cursor waits histogram', i.sqlid);
+        p(HTF.BR);
       end if;
 
       select count(1) into l_cnt from dual where exists (select 1 from TRC$TMP_CALL_SELF_STATS where sqlid=i.sqlid);
@@ -448,11 +648,11 @@ order by 1,4 desc]';
         l_sql := q'[select * from (
 with call_list as (select 'PARSE' nm from dual union select 'EXEC' from dual union select 'FETCH' from dual union select 'CLOSE' from dual)
 select /*+ qb_name(TRC_REP1) */
-  call_list.nm "Call", CNT "Count", c/1e6 "CPU", e/1e6 "Elapsed", p "Disk", cr "Query", cu "Current", 0 noprn_lastrow
+  call_list.nm "Call", CNT "Count", c/1e6 "CPU, sec", e/1e6 "Elapsed, sec", p "Disk", cr "Query", cu "Current", 0 noprn_lastrow
 from TRC$TMP_CALL_SELF_STATS c, call_list where c.call_type(+)=call_list.nm and c.sqlid(+)='<SQL_ID>'
 union all
 select
-  'Total:' "Call", sum(CNT) "Count", sum(c.c)/1e6 "CPU", sum(c.e)/1e6 "Elapsed", sum(c.p) "Disk", sum(c.cr) "Query", sum(c.cu) "Current", 1  noprn_lastrow
+  'Total:' "Call", sum(CNT) "Count", sum(c.c)/1e6 "CPU, sec", sum(c.e)/1e6 "Elapsed, sec", sum(c.p) "Disk", sum(c.cr) "Query", sum(c.cu) "Current", 1  noprn_lastrow
 from TRC$TMP_CALL_SELF_STATS c where c.sqlid='<SQL_ID>')
 order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';
         l_sql:=replace(l_sql,'<SQL_ID>',i.sqlid);

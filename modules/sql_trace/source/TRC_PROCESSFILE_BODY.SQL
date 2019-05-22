@@ -505,7 +505,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
 
       --=============================
       if l_curr_row_type=cHeader then
-        l_header:=l_file_rec.frow;
+        l_header:=l_file_rec.frow||chr(10);
         l_str:=substr(l_file_rec.frow,instr(replace(l_file_rec.frow,'\','/'),'/',-1)+1); --'\
         loop
           fetch p_file into l_file_rec;

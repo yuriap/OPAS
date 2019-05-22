@@ -332,8 +332,18 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
   procedure drop_report(p_report_id opas_reports.report_id%type)
   is
     l_report_content      opas_reports.report_content%type;
+    l_tq_id               opas_task_queue.tq_id%type;
+    l_status              OPAS_TASK_QUEUE.status%type;
   begin
-    select report_content into l_report_content from opas_reports where report_id=p_report_id;
+    select report_content, tq_id into l_report_content,l_tq_id from opas_reports where report_id=p_report_id;
+    if l_tq_id is not null then
+      select status into l_status from OPAS_TASK_QUEUE where tq_id=l_tq_id;
+      if l_status = coremod_tasks.gtqRUNNING then
+        raise_application_error(-20000,'Report can not be dropped while it is running.');
+      elsif l_status = coremod_tasks.gtqQUEUED then
+        coremod_tasks.cancel_task(l_tq_id);
+      end if;
+    end if;
     delete from opas_reports where report_id=p_report_id;
     COREFILE_API.delete_file(l_report_content);
   exception
@@ -1181,6 +1191,26 @@ end;]';
       coremod_log.log('COREMOD_REPORT_UTILS.CLEANUP_CACHE_INT error: '||sqlerrm);
   end;
 
+  procedure add_qry2cache_i(p_sql_id varchar2, p_qry_text clob)
+  is
+  begin
+    MERGE INTO opas_qry_cache t
+      using (select p_sql_id sql_id, p_qry_text txt from dual) s
+      on (t.sql_id=s.sql_id)
+      when not matched then
+        insert (sql_id,sql_text,created)
+         VALUES (s.sql_id,s.txt,default);
+  end;
+
+  procedure add_qry2cache(p_sql_id varchar2, p_qry_text clob)
+  is
+    pragma autonomous_transaction;
+  begin
+    add_qry2cache_i(p_sql_id, p_qry_text);
+    pin_sql_in_cache(p_sql_id,365);
+    commit;
+  end;
+
   procedure set_sql_cache_hit(p_sql_id opas_qry_cache.sql_id%type, p_hit opas_qry_cache.hit_num%type)
   is
   begin
@@ -1324,8 +1354,7 @@ end;]';
         if l_output is null then
           l_output := 'No sql text found.';
         else
-          INSERT INTO opas_qry_cache (sql_id,sql_text,created)
-               VALUES (p_sql_id,l_output,default);
+          add_qry2cache_i(p_sql_id,l_output);
           commit;
         end if;
         commit;

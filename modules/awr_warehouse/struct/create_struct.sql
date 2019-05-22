@@ -101,3 +101,5 @@ select x1.snap_id,
 where x1.dbid<>(select dbid from v$database_rem) 
   and x1.dbid=loc.dbid(+) and x1.snap_id between loc.min_snap_id(+) and loc.max_snap_id(+)
 order by x1.dbid,x1.snap_id;
+
+@@upgrade_struct_4.4.0_4.4.1.sql

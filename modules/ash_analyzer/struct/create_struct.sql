@@ -244,3 +244,5 @@ rem report_retention: null - default project retention, 0 - keep forever, N - ke
 create unique index idx_asha_cube_reports_proj on asha_cube_reports(proj_id, report_id);
 create index idx_asha_cube_reports_rep  on asha_cube_reports(report_id);
 create index idx_asha_cube_reports_sess  on asha_cube_reports(sess_id);
+
+@@upgrade_struct_3.4.9_3.4.10.sql

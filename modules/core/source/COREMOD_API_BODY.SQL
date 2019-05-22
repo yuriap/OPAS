@@ -19,6 +19,8 @@ package body COREMOD_API as
   -- lock handle
   g_handle varchar2(512);
 
+  function getMODNAME return varchar2 is begin return gMODNAME; end;
+
   procedure init_longops(p_op_name varchar2, p_target_desc varchar2, p_units varchar2, p_totalwork number, p_lops_ind out pls_integer)
   is
   begin

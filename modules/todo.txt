@@ -86,6 +86,9 @@ V 4.6.8
 V 5.0.0 
  .- AWR Report from AWR Cube "Cube Snap ID" does not work
 V 5.0.0.4
+ .- SQL mem report from local DB does not show connection at the V$SQL session
+ .- report p 152 ORA-06550: line 5, column 25: PLS-00302: component 'CREATE_REPORT' must be declared
+V 5.0.1
 ============================================================================================================================
  todo
  .- multiuser monitor and snapper, a link between monitor and snapper to stop one another
@@ -153,6 +156,14 @@ V 5.0.0
  - multiple move operation
  - show report parameters right after its creation
  - export cascade by integration
+V 5.0.0.4
+ .- report for projects/dumps/files/reports etc, to be cleaned up soon
+ .- add report tabs with reports older than 1 week, fresher reports keep on default tab and tab for report near to expiration
+ .- the same for cubes, dumps
+V 5.0.1
+ - self SQL Trace entry point table (see Method R book)
+ - report search across all modules by sql_id, whatever
+ - global sql text warehous sql_id, sourcedb, sql_text clob indexed by Oracle text
 
 ============================================================================================================================
 getcomph

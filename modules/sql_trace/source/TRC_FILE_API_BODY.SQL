@@ -112,15 +112,15 @@ PACKAGE BODY TRC_FILE_API AS
   procedure set_file_security
                         (p_trc_file_id         trc_files.trc_file_id%type,
                          p_owner               trc_files.owner%type default null,
-                         p_source_keep_forever trc_files.source_keep_forever%type,
-                         p_parsed_keep_forever trc_files.parsed_keep_forever%type)
+                         p_source_retention    trc_files.source_retention%type,
+                         p_parsed_retention    trc_files.parsed_retention%type)
   is
   begin
     TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_edit);
     UPDATE trc_files
        SET owner = nvl(p_owner,owner),
-           source_keep_forever = decode(p_source_keep_forever,'Y','Y','N','N','N'),
-           parsed_keep_forever = decode(p_parsed_keep_forever,'Y','Y','N','N','N')
+           source_retention = decode(p_source_retention,-1,null,p_source_retention),
+           parsed_retention = decode(p_parsed_retention,-1,null,p_parsed_retention)
      WHERE trc_file_id = p_trc_file_id;
   end;
 
@@ -178,28 +178,35 @@ PACKAGE BODY TRC_FILE_API AS
     l_errmsg varchar2(1000);
   begin
     coremod_log.log('TRC_FILE_API.cleanup_files: '||p_proj_id||';'||p_mode||';'||COREMOD_LOG.bool2str(p_use_retention)||';','DEBUG');
-    for i in (select x.*, systimestamp - created src_duration, systimestamp - parsed prsd_duration from trc_files x where proj_id = p_proj_id) loop
+    for i in (select x.* from trc_files x where proj_id = p_proj_id) loop
       begin
         coremod_log.log('TRC_FILE_API.cleanup_files: '||i.trc_file_id||';'||
-                        i.source_keep_forever||';'||
-                        i.src_duration||';'||TO_DSINTERVAL(nvl(COREMOD_API.getconf('SOURCERETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00')||';'||
-                        i.prsd_duration||';'||TO_DSINTERVAL(nvl(COREMOD_API.getconf('PARSEDRETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00')
-                        ,'DEBUG');
+                        i.source_retention||';'||
+                        i.created||';'||i.source_retention||';'||
+                        i.parsed||';'||i.parsed_retention||';',
+                        'DEBUG');
         if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_SOURCEDATA) then
-		  if p_use_retention and i.source_keep_forever='N' and i.src_duration > TO_DSINTERVAL(nvl(COREMOD_API.getconf('SOURCERETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00') then
+          coremod_log.log('TRC source file:project '||i.trc_file_id||':'||p_proj_id);
+		  if p_use_retention and i.source_retention is null and systimestamp - i.created > TO_DSINTERVAL(nvl(COREMOD_API.getconf('SOURCERETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00') then
+		    remove_source_data_i(i.trc_file_id);
+		  elsif p_use_retention and nvl(i.source_retention,-1)>0 and i.created + i.source_retention > systimestamp then
 		    remove_source_data_i(i.trc_file_id);
 		  elsif not (p_use_retention) then
 		    remove_source_data_i(i.trc_file_id);
 		  end if;
 		end if;
         if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_PARSEDDATA) then
-		  if p_use_retention and i.parsed_keep_forever='N' and i.prsd_duration > TO_DSINTERVAL(nvl(COREMOD_API.getconf('PARSEDRETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00') then
+          coremod_log.log('TRC parsed file:project '||i.trc_file_id||':'||p_proj_id);
+		  if p_use_retention and i.parsed_retention is null and systimestamp - i.parsed > TO_DSINTERVAL(nvl(COREMOD_API.getconf('PARSEDRETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00') then
+		    remove_parsed_data_i(i.trc_file_id);
+		  elsif p_use_retention and nvl(i.parsed_retention,-1)>0 and i.parsed + i.parsed_retention > systimestamp then
 		    remove_parsed_data_i(i.trc_file_id);
 		  elsif not (p_use_retention) then
 		    remove_parsed_data_i(i.trc_file_id);
 		  end if;
 		end if;
 		if p_mode in (TRC_PROJ_API.c_ALL) and not (p_use_retention) then
+          coremod_log.log('TRC report file:project '||i.trc_file_id||':'||p_proj_id);
 		  remove_report_i(i.trc_file_id);
 		end if;
       exception
@@ -241,7 +248,7 @@ PACKAGE BODY TRC_FILE_API AS
 --    elsif (P_KEEP_SOURCE and P_KEEP_PARSED and not P_KEEP_REPORT) or (P_KEEP_SOURCE and not P_KEEP_PARSED and not P_KEEP_REPORT) then
 --      cleanup_for_reparse(P_TRC_FILE_ID,P_KEEP_PARSED,P_KEEP_REPORT);
     else
-      raise_application_error(-20000,'Unimplemented file action');
+      raise_application_error(-20000,'[TRC_FILE_API.delete_file] Unimplemented file action');
     end if;
   end;
 
@@ -334,6 +341,21 @@ PACKAGE BODY TRC_FILE_API AS
         coremod_log.log('TRC_FILE_API.parse_file error: '||sqlerrm);
         TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_failparse);
         raise_application_error(-20000,'parse_file exception: '||sqlerrm);
+  end;
+
+  -- for debug only
+  procedure recreate_report(p_trc_file_id trc_files.trc_file_id%type)
+  is
+    l_trc_file         trc_files%rowtype;
+  begin
+    l_trc_file:=TRC_FILE_API.get_file(p_trc_file_id,true);
+
+    if l_trc_file.report_content is not null then
+      update trc_files set report_content=null where trc_file_id=p_trc_file_id;
+      COREFILE_API.delete_file(l_trc_file.report_content);
+      commit;
+    end if;
+    trc_report.getreport(p_trc_file_id);
   end;
 END TRC_FILE_API;
 /

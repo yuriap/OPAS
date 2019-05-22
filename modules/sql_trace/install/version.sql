@@ -1,1 +1,1 @@
-define MODVER="2.3.0"
+define MODVER="2.3.1"

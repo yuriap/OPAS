@@ -570,6 +570,8 @@ end;]';
     end;
 
   begin
+    COREMOD_REPORT_UTILS.set_report_timing(true);
+
     COREMOD_REPORT_UTILS.init_lo_report(p_op_name => 'SQL V$ report: '||p_sql_id,
                                         p_target_desc => 'section',
                                         p_units => 'sections',
@@ -629,6 +631,8 @@ end;]';
         P_OUTPUT => l_plsql_output) ;
     end if;
 
+    COREMOD_REPORT_UTILS.add_qry2cache(p_sql_id,l_plsql_output);
+
     l_output.delete;
 
     COREMOD_REPORT_UTILS.print_text_as_table_new (  P_TEXT => l_plsql_output,
@@ -682,20 +686,21 @@ end;]';
     l_plsql_output:=null;
     if p_dblink is null then
       coremod_report_utils.execute_plsql(p_sql => l_script, p_output => l_plsql_output);
+      l_plsql_output:=replace(replace(l_plsql_output,'&_USER.',SYS_CONTEXT ('USERENV', 'CURRENT_USER')),'&_CONNECT_IDENTIFIER.',SYS_CONTEXT ('USERENV', 'DB_UNIQUE_NAME')||'@'||SYS_CONTEXT ('USERENV', 'SERVER_HOST') );
     else
       coremod_report_utils.execute_plsql_remotelly(p_sql => l_script, p_dblink => p_dblink, p_output => l_plsql_output);
+      declare
+        l_user varchar2(512); l_host varchar2(512);
+      begin
+        select username, host into l_user, l_host from user_db_links where db_link=upper(p_dblink);
+        l_plsql_output:=replace(replace(l_plsql_output,'&_USER.',l_user),'&_CONNECT_IDENTIFIER.',l_host);
+      exception
+        when no_data_found then
+          l_user:='<UNKNOWN>'; l_host:='<UNKNOWN>';
+          l_plsql_output:=replace(replace(l_plsql_output,'&_USER.',l_user),'&_CONNECT_IDENTIFIER.',l_host);
+      end;
     end if;
 
-    declare
-      l_user varchar2(512); l_host varchar2(512);
-    begin
-      select username, host into l_user, l_host from user_db_links where db_link=upper(p_dblink);
-      l_plsql_output:=replace(replace(l_plsql_output,'&_USER.',l_user),'&_CONNECT_IDENTIFIER.',l_host);
-    exception
-      when no_data_found then
-        l_user:='<UNKNOWN>'; l_host:='<UNKNOWN>';
-        l_plsql_output:=replace(replace(l_plsql_output,'&_USER.',l_user),'&_CONNECT_IDENTIFIER.',l_host);
-    end;
 
     coremod_report_utils.print_text_as_table(p_text=>l_plsql_output,p_t_header=>'V$SQL',p_width=>l_narrow_sect_width, p_search=>'CHILD_NUMBER=([[:digit:]]*)',p_replacement=>HTF.ANCHOR (curl=>'#child_last_\1',ctext=>'CHILD_NUMBER=\1',cattributes=>'class="awr"'), p_output=> l_output);
     p1(l_output);
@@ -1253,6 +1258,7 @@ end;]';
     end;
 
   begin
+    COREMOD_REPORT_UTILS.set_report_timing(true);
 
     COREMOD_REPORT_UTILS.init_lo_report(p_op_name => 'SQL AWR report: '||p_sql_id,
                                         p_target_desc => 'section',
@@ -1358,6 +1364,8 @@ end;]';
         P_DBLINK => p_dblink,
         P_OUTPUT => l_plsql_output) ;
     end if;
+
+    COREMOD_REPORT_UTILS.add_qry2cache(p_sql_id,l_plsql_output);
 
     l_output.delete;
 

@@ -18,6 +18,7 @@ package COREMOD_API as
    function getconf(p_key varchar2, p_module opas_modules.modname%type) return varchar2 RESULT_CACHE;
    function getscript(p_script_id varchar2) return clob;
    function getmodver(p_module opas_modules.modname%type) return varchar2 RESULT_CACHE;
+   function getMODNAME return varchar2;
 
    procedure register_dblink(p_db_link_name varchar2,
                              p_db_link_displ_name varchar2,
