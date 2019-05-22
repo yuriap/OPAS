@@ -205,6 +205,8 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
       l_file_name := 'opas_sql_'||get_reppar_c(p_report_id,gparSQLID)||'.html';
       l_mime := gReportMimeType;
       l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||'; DBLINK: '||case when get_reppar_c(p_report_id,gparDBLINK,false) is not null then get_reppar_c(p_report_id,gparDBLINK) else 'Local' end;
+      update opas_reports set report_params_displ=l_displ_params where report_id=p_report_id;
+      commit;
       l_report := coremod_reports.getreport_sql_memory_stats(p_sql_id => get_reppar_c(p_report_id,gparSQLID),
                                                              p_dblink => case when get_reppar_c(p_report_id,gparDBLINK,false) is not null then COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)) else null end);
       begin
@@ -215,15 +217,19 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     elsif l_report_type = gSQL_AWR_REPORT then
       l_file_type := 'SQL AWR stats report';
       l_mime := gReportMimeType;
-
+      l_file_name := 'opas_awr_'||get_reppar_c(p_report_id,gparSQLID)||'.html';
+      l_displ_params := 'SQL_ID: '||get_reppar_c(p_report_id,gparSQLID)||case when get_reppar_c(p_report_id,gparDBLINK,false) is null then '; Local DB' else '; DBLINK: '||get_reppar_c(p_report_id,gparDBLINK,false) end||
+                      case when nvl(get_reppar_n(p_report_id,gparREP_LIMIT,false),-1)>=0 then '; LIMIT: '||get_reppar_n(p_report_id,gparREP_LIMIT,false) else '; DBID SNAPS: '||get_reppar_n(p_report_id,gparDBID,false)||':'||get_reppar_n(p_report_id,gparMIN_SNAP,false)||':'||get_reppar_n(p_report_id,gparMAX_SNAP,false) end;
+      update opas_reports set report_params_displ=l_displ_params where report_id=p_report_id;
+      commit;
       l_report := coremod_reports.getreport_sql_awr_stats(p_sql_id       => get_reppar_c(p_report_id,gparSQLID),
                                                           p_dblink       => case when get_reppar_c(p_report_id,gparDBLINK,false) is not null then COREMOD_API.get_ora_dblink(get_reppar_c(p_report_id,gparDBLINK)) else null end,
                                                           p_report_limit => get_reppar_n(p_report_id,gparREP_LIMIT,false),
                                                           p_dbid         => get_reppar_n(p_report_id,gparDBID,false),
                                                           p_min_snap     => get_reppar_n(p_report_id,gparMIN_SNAP,false),
-                                                          p_max_snap     => get_reppar_n(p_report_id,gparMAX_SNAP,false),
+                                                          p_max_snap     => get_reppar_n(p_report_id,gparMAX_SNAP,false)/*,
                                                           p_filename     => l_file_name,
-                                                          p_displ_params => l_displ_params);
+                                                          p_displ_params => l_displ_params*/);
       begin
         coremod_reports.queue_report_sql_awr_stats_recursive(p_report_id);
       exception

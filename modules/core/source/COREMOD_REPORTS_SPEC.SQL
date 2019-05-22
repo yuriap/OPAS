@@ -11,9 +11,7 @@ as
                                    p_report_limit number,
                                    p_dbid number,
                                    p_min_snap number,
-                                   p_max_snap number,
-                                   p_filename out varchar2,
-                                   p_displ_params out varchar2) return coremod_report_utils.t_output_lines;
+                                   p_max_snap number) return coremod_report_utils.t_output_lines;
 
   function queue_report_sql_awr_stats(p_modname varchar2,
                                       p_owner varchar2,

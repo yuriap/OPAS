@@ -1213,9 +1213,7 @@ end;]';
                                    p_report_limit number,
                                    p_dbid number,
                                    p_min_snap number,
-                                   p_max_snap number,
-                                   p_filename out varchar2,
-                                   p_displ_params out varchar2) return coremod_report_utils.t_output_lines
+                                   p_max_snap number) return coremod_report_utils.t_output_lines
   is
     l_timing boolean := true;
     l_time number; l_tot_tim number:=0;
@@ -1304,10 +1302,6 @@ end;]';
 
     execute immediate q'[select rtrim(trim(substr(banner,instr(banner,'.')-3,4)),'.') from v$version]' || case when p_dblink is null then null else '@'||p_dblink end || q'[ where banner like 'Oracle Database%']'
       into l_ora_ver;
-    p_filename := 'opas_awr_'||p_sql_id||'.html';
-    p_displ_params := 'SQL_ID: '||p_sql_id||case when p_dblink is null then '; Local DB' else '; DBLINK: '||p_dblink end||
-                      case when nvl(p_report_limit,-1)>=0 then '; LIMIT: '||p_report_limit else '; DBID SNAPS: '||p_dbid||':'||p_min_snap||':'||p_max_snap end;
-
 
     p(HTF.header (1,'AWR SQL Report for SQL_ID='||p_sql_id,cattributes=>'class="awr"'));
     p(HTF.BR);
