@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   11:16 Thursday May 23, 2019
+--   Date and Time:   13:36 Thursday May 23, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190522155959'
+,p_last_upd_yyyymmddhh24miss=>'20190523124247'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -18769,7 +18769,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(105334237137436873)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190522155929'
+,p_last_upd_yyyymmddhh24miss=>'20190523124247'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(109378596642458356)
@@ -18941,7 +18941,6 @@ wwv_flow_api.create_report_columns(
 ,p_column_display_sequence=>11
 ,p_column_heading=>'Proj Warnings'
 ,p_use_as_row_header=>'N'
-,p_disable_sort_column=>'N'
 ,p_derived_column=>'N'
 ,p_include_in_export=>'Y'
 );
@@ -23143,7 +23142,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(103683328942143765)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190522155945'
+,p_last_upd_yyyymmddhh24miss=>'20190523124234'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(119789861137154911)
@@ -23309,7 +23308,6 @@ wwv_flow_api.create_report_columns(
 ,p_column_display_sequence=>11
 ,p_column_heading=>'Proj Warnings'
 ,p_use_as_row_header=>'N'
-,p_disable_sort_column=>'N'
 ,p_derived_column=>'N'
 ,p_include_in_export=>'Y'
 );
@@ -37059,7 +37057,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(122912880450952719)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190522155959'
+,p_last_upd_yyyymmddhh24miss=>'20190523123755'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(149439406111735634)
@@ -37232,7 +37230,6 @@ wwv_flow_api.create_report_columns(
 ,p_column_display_sequence=>11
 ,p_column_heading=>'Proj Warnings'
 ,p_use_as_row_header=>'N'
-,p_disable_sort_column=>'N'
 ,p_derived_column=>'N'
 ,p_include_in_export=>'Y'
 );
