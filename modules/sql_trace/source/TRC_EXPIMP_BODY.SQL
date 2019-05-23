@@ -251,13 +251,13 @@ PACKAGE BODY TRC_EXPIMP AS
                    status,
                    file_note, file_source,
                    file_content, report_content,
-                   source_keep_forever, parsed_keep_forever, tq_id)
+                   source_retention, parsed_retention, tq_id)
            values  (i.pnew_id,
                    i.filename, i.file_header, i.owner, i.db_version, i.created, i.parsed,
                    case when l_included_parsed='YES' then i.status else case when i.file_content is not null then TRC_FILE_LCC.c_trcfilestate_loaded else i.status end end,
                    i.file_note, i.file_source,
                    (select s.new_id from EI$OPAS_FILES s where s.file_id=i.file_content), (select s.new_id from EI$OPAS_FILES s where s.file_id=i.report_content),
-                   'Y', 'Y', null) returning trc_file_id into l_trc_file_id;
+                   0, 0, null) returning trc_file_id into l_trc_file_id;
           update ei$trc_files set new_id=l_trc_file_id where trc_file_id=i.trc_file_id;
         end loop;
 
