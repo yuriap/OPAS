@@ -37,6 +37,9 @@ package body trc_report as
       l_tmpl1         varchar2(32765) := null;
       l_tmpl2         varchar2(32765) := null;
       l_colcnt        number := 0;
+      l_t11           varchar2(32765) := q'[sum(<COL>)||' ('||round(100*sum(<COL>)/sum(cnt),2)||'%)']';
+      l_t12           varchar2(32765) := q'[<COL>||' ('||round(100*<COL>/cnt,2)||'%)']';
+      l_t2            varchar2(32765) := q'[sum(<COL>)||' ('||round(100*sum(<COL>)/sum(cnt),2)||'%)',]';
     begin
         p(HTF.BIG(p_table_header));
         for k in (SELECT sum(ela_32) ela_32, sum(ela_64) ela_64, sum(ela_128) ela_128, sum(ela_256) ela_256, sum(ela_512) ela_512,
@@ -46,113 +49,113 @@ package body trc_report as
                     FROM trc$tmp_wait_hist where sqlid=nvl(p_sqlid,sqlid))
         loop
           if k.ela_32 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_32)' else 'ela_32' end || ' "Less than 32 us",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_32),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_32') else replace(l_t12,'<COL>','ela_32') end || ' "Less than 32 us",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_32');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_64 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_64)' else 'ela_64' end || ' "32..64 us",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_64),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_64') else replace(l_t12,'<COL>','ela_64') end || ' "32..64 us",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_64');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_128 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_128)' else 'ela_128' end || ' "64..128 us",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_128),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_128') else replace(l_t12,'<COL>','ela_128') end || ' "64..128 us",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_128');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_256 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_256)' else 'ela_256' end || ' "128..256 us",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_256),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_256') else replace(l_t12,'<COL>','ela_256') end || ' "128..256 us",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_256');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_512 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_512)' else 'ela_512' end || ' "256..512 us",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_512),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_512') else replace(l_t12,'<COL>','ela_512') end || ' "256..512 us",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_512');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_1024 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_1024)' else 'ela_1024' end || ' "512..1024 us",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_1024),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_1024') else replace(l_t12,'<COL>','ela_1024') end || ' "512..1024 us",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_1024');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_2048 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_2048)' else 'ela_2048' end || ' "1..2 ms",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_2048),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_2048') else replace(l_t12,'<COL>','ela_2048') end || ' "1..2 ms",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_2048');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_4096 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_4096)' else 'ela_4096' end || ' "2..4 ms",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_4096),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_4096') else replace(l_t12,'<COL>','ela_4096') end || ' "2..4 ms",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_4096');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_8192 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_8192)' else 'ela_8192' end || ' "4..8 ms",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_8192),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_8192') else replace(l_t12,'<COL>','ela_8192') end || ' "4..8 ms",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_8192');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_16384 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_16384)' else 'ela_16384' end || ' "8..16 ms",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_16384),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_16384') else replace(l_t12,'<COL>','ela_16384') end || ' "8..16 ms",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_16384');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_32768 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_32768)' else 'ela_32768' end || ' "16..32 ms",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_32768),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_32768') else replace(l_t12,'<COL>','ela_32768') end || ' "16..32 ms",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_32768');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_65536 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_65536)' else 'ela_65536' end || ' "32..64 ms",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_65536),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_65536') else replace(l_t12,'<COL>','ela_65536') end || ' "32..64 ms",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_65536');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_131072 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_131072)' else 'ela_131072' end || ' "64..128 ms",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_131072),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_131072') else replace(l_t12,'<COL>','ela_131072') end || ' "64..128 ms",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_131072');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_262144 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_262144)' else 'ela_262144' end || ' "128..256 ms",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_262144),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_262144') else replace(l_t12,'<COL>','ela_262144') end || ' "128..256 ms",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_262144');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_524288 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_524288)' else 'ela_524288' end || ' "256..512 ms",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_524288),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_524288') else replace(l_t12,'<COL>','ela_524288') end || ' "256..512 ms",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_524288');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_1048576 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_1048576)' else 'ela_1048576' end || ' "0.5..1 sec",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_1048576),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_1048576') else replace(l_t12,'<COL>','ela_1048576') end || ' "0.5..1 sec",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_1048576');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_2097152 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_2097152)' else 'ela_2097152' end || ' "1..2 sec",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_2097152),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_2097152') else replace(l_t12,'<COL>','ela_2097152') end || ' "1..2 sec",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_2097152');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_4194304 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_4194304)' else 'ela_4194304' end || ' "2..4 sec",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_4194304),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_4194304') else replace(l_t12,'<COL>','ela_4194304') end || ' "2..4 sec",';
+            l_tmpl2 := l_tmpl2 ||  replace(l_t2,'<COL>','ela_4194304');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_8388608 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_8388608)' else 'ela_8388608' end || ' "4..8 sec",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_8388608),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_8388608') else replace(l_t12,'<COL>','ela_8388608') end || ' "4..8 sec",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_8388608');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_16777216 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_16777216)' else 'ela_16777216' end || ' "8..16 sec",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_16777216),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_16777216') else replace(l_t12,'<COL>','ela_16777216') end || ' "8..16 sec",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_16777216');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ela_33554432 > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ela_33554432)' else 'ela_33554432' end || ' "16..32 sec",';
-            l_tmpl2 := l_tmpl2 || 'sum(ela_33554432),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ela_33554432') else replace(l_t12,'<COL>','ela_33554432') end || ' "16..32 sec",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ela_33554432');
             l_colcnt := l_colcnt + 1;
           end if;
           if k.ELA_GR_32S > 0 then
-            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then 'sum(ELA_GR_32S)' else 'ELA_GR_32S' end || ' "More than 32 sec",';
-            l_tmpl2 := l_tmpl2 || 'sum(ELA_GR_32S),';
+            l_tmpl1 := l_tmpl1 || case when p_sqlid is null then replace(l_t11,'<COL>','ELA_GR_32S') else replace(l_t12,'<COL>','ELA_GR_32S') end || ' "More than 32 sec",';
+            l_tmpl2 := l_tmpl2 || replace(l_t2,'<COL>','ELA_GR_32S');
             l_colcnt := l_colcnt + 1;
           end if;
         end loop;
@@ -787,5 +790,59 @@ order siblings by pos]';
     commit;
   end;
 
+  procedure getstatssect(p_trc_file_id trc_files.trc_file_id%type, p_call_id trc_call.call_id%type, p_report out coremod_report_utils.t_output_lines)
+  is
+    l_sql varchar2(32765);
+    l_default_width number := 800;
+    l_indx   number := 1;
+    procedure p(p_line varchar2) is
+    begin
+      --l_report(l_indx):=p_line;
+      l_indx := p_report.count + 1;
+      p_report(l_indx):=p_line;
+    end;
+  begin
+    insert into trc$tmp_plan_stats
+    select st.sqlid, p.plh, p.id, sum(cnt) cnt, p.pid, p.pos, p.obj, p.op, sum(cr)cr, sum(pr) pr, sum(pw) pw, sum(p.tim) tim, p.cost, p.sz, p.card, sum(p.str)
+      from (select x.*, (select plh from trc_call y where trc_file_id=p_trc_file_id and x.stmt_id=y.stmt_id and nvl(plh,0)>0 and rownum=1) plh from trc_stat x) p,
+           trc_statement st
+     where p.trc_file_id=p_trc_file_id and p.call_id=p_call_id and p.trc_file_id=st.trc_file_id and p.stmt_id=st.stmt_id
+     group by st.sqlid, p.plh, p.id, p.pid, p.pos, p.obj, p.op, p.cost,p.cost, p.sz, p.card;
+
+    for j in (select sqlid, PLH, sum(str) restarts from trc$tmp_plan_stats group by sqlid, PLH) loop
+      p(HTF.BIG('Execution Plan Hash: '||j.PLH)); --||p_trc_file_id||':'||i.stmt_id));
+
+      l_sql := q'[with pl as (select /*+ materialize */ * from trc$tmp_plan_stats)
+select /*+ qb_name(TRC_REP1) */
+id,
+rpad('.',(level-1),'.')||op "Operation/Name",
+dbms_xplan.format_number(card) "E-Rows",
+dbms_xplan.format_size(sz) "Bytes",
+dbms_xplan.format_number(cost) "Cost",
+dbms_xplan.format_number(cnt) "A-Rows",
+tim/1e6 "A-Time, sec",
+dbms_xplan.format_number(cr) "Buffers",
+dbms_xplan.format_number(pr) "Reads",
+dbms_xplan.format_number(pw) "Writes"]' || case when j.restarts > 0 then q'[, str "Restarts"]' else null end ||
+q'[from pl
+start with pid=0 connect by prior id=pid
+order siblings by pos]';
+      COREMOD_REPORT_UTILS.print_table_html_new
+                                             (p_query => l_sql,
+                                              p_width => l_default_width,
+                                              p_summary => 'Execution Plan',
+                                             --p_search varchar2 default null,
+                                             --p_replacement varchar2 default null,
+                                              p_style_tab => 'trctd',
+                                              p_style_head => 'trchd', --head
+                                              p_style_r1 => 'trcr1',   --odd rows
+                                              p_style_r2  => 'trcr2', --even rows
+                                              p_style_finrow => null, --'trctotr',
+                                              --p_header number default 0,
+                                              --p_break_col varchar2 default null,
+                                              p_output => p_report);
+      p(HTF.BR);
+    end loop;
+  end;
 end;
 /

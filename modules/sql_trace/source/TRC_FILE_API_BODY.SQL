@@ -178,45 +178,77 @@ PACKAGE BODY TRC_FILE_API AS
     l_errmsg varchar2(1000);
   begin
     coremod_log.log('TRC_FILE_API.cleanup_files: '||p_proj_id||';'||p_mode||';'||COREMOD_LOG.bool2str(p_use_retention)||';','DEBUG');
-    for i in (select x.* from trc_files x where proj_id = p_proj_id) loop
-      begin
-        coremod_log.log('TRC_FILE_API.cleanup_files: '||i.trc_file_id||';'||
-                        i.source_retention||';'||
-                        i.created||';'||i.source_retention||';'||
-                        i.parsed||';'||i.parsed_retention||';',
-                        'DEBUG');
+    if not(p_use_retention) then
+      for i in (select x.* from trc_files x where proj_id = p_proj_id) loop
         if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_SOURCEDATA) then
-          coremod_log.log('TRC source file:project '||i.trc_file_id||':'||p_proj_id);
-		  if p_use_retention and i.source_retention is null and systimestamp - i.created > TO_DSINTERVAL(nvl(COREMOD_API.getconf('SOURCERETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00') then
-		    remove_source_data_i(i.trc_file_id);
-		  elsif p_use_retention and nvl(i.source_retention,-1)>0 and i.created + i.source_retention > systimestamp then
-		    remove_source_data_i(i.trc_file_id);
-		  elsif not (p_use_retention) then
-		    remove_source_data_i(i.trc_file_id);
-		  end if;
-		end if;
+           remove_source_data_i(i.trc_file_id);
+           coremod_log.log('Purged source, file: '||i.trc_file_id,'DEBUG');
+        end if;
         if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_PARSEDDATA) then
-          coremod_log.log('TRC parsed file:project '||i.trc_file_id||':'||p_proj_id);
-		  if p_use_retention and i.parsed_retention is null and systimestamp - i.parsed > TO_DSINTERVAL(nvl(COREMOD_API.getconf('PARSEDRETENTION',TRC_FILE_API.gMODNAME),8)||' 00:00:00') then
-		    remove_parsed_data_i(i.trc_file_id);
-		  elsif p_use_retention and nvl(i.parsed_retention,-1)>0 and i.parsed + i.parsed_retention > systimestamp then
-		    remove_parsed_data_i(i.trc_file_id);
-		  elsif not (p_use_retention) then
-		    remove_parsed_data_i(i.trc_file_id);
-		  end if;
-		end if;
-		if p_mode in (TRC_PROJ_API.c_ALL) and not (p_use_retention) then
-          coremod_log.log('TRC report file:project '||i.trc_file_id||':'||p_proj_id);
+          remove_parsed_data_i(i.trc_file_id);
+          coremod_log.log('Purged parsed, file: '||i.trc_file_id,'DEBUG');
+        end if;
+		if p_mode in (TRC_PROJ_API.c_ALL) then
 		  remove_report_i(i.trc_file_id);
+          coremod_log.log('Purged report, file: '||i.trc_file_id,'DEBUG');
 		end if;
-      exception
-        when others then
-          l_errmsg := 'The TRC_FILE_API.cleanup_files procedure failed for proj_id,mode,use_retention='||p_proj_id||','||p_mode||','||case when p_use_retention then 'true' else 'false' end||', see log for details.';
-          coremod_log.log(l_errmsg);
-          coremod_log.log(sqlerrm);
-          raise_application_error(-20000,l_errmsg);
-      end;
-    end loop;
+      end loop;
+    elsif p_use_retention then
+      for i in (select x.*
+                  from trc_files x
+                 where proj_id = p_proj_id
+                   and x.source_retention is null and x.created + nvl(COREMOD_API.getconf('SOURCERETENTION',TRC_FILE_API.gMODNAME),8) < sysdate) loop
+        begin
+          coremod_log.log('TRC_FILE_API.cleanup_files: '||i.trc_file_id||';'||p_proj_id||';'||
+                          nvl(i.source_retention,-1)||';'||
+                          i.created||';'||i.source_retention||';'||
+                          i.parsed||';'||i.parsed_retention||';',
+                          'DEBUG');
+          if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_SOURCEDATA) and i.status in ('LOADED','PARSED') then
+		      remove_source_data_i(i.trc_file_id);
+              coremod_log.log('Removed source by default retention, file: '||i.trc_file_id);
+		  end if;
+          if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_PARSEDDATA) and i.status in ('COMPRESSED','PARSED') then
+		      remove_parsed_data_i(i.trc_file_id);
+              coremod_log.log('Removed parsed by default retention, file: '||i.trc_file_id);
+		  end if;
+        exception
+          when others then
+            l_errmsg := 'The TRC_FILE_API.cleanup_files procedure failed for proj_id,mode,use_retention='||p_proj_id||','||p_mode||','||case when p_use_retention then 'true' else 'false' end||', see log for details.';
+            coremod_log.log(l_errmsg);
+            coremod_log.log(sqlerrm);
+            raise_application_error(-20000,l_errmsg);
+        end;
+      end loop;
+
+      for i in (select x.*
+                  from trc_files x
+                 where proj_id = p_proj_id
+                   and nvl(x.source_retention,-1)>0
+                   and (x.created + x.source_retention) < sysdate ) loop
+        begin
+          coremod_log.log('TRC_FILE_API.cleanup_files: '||i.trc_file_id||';'||p_proj_id||';'||
+                          nvl(i.source_retention,-1)||';'||
+                          i.created||';'||i.source_retention||';'||
+                          i.parsed||';'||i.parsed_retention||';',
+                          'DEBUG');
+          if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_SOURCEDATA) and i.status in ('LOADED','PARSED') then
+            remove_source_data_i(i.trc_file_id);
+            coremod_log.log('Removed source by '||i.source_retention||' retention, file: '||i.trc_file_id);
+		  end if;
+          if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_PARSEDDATA) and i.status in ('COMPRESSED','PARSED') then
+            remove_parsed_data_i(i.trc_file_id);
+            coremod_log.log('Removed parsed by '||i.source_retention||' retention, file: '||i.trc_file_id);
+		  end if;
+        exception
+          when others then
+            l_errmsg := 'The TRC_FILE_API.cleanup_files procedure failed for proj_id,mode,use_retention='||p_proj_id||','||p_mode||','||case when p_use_retention then 'true' else 'false' end||', see log for details.';
+            coremod_log.log(l_errmsg);
+            coremod_log.log(sqlerrm);
+            raise_application_error(-20000,l_errmsg);
+        end;
+      end loop;
+    end if;
   end;
 
 /*

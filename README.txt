@@ -1,4 +1,4 @@
-Oracle Performance Analytic Suite Version 5.0.1 PROD
+Oracle Performance Analytic Suite Version 5.0.2 PROD
 (former AWR Tools)
 
 Demo version is available at:
@@ -16,3 +16,7 @@ Version 5.0.1
 -------------
  - Filtering and warnings for nearly expired entities.
  - Filtering for recent and historical entities.
+
+Version 5.0.2
+-------------
+ - Tree-like representation of an SQL Trace file

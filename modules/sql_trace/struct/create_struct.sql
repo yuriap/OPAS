@@ -299,3 +299,5 @@ payload     varchar2(4000))
 on commit delete rows;
 
 @@upgrade_structure_2.3.0-2.3.1.sql
+@@upgrade_structure_2.3.0-2.3.1_p2.sql
+@@upgrade_structure_2.3.1-2.4.0.sql

@@ -455,6 +455,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
     l_curr_XCTEND_stmt_id    TRC_STATEMENT.stmt_id%type;
 
     l_str     varchar2(4000);
+    l_strlong varchar2(32765);
     l_rowid   rowid;
 
     l_updcli        boolean := false;
@@ -477,7 +478,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
   begin
     COREMOD_LOG.log('Start parsing: p_trc_file_id='||p_trc_file_id);
 
-    COREMOD_API.init_longops(p_op_name=>'Processing: '||p_filename,p_target_desc=>'step',p_units=>'steps',p_totalwork=>5,p_lops_ind=>l_lops_idx_global);
+    COREMOD_API.init_longops(p_op_name=>'Processing: '||p_filename,p_target_desc=>'step',p_units=>'steps',p_totalwork=>7,p_lops_ind=>l_lops_idx_global);
     COREMOD_API.init_longops(p_op_name=>'Step: Parsing: '||p_filename,p_target_desc=>'row',p_units=>'rows',p_totalwork=>p_num_rows,p_lops_ind=>l_lops_idx_rows);
     COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Step: Parsing');
 
@@ -624,6 +625,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
         if l_stmt_id is not null then
           l_trc_slot:=get_trc_slot(l_file_rec.frow, l_curr_row_type);
           l_row_num:=l_file_rec.rn;
+          l_strlong := null;
           loop
             fetch p_file into l_file_rec;
             exit when p_file%notfound;
@@ -636,8 +638,9 @@ PACKAGE BODY TRC_PROCESSFILE AS
               l_new_loop_wo_fetch:=true;
               exit;
             end if;
+            l_strlong := l_strlong || chr(10) || l_file_rec.frow;
           end loop;
-          INSERT INTO trc_binds (stmt_id,trc_file_id,row_num,trc_slot,call_id,bind#,value) VALUES (l_sess2slot(l_trc_slot), l_file_id, l_row_num, l_trc_slot, null, null, null) returning rowid into l_rowid;
+          INSERT INTO trc_binds (stmt_id,trc_file_id,row_num,trc_slot,call_id,bind#,value) VALUES (l_sess2slot(l_trc_slot), l_file_id, l_row_num, l_trc_slot, null, -1, substr(l_strlong,1,4000)) returning rowid into l_rowid;
         end if;
       end if;
       if l_new_loop_wo_fetch then continue; end if;
@@ -714,7 +717,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
                       l_stat.id,l_stat.cnt,l_stat.pid,l_stat.pos,l_stat.obj,l_stat.op,l_stat.cr,l_stat.pr,l_stat.pw,l_stat.str,l_stat.tim,l_stat.cost,l_stat.sz,l_stat.card);
           fetch p_file into l_file_rec;
           exit when p_file%notfound;
-          if l_file_rec.frow not like 'STAT%' then
+          if l_file_rec.frow not like 'STAT%' or l_trc_slot<>get_trc_slot(l_file_rec.frow, l_curr_row_type) then
             l_new_loop_wo_fetch:=true;
             exit;
           end if;
@@ -837,6 +840,21 @@ PACKAGE BODY TRC_PROCESSFILE AS
 
     COREMOD_LOG.log('Finished "Calc SELF statistics"');
     COREMOD_API.end_longops_section(p_sofar => 1, p_lops_ind => l_lops_idx_global);
+
+    COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Calc WAITs to CALLs binding');
+    update trc_wait w
+      set call_id=(select min(call_id) from trc_call c where c.trc_file_id=p_trc_file_id and w.trc_slot=c.trc_slot and w.row_num<c.row_num)
+      where trc_file_id=p_trc_file_id;
+    COREMOD_LOG.log('Finished "Calc WAITs to CALLs binding"');
+    COREMOD_API.end_longops_section(p_sofar => 1, p_lops_ind => l_lops_idx_global);
+
+    COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Calc STATs to CALLs binding');
+    update trc_stat s
+      set call_id=(select max(call_id) from trc_call c where c.trc_file_id=p_trc_file_id and s.trc_slot=c.trc_slot and s.row_num>c.row_num)
+      where trc_file_id=p_trc_file_id;
+    COREMOD_LOG.log('Finished "Calc STATs to CALLs binding"');
+    COREMOD_API.end_longops_section(p_sofar => 1, p_lops_ind => l_lops_idx_global);
+
     COREMOD_LOG.log('Finished file processing');
   exception
     when others then

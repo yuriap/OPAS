@@ -309,15 +309,15 @@ PACKAGE BODY TRC_EXPIMP AS
                  (select new_id from ei$trc_call i where i.call_id=o.call_id) call_id,
                  row_num, trc_slot, bind#, value FROM ei$trc_binds o;
 
-          insert into trc_wait(stmt_id, trc_file_id, row_num, trc_slot, nam, ela, p1_name, p1, p2_name, p2, p3_name, p3, pars, obj#, tim)
+          insert into trc_wait(stmt_id, trc_file_id, row_num, trc_slot, nam, ela, p1_name, p1, p2_name, p2, p3_name, p3, pars, obj#, tim, call_id)
           SELECT (select new_id from ei$trc_statement i where i.stmt_id=o.stmt_id) stmt_id,
                  (select new_id from ei$trc_files i where i.trc_file_id=o.trc_file_id) trc_file_id,
-                 row_num, trc_slot, nam, ela, p1_name, p1, p2_name, p2, p3_name, p3, pars, obj#, tim FROM ei$trc_wait o;
+                 row_num, trc_slot, nam, ela, p1_name, p1, p2_name, p2, p3_name, p3, pars, obj#, tim, call_id FROM ei$trc_wait o;
 
-          insert into trc_stat (stmt_id, trc_file_id, row_num, trc_slot, id, cnt, pid, pos, obj, op, cr, pr, pw, str, tim, cost, sz, card)
+          insert into trc_stat (stmt_id, trc_file_id, row_num, trc_slot, id, cnt, pid, pos, obj, op, cr, pr, pw, str, tim, cost, sz, card, call_id)
           SELECT (select new_id from ei$trc_statement i where i.stmt_id=o.stmt_id) stmt_id,
                  (select new_id from ei$trc_files i where i.trc_file_id=o.trc_file_id) trc_file_id,
-                 row_num, trc_slot, id, cnt, pid, pos, obj, op, cr, pr, pw, str, tim, cost, sz, card FROM ei$trc_stat o;
+                 row_num, trc_slot, id, cnt, pid, pos, obj, op, cr, pr, pw, str, tim, cost, sz, card, call_id FROM ei$trc_stat o;
 
           insert into trc_obj_dic (trc_file_id, object_id, object_name)
           SELECT (select new_id from ei$trc_files i where i.trc_file_id=o.trc_file_id) trc_file_id, object_id, object_name FROM ei$trc_obj_dic o;

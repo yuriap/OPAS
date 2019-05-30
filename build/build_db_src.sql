@@ -1,5 +1,5 @@
 @opas
-
+set timing off
 define COREMODPATH="..\modules\core\source\"
 
 rem "
