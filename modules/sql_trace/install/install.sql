@@ -45,7 +45,7 @@ begin
   COREMOD_TASKS.create_task (  p_taskname  => 'TRC_EXP_TRACE',
                                p_modname   => '&MODNM.',
                                p_is_public => 'Y', 
-                               p_task_body => 'begin TRC_EXPIMP.export_trace (p_sess_ids => coremod_tasks.t_ids(<B1>), p_exp_sess_id => <B2>) ; end;');
+                               p_task_body => 'begin TRC_EXPIMP.export_trace (p_trc_ids => coremod_tasks.t_ids(<B1>), p_exp_sess_id => <B2>) ; end;');
 end;
 /
 

@@ -41,6 +41,9 @@ define MODNM=SQL_TRACE
 @../../modules/sql_trace/install/version.sql
 @../../modules/sql_trace/struct/upgrade_structure_2.3.1-2.4.0.sql 
 @../../modules/sql_trace/data/expimp_compat.sql
+
+UPDATE OPAS_TASK SET TASK_BODY = 'begin TRC_EXPIMP.export_trc (p_trc_ids => coremod_tasks.t_ids(<B1>), p_exp_sess_id => <B2>) ; end;' WHERE taskname = 'TRC_EXP_TRACE' AND modname = 'SQL_TRACE'
+
 commit;
 
 set define off
