@@ -275,5 +275,15 @@ package body COREMOD_API as
     release_resource(g_handle);
   end;
 
+  function get_remote_oracle_version(p_dblink opas_db_links.db_link_name%type) return number
+  is
+    l_sql  varchar2(1000) := q'[begin dbms_utility.db_version@]'||COREMOD_API.get_ora_dblink(p_dblink)||q'[(:a, :b); end;]';
+    l_ver  varchar2(100);
+    l_comp varchar2(100);
+  begin
+    execute immediate l_sql using out l_ver, out l_comp;
+    return to_number(substr(l_ver,1,instr(l_ver,'.')-1));
+  end;
+
 end COREMOD_API;
 /

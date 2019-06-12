@@ -34,6 +34,38 @@ PACKAGE BODY ASHA_CUBE_PKG AS
 
   function to_bool(p_val varchar2) return boolean is begin return case upper(p_val) when 'TRUE' then true when 'FALSE' then false when 'T' then true when 'F' then false when 'Y' then true when 'N' then false else false end; end;
 
+  procedure start_tmpl_edit(p_tmpl_id  in out  asha_cube_sess_tmpl.tmpl_id%type,
+                            p_tmpl_proj_id     asha_cube_sess_tmpl.tmpl_proj_id%type,
+                            p_tmpl_name        asha_cube_sess_tmpl.tmpl_name%type,
+                            p_tmpl_description asha_cube_sess_tmpl.tmpl_description%type)
+  is
+  begin
+    if p_tmpl_id = -1 then
+      INSERT INTO asha_cube_sess_tmpl (tmpl_proj_id, tmpl_name, tmpl_description, tmpl_created, tmpl_base )
+        VALUES (p_tmpl_proj_id, p_tmpl_name, p_tmpl_description, default, default) returning tmpl_id into p_tmpl_id;
+    else
+      update asha_cube_sess_tmpl set tmpl_name = p_tmpl_name, tmpl_description = p_tmpl_description where tmpl_id = p_tmpl_id and tmpl_base='N';
+    end if;
+  end;
+  procedure set_tmpl_par   (p_tmpl_id          asha_cube_sess_tmpl_pars.tmpl_id%type,
+                            p_tmpl_par_nm      asha_cube_sess_tmpl_pars.tmpl_par_nm%type,
+                            p_tmpl_par_expr    asha_cube_sess_tmpl_pars.tmpl_par_expr%type)
+  is
+  begin
+    merge into asha_cube_sess_tmpl_pars t
+      using (select p_tmpl_id id, p_tmpl_par_nm nm, p_tmpl_par_expr expr from dual) s
+      on (t.tmpl_id = s.id and t.tmpl_par_nm = s.nm)
+      when matched then update set t.tmpl_par_expr=s.expr
+      when not matched then insert (tmpl_id,tmpl_par_nm,tmpl_par_expr)
+      values (s.id,s.nm,s.expr) where s.expr is not null;
+  end;
+
+  procedure remove_tmpl    (p_tmpl_id          asha_cube_sess_tmpl.tmpl_id%type)
+  is
+  begin
+    delete from asha_cube_sess_tmpl where tmpl_id = p_tmpl_id and tmpl_base='N' and tmpl_proj_id is not null;
+  end;
+
   procedure init_params(p_sess_id         asha_cube_sess.sess_id%type)
   is
   begin
@@ -530,7 +562,7 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
                                                   '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
                                           '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
                                   '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
-                                  '<SNAP_FILTER_BLOCKER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP - 1000 AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                                  '<SNAP_FILTER_BLOCKER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP - 10 AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
                           '<FILTER>',nvl(p_filter,'1=1')),
                           '<MULT>',case when p_source = 'AWR' then '*10' else null end),'<P_INST_ID>',p_inst_list);
       begin
@@ -1076,7 +1108,7 @@ SELECT :p_sess_id,
     null,  null, null, null, null,program,module,
     action,client_info,machine, port,ecid,null,null,
     null,  null, null, null, null, null, null,
-    null,  null, null, null, null, null, con_id,
+    null,  null, null, null, null, null, <con_id>,
     null,  null
 from gv$session@<dblink> where (type='USER' and status='ACTIVE' and wait_class<>'Idle') or (type='BACKGROUND' and wait_class<>'Idle') <FILTER>]';
 
@@ -1110,6 +1142,12 @@ select :sample_id sample_id, :p_timestamp sample_time, sst.statistic#, sst.value
 
     l_sql_dt  := replace(l_sql_sysdt_tmpl,'<dblink>',COREMOD_API.get_ora_dblink(p_dblink));
     l_sql_ash := replace(replace(l_sql_tmpl_ash,'<dblink>',     COREMOD_API.get_ora_dblink(p_dblink)),'<FILTER>',case when l_filter is not null then ' and ('||l_filter||')' else null end);
+
+    if COREMOD_API.get_remote_oracle_version(p_dblink)<=11 then
+      l_sql_ash := replace(l_sql_ash,'<con_id>','null');
+    else
+      l_sql_ash := replace(l_sql_ash,'<con_id>','con_id');
+    end if;
     --if l_filter is not null then
     --  l_sql_stat := replace(replace(l_sql_stat_flt_tmpl,'<dblink>',COREMOD_API.get_ora_dblink(p_dblink)),'<FILTER>',' and ('||l_filter||')');
     --else

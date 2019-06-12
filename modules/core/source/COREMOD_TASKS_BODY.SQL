@@ -37,7 +37,8 @@ package body coremod_tasks as
   begin
     delete from opas_task_queue
      where (systimestamp - finished > TO_DSINTERVAL(COREMOD_API.getconf('TASKRETENTION',COREMOD_API.gMODNAME)||' 00:00:00'))
-        or (status = 'RUNNING' and started<sysdate-0.95 and nvl(job_name,'~^') not in (select job_name from user_scheduler_running_jobs));
+        or (status = gtqRUNNING and started<sysdate-0.95 and nvl(job_name,'~^') not in (select job_name from user_scheduler_running_jobs))
+        or  status = gtqCanceled;
     l_rows_processed:=sql%rowcount;
     commit;
     coremod_log.log('Cleanup task queue: deleted '||l_rows_processed||' row(s).');

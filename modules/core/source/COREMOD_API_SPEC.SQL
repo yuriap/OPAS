@@ -50,5 +50,7 @@ package COREMOD_API as
    procedure release_resource(p_handle varchar2);
    procedure release_resource;
 
+  function get_remote_oracle_version(p_dblink opas_db_links.db_link_name%type) return number;
+
 end COREMOD_API;
 /

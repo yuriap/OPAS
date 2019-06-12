@@ -35,6 +35,15 @@ PACKAGE ASHA_CUBE_PKG AS
 
   type tt_params_t is table of asha_cube_sess_pars.sess_par_val%type index by asha_cube_sess_pars.sess_par_nm%type;
 
+  procedure start_tmpl_edit(p_tmpl_id  in out  asha_cube_sess_tmpl.tmpl_id%type,
+                            p_tmpl_proj_id     asha_cube_sess_tmpl.tmpl_proj_id%type,
+                            p_tmpl_name        asha_cube_sess_tmpl.tmpl_name%type,
+                            p_tmpl_description asha_cube_sess_tmpl.tmpl_description%type);
+  procedure set_tmpl_par   (p_tmpl_id          asha_cube_sess_tmpl_pars.tmpl_id%type,
+                            p_tmpl_par_nm      asha_cube_sess_tmpl_pars.tmpl_par_nm%type,
+                            p_tmpl_par_expr    asha_cube_sess_tmpl_pars.tmpl_par_expr%type);
+  procedure remove_tmpl    (p_tmpl_id          asha_cube_sess_tmpl.tmpl_id%type);
+
   procedure queue_load_cube   (p_sess_id asha_cube_sess.sess_id%type, p_tq_id out opas_task_queue.tq_id%type); --from UI
 
   procedure load_cube_inqueue (p_sess_id asha_cube_sess.sess_id%type); --from OPAS Task
