@@ -27,7 +27,7 @@ prompt APPLICATION 410 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     410
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   16:07 Wednesday June 12, 2019
+--   Date and Time:   16:26 Wednesday June 12, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190612160625'
+,p_last_upd_yyyymmddhh24miss=>'20190612162544'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -16177,7 +16177,7 @@ wwv_flow_api.create_page(
 ,p_dialog_height=>'1200'
 ,p_dialog_width=>'1500'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190612160625'
+,p_last_upd_yyyymmddhh24miss=>'20190612162452'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(108511023092962168)
@@ -16368,7 +16368,7 @@ wwv_flow_api.create_page_item(
 ' where arep.report_id = orep.report_id',
 '   and orep.report_content=ofil.file_id',
 '   and arep.proj_id=:P137_PROJ_ID',
-' order by arep.created desc'))
+' order by arep.created desc, orep.report_id desc'))
 ,p_cHeight=>1
 ,p_field_template=>wwv_flow_api.id(105135891214958300)
 ,p_item_template_options=>'#DEFAULT#'
@@ -16490,7 +16490,7 @@ wwv_flow_api.create_page_process(
 '             where arep.report_id = orep.report_id',
 '               and orep.report_content=ofil.file_id',
 '               and arep.proj_id=:P137_PROJ_ID',
-'             order by arep.created desc);',
+'             order by arep.created desc, orep.report_id desc);',
 '  rep_data   rep%rowtype;     ',
 '  type rep_tab_t is table of rep%rowtype index by pls_integer;',
 '  rep_tab rep_tab_t;',
@@ -24315,7 +24315,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(103683328942143765)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190612131343'
+,p_last_upd_yyyymmddhh24miss=>'20190612162525'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(119827856852483008)
@@ -24653,7 +24653,7 @@ wwv_flow_api.create_page_plug(
 '       and (arep.created+nvl(report_retention,COREMOD_API.getconf(''REPORTRETENTION'',ASHA_CUBE_API.getMODNAME)/24)) < (sysdate + COREMOD_API.getconf(''SHOWEXPBEFORE'',COREMOD_API.getMODNAME))',
 '     )',
 '   )',
-'order by arep.created desc;',
+'order by arep.created desc, orep.report_id desc;',
 ' '))
 ,p_plug_source_type=>'NATIVE_IR'
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
@@ -38911,7 +38911,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(122912880450952719)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190612132028'
+,p_last_upd_yyyymmddhh24miss=>'20190612162544'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(139061539631437771)
@@ -39369,7 +39369,7 @@ wwv_flow_api.create_page_plug(
 '       and (arep.created+nvl(report_retention,COREMOD_API.getconf(''REPORTRETENTION'',AWRWH_API.getMODNAME)/24)) < (sysdate + COREMOD_API.getconf(''SHOWEXPBEFORE'',COREMOD_API.getMODNAME))',
 '     )',
 '   )',
-'order by arep.created desc;'))
+'order by arep.created desc, orep.report_id desc;'))
 ,p_plug_source_type=>'NATIVE_IR'
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 ,p_prn_content_disposition=>'ATTACHMENT'
