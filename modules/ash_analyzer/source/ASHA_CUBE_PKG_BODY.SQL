@@ -13,6 +13,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     pa_metric_id number,
     pa_metricgroup_id number,
     pa_metricagg varchar2(100),
+    pa_metric_tab tt_metric_tab,
     pa_block_analyze boolean,
     pa_unknown_analyze boolean,
     pa_monitor boolean,
@@ -91,6 +92,40 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     when no_data_found then raise_application_error(-20000,'Parameter "'||p_param_name||'" is not specified for session '||g_params_t(c_sess)||chr(10)||DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
   end;
 
+  function metric_tab2str(p_metric_tab tt_metric_tab) return varchar2
+  is
+    l_metric_list varchar2(1000);
+  begin
+    for i in 1..least(p_metric_tab.count,c_metric_tab_max) loop
+      l_metric_list:=l_metric_list||p_metric_tab(i).pa_metric_id||','||p_metric_tab(i).pa_metricgroup_id||','||p_metric_tab(i).pa_metricagg||';';
+    end loop;
+    return l_metric_list;
+  end;
+
+  function metric_str2tab(p_metric_str varchar2) return tt_metric_tab
+  is
+    l_metric_tab tt_metric_tab;
+    l_metric     varchar2(1000);
+    l_metric_str varchar2(1000);
+  begin
+    if p_metric_str is not null then
+      l_metric_str := p_metric_str;
+      for i in 1..least(regexp_count(p_metric_str,';'),c_metric_tab_max) loop
+        l_metric     := substr(l_metric_str,1,instr(l_metric_str,';')-1);
+        l_metric_str := substr(l_metric_str,  instr(l_metric_str,';')+1);
+
+        l_metric_tab(i).pa_metric_id := substr(l_metric,1,instr(l_metric,',')-1);
+
+        l_metric := substr(l_metric,instr(l_metric,',')+1);
+        l_metric_tab(i).pa_metricgroup_id := substr(l_metric,1,instr(l_metric,',')-1);
+
+        l_metric := substr(l_metric,instr(l_metric,',')+1);
+        l_metric_tab(i).pa_metricagg := l_metric;
+      end loop;
+    end if;
+    return l_metric_tab;
+  end;
+
   function get_parameter_db(p_sess_id         asha_cube_sess.sess_id%type,
                             p_param_name      asha_cube_sess_pars.sess_par_nm%type) return asha_cube_sess_pars.sess_par_val%type result_cache
   is
@@ -98,6 +133,12 @@ PACKAGE BODY ASHA_CUBE_PKG AS
   begin
     select sess_par_val into l_val from asha_cube_sess_pars where sess_id=p_sess_id and sess_par_nm=upper(p_param_name);
     return l_val;
+  end;
+
+  function get_metric_tab(p_sess_id        asha_cube_sess.sess_id%type) return tt_metric_tab
+  is
+  begin
+    return metric_str2tab(get_parameter_db(p_sess_id,c_metric_tab));
   end;
 
   procedure check_params(p_sess_id          asha_cube_sess.sess_id%type) is
@@ -118,6 +159,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     g_allpars.pa_metric_id := get_parameter(c_metric_id);
     g_allpars.pa_metricgroup_id := get_parameter(c_metricgroup_id);
     g_allpars.pa_metricagg := get_parameter(c_metricagg);
+    g_allpars.pa_metric_tab := metric_str2tab(get_parameter(c_metric_tab));
     g_allpars.pa_block_analyze := to_bool(get_parameter(c_block_analyze));
     g_allpars.pa_unknown_analyze := to_bool(get_parameter(c_unknown_analyze));
     g_allpars.pa_top_sess := to_bool(get_parameter(c_top_sess));
@@ -187,6 +229,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     if l_params_t.exists(c_metric_id) then add_parameter(p_sess_id,c_metric_id,l_params_t(c_metric_id)); end if;
     if l_params_t.exists(c_metricgroup_id) then add_parameter(p_sess_id,c_metricgroup_id,l_params_t(c_metricgroup_id)); end if;
     if l_params_t.exists(c_metricagg) then add_parameter(p_sess_id,c_metricagg,l_params_t(c_metricagg)); end if;
+    if l_params_t.exists(c_metric_tab) then add_parameter(p_sess_id,c_metric_tab,l_params_t(c_metric_tab)); end if;
     if l_params_t.exists(c_block_analyze) then add_parameter(p_sess_id,c_block_analyze,l_params_t(c_block_analyze)); end if;
     if l_params_t.exists(c_unknown_analyze) then add_parameter(p_sess_id,c_unknown_analyze,l_params_t(c_unknown_analyze)); end if;
     if l_params_t.exists(c_monitor) then add_parameter(p_sess_id,c_monitor,l_params_t(c_monitor)); end if;
@@ -243,7 +286,20 @@ PACKAGE BODY ASHA_CUBE_PKG AS
          VALUES ( s.sess_id, s.param_name, s.value);
 
     g_params_t(upper(p_param_name)):=p_value;
-    coremod_log.log('add param:'||p_sess_id||':'||p_param_name||':'||p_value,'DEBUG');
+    coremod_log.log('add param:'||p_sess_id||':'||p_param_name||':'||nvl(p_value,'<NULL>'),'DEBUG');
+  end;
+
+  procedure add_metric_tab(p_sess_id        asha_cube_sess.sess_id%type,
+                           p_metric_tab     tt_metric_tab)
+  is
+  begin
+    add_parameter(p_sess_id,c_metric_tab,metric_tab2str(p_metric_tab));
+  end;
+
+  procedure remove_metric_tab(p_sess_id        asha_cube_sess.sess_id%type)
+  is
+  begin
+    add_parameter(p_sess_id,c_metric_tab,null);
   end;
 
   procedure calc_main_cube    (p_sess_id number,
@@ -747,8 +803,8 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
     end if;
 
     ----------------------------------------------------
-    COREMOD_LOG.Start_SQL_GATHER_STAT('ASHA_CUBE_PKG.CALC_CUBE');
-    COREMOD_LOG.Start_SQL_TRACE('ASHA_CUBE_PKG.CALC_CUBE');
+    COREMOD_LOG.Start_SQL_GATHER_STAT('ASHA_CUBE_PKG.CALC_CUBE.GATHER_SQL_STAT');
+    COREMOD_LOG.Start_SQL_TRACE('ASHA_CUBE_PKG.CALC_CUBE.SQL_TRACE');
     ----------------------------------------------------
 
     COREMOD_API.init_longops(l_module,'section','sections',6,l_lops_ind);
@@ -863,7 +919,28 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
     COREMOD_API.end_longops_section(1,l_lops_ind);
     COREMOD_API.start_longops_section ( l_module, 'Calcualting metrics cube');
     --=====================================================================
-    calc_metric_cube
+    if g_allpars.pa_metric_tab.count>0 then
+      for i in 1..least(g_allpars.pa_metric_tab.count,c_metric_tab_max) loop
+        calc_metric_cube
+                  (p_sess_id => p_sess_id,
+                   p_source => g_allpars.pa_source,
+                   p_dblink => g_allpars.pa_dblink,
+                   p_cubeagg => g_allpars.pa_cubeagg,
+                   p_start_dt => l_start_dt,
+                   p_end_dt => l_end_dt,
+                   p_filter => g_allpars.pa_filter,
+                   p_inst_list => l_inst_list,
+                   p_dbid => l_dbid,
+                   p_min_snap => l_min_snap,
+                   p_max_snap => l_max_snap,
+                   p_monitor => g_allpars.pa_monitor,
+                   p_metric_id => g_allpars.pa_metric_tab(i).pa_metric_id,
+                   p_metricgroup_id => g_allpars.pa_metric_tab(i).pa_metricgroup_id,
+                   p_metricagg => g_allpars.pa_metric_tab(i).pa_metricagg,
+                   p_snap_ash => g_allpars.pa_snap_ash);
+      end loop;
+    else
+      calc_metric_cube
                   (p_sess_id => p_sess_id,
                    p_source => g_allpars.pa_source,
                    p_dblink => g_allpars.pa_dblink,
@@ -880,6 +957,7 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
                    p_metricgroup_id => g_allpars.pa_metricgroup_id,
                    p_metricagg => g_allpars.pa_metricagg,
                    p_snap_ash => g_allpars.pa_snap_ash);
+    end if;
     --=====================================================================
     COREMOD_API.end_longops_section(1,l_lops_ind);
     COREMOD_API.start_longops_section ( l_module, 'Calcualting blockers cube');
@@ -938,8 +1016,8 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
     COREMOD_API.end_longops_section(1,l_lops_ind);
     --==================================================
 
-    COREMOD_LOG.Stop_SQL_GATHER_STAT('ASHA_CUBE_PKG.CALC_CUBE');
-    COREMOD_LOG.Stop_SQL_TRACE('ASHA_CUBE_PKG.CALC_CUBE');
+    COREMOD_LOG.Stop_SQL_GATHER_STAT('ASHA_CUBE_PKG.CALC_CUBE.GATHER_SQL_STAT');
+    COREMOD_LOG.Stop_SQL_TRACE('ASHA_CUBE_PKG.CALC_CUBE.SQL_TRACE');
 
     coremod_log.log('End calc_cube. p_sess_id: '||p_sess_id,'DEBUG');
   end;

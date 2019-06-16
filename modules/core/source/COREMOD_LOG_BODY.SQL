@@ -1,6 +1,8 @@
 CREATE OR REPLACE
 package body COREMOD_LOG is
 
+  g_user_expirience_id varchar2(100);
+
   procedure debug_on
   is
   begin
@@ -74,19 +76,27 @@ package body COREMOD_LOG is
 
   procedure Start_SQL_TRACE(p_name varchar2)
   is
+    l_trc_file varchar(4000);
   begin
     if nvl(coremod_api.getconf('INSTR_SQL_TRACE',COREMOD_API.gMODNAME),'~^') = p_name then
-      execute immediate q'[alter session set events '10046 trace name context forever, level ]'||nvl(coremod_api.getconf('INSTR_SQL_TRACE',COREMOD_API.gMODNAME),12)||q'[']';
-      coremod_log.log('Start_SQL_TRACE: '||coremod_api.getconf('INSTR_SQL_GATHER_STAT',COREMOD_API.gMODNAME));
+      select value into l_trc_file from v$diag_info where name = 'Default Trace File';
+      g_user_expirience_id := sys_guid();
+      coremod_log.log('Start_SQL_TRACE: '||coremod_api.getconf('INSTR_SQL_TRACE',COREMOD_API.gMODNAME)||'; EXPIRIENCE ID: '||nvl(g_user_expirience_id,'N/A'));
+      coremod_log.log('Trace file: '||l_trc_file);
+      execute immediate q'[begin DBMS_SESSION.SESSION_TRACE_ENABLE(]'||nvl(coremod_api.getconf('INSTR_SQL_TRACE_PARAMS',COREMOD_API.gMODNAME),q'[TRUE,TRUE,'FIRST_EXECUTION']')||q'[); end;]';
+      dbms_log.ksdwrt(1, '*** EXPERIENCE ID:('||g_user_expirience_id||'-'||p_name||'-START)');
     end if;
   end;
+
   procedure Stop_SQL_TRACE(p_name varchar2)
   is
   begin
     if nvl(coremod_api.getconf('INSTR_SQL_TRACE',COREMOD_API.gMODNAME),'~^') = p_name then
-      execute immediate q'[alter session set events '10046 trace name context off']';
-      coremod_log.log('Stop_SQL_TRACE: '||coremod_api.getconf('INSTR_SQL_GATHER_STAT',COREMOD_API.gMODNAME));
+      dbms_log.ksdwrt(1, '*** EXPERIENCE ID:('||nvl(g_user_expirience_id,'N/A')||'-'||p_name||'-END)');
+      DBMS_SESSION.SESSION_TRACE_DISABLE;
+      coremod_log.log('Stop_SQL_TRACE: '||coremod_api.getconf('INSTR_SQL_TRACE',COREMOD_API.gMODNAME)||'; EXPIRIENCE ID: '||nvl(g_user_expirience_id,'N/A'));
     end if;
   end;
+
 end;
 /

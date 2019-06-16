@@ -3,4 +3,5 @@ INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&M
 INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '1.3.6',  '&MODVER.');
 INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '1.3.7',  '&MODVER.');
 INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '1.3.8',  '&MODVER.');
+INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '1.3.9',  '&MODVER.');
 INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '&MODVER.',  '&MODVER.');

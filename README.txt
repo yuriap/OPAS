@@ -20,3 +20,14 @@ Version 5.0.1
 Version 5.0.2
 -------------
  - Tree-like representation of an SQL Trace file
+ 
+Version 5.0.3
+-------------
+ - ASHA cube templates creating/editing
+ - ASHA metric outliers filtering
+ - Report Overview
+ 
+Version 5.0.4
+-------------
+ - SQL Trace - LOB calls
+ - Up to 3 system metrics at ASH Diagram page

@@ -54,6 +54,7 @@ INSERT INTO
            VALUES ('&MODNM.','REPORT_TYPES','ASH_REPORT'             ,'ASH report (standard)'                    ,156,null,null,60);
 
 @@upgrade_data_1.3.7_1.3.8.sql
+@@upgrade_data_1.3.9_1.3.10.sql
 
 set define ~
 

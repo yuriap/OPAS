@@ -24,6 +24,8 @@ begin
     ASHA_CUBE_PKG.add_parameter  ( l_sess_id, ASHA_CUBE_PKG.c_START_SNAP,l_dmp_file.min_snap_id);
     ASHA_CUBE_PKG.add_parameter  ( l_sess_id, ASHA_CUBE_PKG.c_END_SNAP,  l_dmp_file.max_snap_id);
 
+    ASHA_CUBE_PKG.add_parameter  ( l_sess_id, ASHA_CUBE_PKG.c_metric_tab,  '2144,2,AVG;2146,2,AVG;2155,2,AVG;');
+
     COREMOD_INTEGRATION.create_integration (
         P_INT_KEY => AWRWH_API.gintAWRWH2ASH_DUMP2CUBE,
         P_SRC_ENTITY_ID => l_dmp_file.dump_id,

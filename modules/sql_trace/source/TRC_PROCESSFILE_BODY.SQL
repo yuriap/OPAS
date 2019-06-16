@@ -29,6 +29,10 @@ PACKAGE BODY TRC_PROCESSFILE AS
   cQuery   constant t_row_type := 'PARSING IN CURSOR';
   cParseErr   constant t_row_type := 'PARSE ERROR';
 
+  cLOB_READ      constant t_row_type := 'LOBREAD';
+  cLOB_PG_SIZE   constant t_row_type := 'LOBPGSIZE';
+  cLOB_TMP_FREE  constant t_row_type := 'LOBARRTMPFRE';
+
   g_version number;
   g_release number;
 
@@ -53,6 +57,10 @@ PACKAGE BODY TRC_PROCESSFILE AS
     g_trc_row_type(cStat):=1;
     g_trc_row_type(cQuery):=1;
     g_trc_row_type(cParseErr):=1;
+
+    g_trc_row_type(cLOB_READ):=1;
+    g_trc_row_type(cLOB_PG_SIZE):=1;
+    g_trc_row_type(cLOB_TMP_FREE):=1;
   end;
 
   procedure p(p_msg varchar2) is begin dbms_output.put_line(p_msg); end;
@@ -159,7 +167,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
   is
     l_row varchar2(32765);
   begin
---    if g_version='12' then
       case
         when p_rowtp in (cPARSE,cEXEC,cFETCH) then
         begin
@@ -207,7 +214,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
           p_call.typ:=getntoken(l_row,5);
           p_call.tim:=getntoken(l_row,6);
         end if;
---    end if;
     exception
       when others then
         COREMOD_LOG.log('parse_call_row: '||sqlerrm);
@@ -218,12 +224,57 @@ PACKAGE BODY TRC_PROCESSFILE AS
         raise_application_error(-20000, 'parse_call_row: '||sqlerrm);
   end;
 
+--LOBREAD: type=TEMPORARY LOB,bytes=316,c=0,e=182,p=0,cr=1,cu=0,tim=615032960996
+--LOBPGSIZE: type=TEMPORARY LOB,bytes=8132,c=0,e=16,p=0,cr=0,cu=0,tim=615032962102
+--LOBREAD: type=TEMPORARY LOB,bytes=32528,c=0,e=2541,p=0,cr=8,cu=0,tim=615032965468
+--LOBREAD: type=TEMPORARY LOB,bytes=32528,c=15625,e=3378,p=0,cr=8,cu=4,tim=615032971273
+--LOBREAD: type=TEMPORARY LOB,bytes=32528,c=0,e=11018,p=0,cr=8,cu=10,tim=615032986252
+--LOBREAD: type=TEMPORARY LOB,bytes=199,c=0,e=164,p=0,cr=1,cu=3,tim=615032991545
+--LOBARRTMPFRE: type=PERSISTENT LOB,c=0,e=2011,p=0,cr=0,cu=143,tim=615033003554
+
+  procedure parse_lob_row(p_row varchar2,p_rowtp varchar2, p_lobcall out trc_lobcall%rowtype)
+  is
+    l_row varchar2(32765);
+  begin
+    l_row:=rtrim(rtrim(
+                 replace(replace(
+                 replace(replace(
+                 replace(replace(replace(replace(
+                 replace(replace(p_row,'LOBREAD: type=',''),'LOBPGSIZE: type=',''),'LOBARRTMPFRE: type=','')
+                                      ,',bytes=',','),',c=',',')
+                                      ,',e=',','),',p=',','),',cr=',',')
+                                      ,',cu=',','),',tim=',','),chr(10)), chr(13))||g_delim;
+     p_lobcall.lob_type:=getntoken(l_row,1);
+     if p_rowtp = cLOB_TMP_FREE then
+       p_lobcall.c:=getntoken(l_row,2);
+       p_lobcall.e:=getntoken(l_row,3);
+       p_lobcall.p:=getntoken(l_row,4);
+       p_lobcall.cr:=getntoken(l_row,5);
+       p_lobcall.cu:=getntoken(l_row,6);
+       p_lobcall.tim:=getntoken(l_row,7);
+     else
+       p_lobcall.bytes:=getntoken(l_row,2);
+       p_lobcall.c:=getntoken(l_row,3);
+       p_lobcall.e:=getntoken(l_row,4);
+       p_lobcall.p:=getntoken(l_row,5);
+       p_lobcall.cr:=getntoken(l_row,6);
+       p_lobcall.cu:=getntoken(l_row,7);
+       p_lobcall.tim:=getntoken(l_row,8);
+     end if;
+  exception
+      when others then
+        COREMOD_LOG.log('parse_lob_row: '||sqlerrm);
+        COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
+        COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+        COREMOD_LOG.log(p_row);
+        COREMOD_LOG.log(l_row);
+        raise_application_error(-20000, 'parse_lob_row: '||sqlerrm);
+  end;
+
   procedure parse_stmt_row(p_row varchar2, p_rowtp varchar2, p_stmt out trc_statement%rowtype)
   is
     l_row varchar2(32765);
   begin
-
---    if g_version='12' then
         begin
           l_row:=rtrim(rtrim(
                  replace(replace(replace(
@@ -257,7 +308,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
           p_stmt.tim:=getntoken(l_row,7);
           p_stmt.err:=getntoken(l_row,8);
         end if;
---    end if;
     if p_stmt.trc_slot is null then raise_application_error(-20000,'slot is null: '||p_rowtp);end if;
     exception
       when others then
@@ -281,7 +331,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
 --WAIT #140485731055920: nam='SQL*Net message to client' ela= 0 driver id=1413697536 #bytes=1 p3=0 obj#=-1 tim=11902236206633
 --18.3
 --WAIT #2856586288: nam='SQL*Net message to client' ela= 29 driver id=1297371904 #bytes=1 p3=0 obj#=-1 tim=1172931705409
---    if g_version='12' then
         begin
           l_row:=rtrim(rtrim(
                  replace(replace(replace(
@@ -297,7 +346,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
        p_wait.pars:=getntoken(l_row,4);
        p_wait.obj#:=getntoken(l_row,5);
        p_wait.tim:=getntoken(l_row,6);
---    end if;
     exception
       when others then
         COREMOD_LOG.log('parse_wait_row: '||sqlerrm);
@@ -409,8 +457,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
   is
     l_row varchar2(32765);
   begin
-
---    if g_version='12' then
         begin
           l_row:=rtrim(rtrim(
                  replace(
@@ -421,7 +467,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
           p_trans.rd_only:=getntoken(l_row,2);
           p_trans.tim:=getntoken(l_row,3);
 
---    end if;
     exception
       when others then
         COREMOD_LOG.log('parse_trans_row: '||sqlerrm);
@@ -450,6 +495,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
     l_wait       trc_wait%rowtype;
     l_stat       trc_stat%rowtype;
     l_trans      trc_trans%rowtype;
+    l_lobcall    trc_lobcall%rowtype;
     l_row_num    number;
 
     l_curr_XCTEND_stmt_id    TRC_STATEMENT.stmt_id%type;
@@ -489,7 +535,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
     INSERT INTO trc_session (trc_file_id,row_num,sid,serial#,start_ts,end_ts) VALUES (l_file_id,0,null,null,null,null) returning session_id into l_session_id;
     --open p_file;
     loop
-      --if mod(l_file_rec.rn,g_longops_step)=0 then
       if l_file_rec.rn is not null then
         COREMOD_API.end_longops_section(p_sofar=>l_file_rec.rn-1, p_lops_ind=>l_lops_idx_rows);
         COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Rows processed: '||l_file_rec.rn);
@@ -514,7 +559,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
           exit when is_row_empty(l_file_rec.frow);
           if l_db_ver is null and instr(l_file_rec.frow,'Release ')>0 then
             l_db_ver:=substr(l_file_rec.frow,instr(l_file_rec.frow,'Release')+8,instr(l_file_rec.frow,' ',instr(l_file_rec.frow,'Release')+8)-instr(l_file_rec.frow,'Release')-8);
---raise_application_error(-20000,l_file_rec.frow||':'||l_db_ver);
             set_version(l_db_ver,g_version,g_release);
             check_supported_versions();
             COREMOD_LOG.log('Trace file DB version: '||g_version||'.'||g_release);
@@ -536,16 +580,15 @@ PACKAGE BODY TRC_PROCESSFILE AS
                     to_timestamp_tz(replace(substr(l_file_rec.frow,instr(l_file_rec.frow,')')+2),'T',' '),'yyyy-mm-dd hh24:mi:ss.ff6 tzh:tzm'),
                     null)
           returning session_id into l_session_id;
-
-        -- #0 cursor
-        if l_stmt_id_zero is null then
-          INSERT INTO trc_statement
-                     (cli_ident,session_id,trc_slot,sqlid,sql_text,trc_file_id)
-              VALUES (l_curr_cl_id,l_session_id,0,'N/A','N/A',l_file_id)
-           returning stmt_id into l_stmt_id_zero;
-        end if;
       end if;
 
+      -- #0 cursor
+      if l_stmt_id_zero is null then
+        INSERT INTO trc_statement
+                   (cli_ident,session_id,trc_slot,sqlid,sql_text,trc_file_id)
+            VALUES (l_curr_cl_id,l_session_id,0,'N/A','N/A',l_file_id)
+         returning stmt_id into l_stmt_id_zero;
+      end if;
 
       if l_file_rec.frow like '***%' then
         if instr(l_file_rec.frow,'*** CLIENT ID')>0     then l_client_id:= get_in_brakets(l_file_rec.frow); l_updcli:=true; end if;
@@ -563,9 +606,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
 
       --=============================
       if l_curr_row_type = cWait then
-        --l_trc_slot:=get_trc_slot(l_file_rec.frow, l_curr_row_type);
         parse_wait_row(l_file_rec.frow,l_wait);
-        --if l_wait.tim=23660153676903 then raise_application_error(-20000,l_file_rec.frow); end if;
         l_trc_slot:=l_wait.trc_slot;
         if l_trc_slot = 0 then
           INSERT INTO trc_wait
@@ -594,8 +635,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
 
       --=============================
       if l_curr_row_type in ( cQuery, cParseErr ) then
-        --l_trc_slot:=get_trc_slot(l_file_rec.frow, l_curr_row_type);
-        --l_stmt.dep:=gs(l_file_rec.frow,'dep=');
         l_sql_text:=null;
         l_row_num:=l_file_rec.rn;
         parse_stmt_row(l_file_rec.frow,l_curr_row_type,l_stmt);
@@ -631,8 +670,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
             exit when p_file%notfound;
             l_curr_row_type:=get_rowtype(l_file_rec.frow);
             if l_file_rec.frow like '==========%' or
-               /*l_file_rec.frow like 'PARSING IN CURSOR%' or
-               l_file_rec.frow like 'EXEC%'*/
                g_trc_row_type.exists(l_curr_row_type)
             then
               l_new_loop_wo_fetch:=true;
@@ -646,15 +683,9 @@ PACKAGE BODY TRC_PROCESSFILE AS
       if l_new_loop_wo_fetch then continue; end if;
 
       --=============================
---      l_curr_row_type:=get_rowtype(l_file_rec.frow);
 
       if l_curr_row_type in (cParse,cExec,cFetch,cClose) then
-
---COREMOD_LOG.log(l_file_rec.frow);
---COREMOD_LOG.log(l_curr_row_type);
-
         parse_call_row(l_file_rec.frow,l_curr_row_type,l_call);
-        --l_trc_slot:=get_trc_slot(l_file_rec.frow, l_curr_row_type);
         l_trc_slot:=l_call.trc_slot;
         if not l_sess2slot.exists(l_trc_slot) then
           --for unknown statement (trace does not contain PARSING IN for the slot
@@ -666,27 +697,29 @@ PACKAGE BODY TRC_PROCESSFILE AS
            returning stmt_id into l_stmt_id;
            l_sess2slot(l_trc_slot):=l_stmt_id;
         end if;
-        --begin
-        --parse_call_row(l_file_rec.frow,l_curr_row_type,l_call);
         INSERT INTO trc_call
                     (stmt_id, call_type, row_num, trc_slot, trc_file_id,
                      c, e, p, cr, cu, mis, r, dep, og, plh, tim, typ )
              VALUES (l_sess2slot(l_trc_slot), l_curr_row_type, l_file_rec.rn, l_trc_slot, l_file_id,
                      l_call.c, l_call.e, l_call.p, l_call.cr, l_call.cu, l_call.mis, l_call.r, l_call.dep, l_call.og, l_call.plh, l_call.tim, l_call.typ)
           returning call_id into l_call_id;
---         exception
-           --when others then raise_application_error(-20000,gs(l_file_rec.frow,'dep=')||' '||l_file_rec.frow);
-         --end;
          --update only if consecutive EXEC
          if l_rowid is not null and l_curr_row_type = cExec then
            update trc_binds set call_id=l_call_id where rowid=l_rowid;
          end if;
-
-         --if l_curr_row_type=cClose then
-         --  l_sess2slot.delete(l_trc_slot);
-         --end if;
       end if;
       l_rowid:=null;
+
+      --LOB OPs trace
+      if l_curr_row_type in (cLOB_READ, cLOB_PG_SIZE, cLOB_TMP_FREE) then
+        parse_lob_row(l_file_rec.frow,l_curr_row_type,l_lobcall);
+        l_trc_slot:=0;
+        INSERT INTO trc_lobcall
+                    (stmt_id,        call_type,       row_num,       trc_slot,   trc_file_id,
+                               lob_type,           bytes,           c,           e,           p,           cr,           cu,           tim)
+             VALUES (l_stmt_id_zero, l_curr_row_type, l_file_rec.rn, l_trc_slot, l_file_id,
+                     l_lobcall.lob_type, l_lobcall.bytes, l_lobcall.c, l_lobcall.e, l_lobcall.p, l_lobcall.cr, l_lobcall.cu, l_lobcall.tim);
+      end if;
 
       if l_curr_row_type in (cTrans) then
         parse_trans_row(l_file_rec.frow,l_trans);
@@ -763,7 +796,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
 
       COREMOD_LOG.log('Create CALLs tree: 2','DEBUG');
 
-      --for i in (select call_id, dep from trc_call where trc_file_id=l_file_id and call_type<>'CLOSE' order by call_id)
       l_idx_main:=l_call_tree.first;
       l_idx_prev:=null;
       loop
@@ -776,7 +808,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
               loop
                 if l_call_tree(l_idx)<l_call_tree(l_idx_main) then -- i.dep
                   l_call_prnt(l_idx_main):=l_idx; --i.call_id
---                  update trc_call set parent_id=l_idx where call_id=i.call_id;
                   exit;
                 end if;
                 l_idx:=l_call_tree.next(l_idx);
@@ -793,7 +824,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
       COREMOD_LOG.log('Create CALLs tree: 3','DEBUG');
 
       l_idx := l_call_prnt.first;
-      --COREMOD_LOG.log('l_idx '||nvl(to_char(l_idx),'NULL'));
       loop
         exit when l_idx is null; -- exit if all calls are dep=0
         l_call_ids.extend;
@@ -873,8 +903,6 @@ PACKAGE BODY TRC_PROCESSFILE AS
     l_total_rows       number;
     l_tq_id            opas_task_queue.tq_id%type;
   begin
---	TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_startparse);	 --autonomous
-
     l_trc_file:=TRC_FILE_API.get_file(p_trc_file_id, true); --with locking
 
     if l_trc_file.file_content is not null then
@@ -896,13 +924,8 @@ PACKAGE BODY TRC_PROCESSFILE AS
     open l_file_crsr for select * from trc$tmp_file_content;
     parse_file_i(p_trc_file_id,l_file_crsr, l_total_rows,l_trc_file.filename);
     close l_file_crsr;
-
---	TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_finishparse);
-
-    --trc_report.get_sql_trace_report_async(p_trc_file_id,l_tq_id);
   exception
     when others then
---	  TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_failparse);
       if l_file_crsr%isopen then close l_file_crsr; end if;
       raise;
   end;
@@ -910,7 +933,13 @@ PACKAGE BODY TRC_PROCESSFILE AS
   procedure parse_file(p_trc_file_id trc_files.trc_file_id%type)
   is
   begin
+    COREMOD_LOG.Start_SQL_GATHER_STAT('TRC_PROCESSFILE.PARSE_FILE.GATHER_SQL_STAT');
+    COREMOD_LOG.Start_SQL_TRACE('TRC_PROCESSFILE.PARSE_FILE.SQL_TRACE');
+
     parse_file_i(p_trc_file_id);
+
+    COREMOD_LOG.Stop_SQL_TRACE('TRC_PROCESSFILE.PARSE_FILE.SQL_TRACE');
+    COREMOD_LOG.Stop_SQL_GATHER_STAT('TRC_PROCESSFILE.PARSE_FILE.GATHER_SQL_STAT');
   end;
 
 

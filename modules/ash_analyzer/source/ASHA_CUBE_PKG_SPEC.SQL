@@ -13,6 +13,7 @@ PACKAGE ASHA_CUBE_PKG AS
   c_metric_id            constant varchar2(100) := 'METRIC_ID';
   c_metricgroup_id       constant varchar2(100) := 'METRICGROUP_ID';
   c_metricagg            constant varchar2(100) := 'METRICAGG';
+  c_metric_tab           constant varchar2(100) := 'METRIC_TAB';
   c_block_analyze        constant varchar2(100) := 'BLOCKANALYZE';
   c_unknown_analyze      constant varchar2(100) := 'UNKNOWNANALYZE';
   c_monitor              constant varchar2(100) := 'MONITOR';
@@ -34,6 +35,15 @@ PACKAGE ASHA_CUBE_PKG AS
   stFAILED             constant varchar2(100) := 'FAILED';
 
   type tt_params_t is table of asha_cube_sess_pars.sess_par_val%type index by asha_cube_sess_pars.sess_par_nm%type;
+
+  type tt_metric_r is record(
+    pa_metric_id number,
+    pa_metricgroup_id number,
+    pa_metricagg varchar2(100)
+  );
+  type tt_metric_tab is table of tt_metric_r index by pls_integer;
+
+  c_metric_tab_max constant number := 3;
 
   procedure start_tmpl_edit(p_tmpl_id  in out  asha_cube_sess_tmpl.tmpl_id%type,
                             p_tmpl_proj_id     asha_cube_sess_tmpl.tmpl_proj_id%type,
@@ -65,6 +75,13 @@ PACKAGE ASHA_CUBE_PKG AS
   function get_parameter_db(p_sess_id         asha_cube_sess.sess_id%type,
                             p_param_name      asha_cube_sess_pars.sess_par_nm%type) return asha_cube_sess_pars.sess_par_val%type result_cache;
   function get_sess_pars (p_sess_id asha_cube_sess.sess_id%type) return tt_params_t;
+
+  procedure add_metric_tab(p_sess_id        asha_cube_sess.sess_id%type,
+                           p_metric_tab     tt_metric_tab);
+  procedure remove_metric_tab(p_sess_id        asha_cube_sess.sess_id%type);
+
+  function get_metric_tab(p_sess_id        asha_cube_sess.sess_id%type) return tt_metric_tab;
+  function metric_str2tab(p_metric_str varchar2) return tt_metric_tab;
 
   procedure validate_params(p_sess_id         asha_cube_sess.sess_id%type);
 

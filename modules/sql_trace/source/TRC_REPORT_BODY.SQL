@@ -16,6 +16,7 @@ package body trc_report as
     l_default_width number := 800;
 
     l_cnt number;
+    l_lobsect number;
 
     l_file_tot_time number;
     l_cpu           number;
@@ -190,13 +191,14 @@ order by 1,4 desc]';
 
     end;
   begin
-    COREMOD_LOG.Start_SQL_GATHER_STAT('TRC_REPORT.GETREPORT_I');
-    COREMOD_LOG.Start_SQL_TRACE('TRC_REPORT.GETREPORT_I');
+    COREMOD_LOG.Start_SQL_GATHER_STAT('TRC_REPORT.GETREPORT_I.GATHER_SQL_STAT');
+    COREMOD_LOG.Start_SQL_TRACE('TRC_REPORT.GETREPORT_I.SQL_TRACE');
 
     execute immediate q'[alter session set nls_numeric_characters='. ']';
+    select 1 into l_lobsect from dual where exists (select 1 from trc_lobcall where trc_file_id=p_trc_file_id);
 
     COREMOD_REPORT_UTILS.set_report_timing(true);
-    COREMOD_REPORT_UTILS.init_lo_report(p_op_name => l_report_name, p_target_desc => 'section', p_units => 'sections', p_totalwork => 5);
+    COREMOD_REPORT_UTILS.init_lo_report(p_op_name => l_report_name, p_target_desc => 'section', p_units => 'sections', p_totalwork => 5 + nvl(l_lobsect,0));
 
     p(HTF.header (1,l_report_name,cattributes=>'class="awr"'));
     p(HTF.BR);
@@ -207,8 +209,11 @@ order by 1,4 desc]';
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#topsqls',ctext=>'Top '||l_topsql||' SQLs',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#call_tree',ctext=>'Call Tree',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sqlstmts',ctext=>'SQL statements',cattributes=>'class="awr"')));
-/*    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#exadata',ctext=>'Exadata statistics',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sql_mon',ctext=>'SQL Monitor report',cattributes=>'class="awr"')));
+
+    if nvl(l_lobsect,0)=1 then
+      p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#lobops',ctext=>'LOB Operations',cattributes=>'class="awr"')));
+    end if;
+/*    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sql_mon',ctext=>'SQL Monitor report',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sql_workarea',ctext=>'SQL Workarea',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#cbo_env',ctext=>'CBO environment',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#dp_last',ctext=>'Display cursor (last)',cattributes=>'class="awr"')));
@@ -725,6 +730,41 @@ order siblings by pos]';
       p(HTF.BR);
     end loop;
 
+--  =============================================================================================================================================
+    --LOB Operations
+    if nvl(l_lobsect,0)=1 then
+      COREMOD_REPORT_UTILS.start_lo_section(p_module_name => l_module_name, p_action_name => 'LOB Operations');
+
+      p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'LOB Operations',cname=>'lobops',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
+      p(HTF.BR);
+
+      p(HTF.BIG('Operation list'));
+
+      l_sql := q'[with l as (select min(row_num) mi, max(row_num) ma from trc_wait where trc_file_id=<TRC_FILE_ID> and trc_slot=0)
+select call_type "Call",lob_type "LOB Type", bytes "Bytes", c "CPU",e "ELA",p "Phy Reads",cr "LIO",cu "Curr Reads" from (
+select row_num, call_type, lob_type, bytes, c,e,p,cr,cu from trc_lobcall where trc_file_id=<TRC_FILE_ID> union all
+select row_num, nam,       null,     null,  null, ela, null, null, null from trc_wait where trc_file_id=<TRC_FILE_ID> and trc_slot=0 union all
+select row_num, 'TRANSACTION: '||decode(rlbk,0,'COMMIT','ROLLBACK')||' '||decode(rd_only,0,'RO','RW'),
+       null, null, null, null, null, null, null from trc_trans, l where trc_file_id=<TRC_FILE_ID> and row_num between l.mi and l.ma
+order by row_num)]';
+      l_sql:=replace(l_sql,'<TRC_FILE_ID>',p_trc_file_id);
+      COREMOD_REPORT_UTILS.print_table_html_new
+                                           (p_query => l_sql,
+                                            p_width => l_default_width,
+                                            p_summary => 'Operation list',
+                                            --p_search varchar2 default null,
+                                            --p_replacement varchar2 default null,
+                                            p_style_tab => 'trctd',
+                                            p_style_head => 'trchd', --head
+                                            p_style_r1 => 'trcr1',   --odd rows
+                                            p_style_r2  => 'trcr2', --even rows
+                                            p_style_finrow => null, --'trctotr',
+                                            --p_header number default 0,
+                                            --p_break_col varchar2 default null,
+                                            p_output => p_report);
+      p(HTF.BR);
+    end if;
+--  =============================================================================================================================================
 
     p(COREMOD_REPORT_UTILS.end_lo_section);
     p(COREMOD_REPORT_UTILS.end_lo_section(p_is_finished=>true));
@@ -735,8 +775,8 @@ order siblings by pos]';
 --  =============================================================================================================================================
     commit; --to cleanup temp tables
 
-    COREMOD_LOG.Stop_SQL_GATHER_STAT('TRC_REPORT.GETREPORT_I');
-    COREMOD_LOG.Stop_SQL_TRACE('TRC_REPORT.GETREPORT_I');
+    COREMOD_LOG.Stop_SQL_GATHER_STAT('TRC_REPORT.GETREPORT_I.GATHER_SQL_STAT');
+    COREMOD_LOG.Stop_SQL_TRACE('TRC_REPORT.GETREPORT_I.SQL_TRACE');
   exception
     when others then
       rollback; --to cleanup temp tables

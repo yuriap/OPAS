@@ -195,7 +195,9 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     l_displ_params opas_reports.report_params_displ%type;
     l_modname      opas_reports.modname%type;
   begin
-    --l_report_type:=get_reppar_c(p_report_id,gparReportType);
+    COREMOD_LOG.Start_SQL_GATHER_STAT('COREMOD_REPORT_UTILS.EXECUTE_REPORT.GATHER_SQL_STAT');
+    COREMOD_LOG.Start_SQL_TRACE('COREMOD_REPORT_UTILS.EXECUTE_REPORT.SQL_TRACE');
+
     select modname, report_type into l_modname, l_report_type from opas_reports where report_id=p_report_id;
 
     coremod_tasks.log('Creating report: '||l_report_type,coremod_tasks.get_curr_tq_id);
@@ -333,6 +335,9 @@ PACKAGE BODY COREMOD_REPORT_UTILS AS
     update opas_reports set report_content = l_file, report_params_displ=l_displ_params where report_id=p_report_id;
 
     commit;
+
+    COREMOD_LOG.Stop_SQL_GATHER_STAT('COREMOD_REPORT_UTILS.EXECUTE_REPORT.GATHER_SQL_STAT');
+    COREMOD_LOG.Stop_SQL_TRACE('COREMOD_REPORT_UTILS.EXECUTE_REPORT.SQL_TRACE');
   end;
 
   procedure drop_report(p_report_id opas_reports.report_id%type)

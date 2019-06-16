@@ -124,16 +124,18 @@ PACKAGE BODY TRC_FILE_API AS
      WHERE trc_file_id = p_trc_file_id;
   end;
 
-  procedure remove_source_data_i(p_trc_file_id trc_files.trc_file_id%type)
+  procedure remove_source_data_i(p_trc_file_id trc_files.trc_file_id%type, p_set_status boolean)
   is
     l_trc_file         trc_files%rowtype;
   begin
     coremod_log.log('TRC_FILE_API.remove_source_data_i: '||p_trc_file_id,'DEBUG');
     l_trc_file:=get_file(p_trc_file_id,true);
-    if l_trc_file.status=TRC_FILE_LCC.c_trcfilestate_parsed then
-      TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_compress);
-    else
-      TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_archive);
+    if p_set_status then
+      if l_trc_file.status=TRC_FILE_LCC.c_trcfilestate_parsed then
+        TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_compress);
+      else
+        TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_archive);
+      end if;
     end if;
     update trc_files set file_content=null where trc_file_id=p_trc_file_id;
     COREFILE_API.delete_file(l_trc_file.file_content);
@@ -153,13 +155,15 @@ PACKAGE BODY TRC_FILE_API AS
     update trc_files set parsed=null where trc_file_id=p_trc_file_id;
   end;
 
-  procedure remove_parsed_data_i(p_trc_file_id trc_files.trc_file_id%type)
+  procedure remove_parsed_data_i(p_trc_file_id trc_files.trc_file_id%type, p_set_status boolean)
   is
     l_trc_file         trc_files%rowtype;
   begin
     coremod_log.log('TRC_FILE_API.remove_parsed_data_i: '||p_trc_file_id,'DEBUG');
     l_trc_file:=get_file(p_trc_file_id,true);
-    TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_archive);
+    if p_set_status then
+      TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_archive);
+    end if;
     remove_parsed_data_ii(p_trc_file_id);
   end;
 
@@ -181,11 +185,11 @@ PACKAGE BODY TRC_FILE_API AS
     if not(p_use_retention) then
       for i in (select x.* from trc_files x where proj_id = p_proj_id) loop
         if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_SOURCEDATA) then
-           remove_source_data_i(i.trc_file_id);
+           remove_source_data_i(i.trc_file_id, false);
            coremod_log.log('Purged source, file: '||i.trc_file_id,'DEBUG');
         end if;
         if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_PARSEDDATA) then
-          remove_parsed_data_i(i.trc_file_id);
+          remove_parsed_data_i(i.trc_file_id, false);
           coremod_log.log('Purged parsed, file: '||i.trc_file_id,'DEBUG');
         end if;
 		if p_mode in (TRC_PROJ_API.c_ALL) then
@@ -203,19 +207,22 @@ PACKAGE BODY TRC_FILE_API AS
         begin
           coremod_log.log('TRC_FILE_API.cleanup_files: '||i.trc_file_id||';'||p_proj_id||';'||
                           i.created||';'||i.source_retention||';'||
-                          i.parsed||';'||i.parsed_retention||';',
-                          'DEBUG');
+                          i.parsed||';'||i.parsed_retention||';'
+                          ,'DEBUG'
+                          );
           if p_mode in (TRC_PROJ_API.c_ALL, TRC_PROJ_API.c_SOURCEDATA) and i.status in (TRC_FILE_LCC.c_trcfilestate_LOADED,TRC_FILE_LCC.c_trcfilestate_PARSED)
           then
+            --coremod_log.log(to_char(i.created + nvl(to_number(COREMOD_API.getconf('SOURCERETENTION',TRC_FILE_API.gMODNAME)),8),'YYYY/MM/DD HH24:MI:SS'));
+            --coremod_log.log(to_char((i.created + i.source_retention),'YYYY/MM/DD HH24:MI:SS'));
             if i.source_retention is null and (i.created + nvl(to_number(COREMOD_API.getconf('SOURCERETENTION',TRC_FILE_API.gMODNAME)),8)) < sysdate
             then
-		      remove_source_data_i(i.trc_file_id);
+		      remove_source_data_i(i.trc_file_id, true);
               coremod_log.log('Removed source by default retention, file: '||i.trc_file_id);
 		    end if;
 
             if nvl(i.source_retention,-1)>0 and (i.created + i.source_retention) < sysdate
             then
-              remove_source_data_i(i.trc_file_id);
+              remove_source_data_i(i.trc_file_id, true);
               coremod_log.log('Removed source by '||i.source_retention||' retention, file: '||i.trc_file_id);
 		    end if;
           end if;
@@ -224,13 +231,13 @@ PACKAGE BODY TRC_FILE_API AS
           then
             if i.parsed_retention is null and i.parsed + nvl(to_number(COREMOD_API.getconf('PARSEDRETENTION',TRC_FILE_API.gMODNAME)),8) < sysdate
             then
-		      remove_parsed_data_i(i.trc_file_id);
+		      remove_parsed_data_i(i.trc_file_id, true);
               coremod_log.log('Removed parsed by default retention, file: '||i.trc_file_id);
 		    end if;
 
             if nvl(i.parsed_retention,-1)>0 and (i.parsed + i.parsed_retention) < sysdate
             then
-              remove_parsed_data_i(i.trc_file_id);
+              remove_parsed_data_i(i.trc_file_id, true);
               coremod_log.log('Removed parsed by '||i.parsed_retention||' retention, file: '||i.trc_file_id);
 		    end if;
           end if;
@@ -284,7 +291,7 @@ PACKAGE BODY TRC_FILE_API AS
   begin
     coremod_log.log('TRC_FILE_API.compress_file: '||p_trc_file_id,'DEBUG');
     TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_compress);
-	remove_source_data_i(p_trc_file_id);
+	remove_source_data_i(p_trc_file_id, false);
   end;
 
   procedure archive_file(p_trc_file_id trc_files.trc_file_id%type)
@@ -293,8 +300,8 @@ PACKAGE BODY TRC_FILE_API AS
     coremod_log.log('TRC_FILE_API.archive_file: '||p_trc_file_id,'DEBUG');
     TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_archive);
 
-	remove_source_data_i(p_trc_file_id);
-	remove_parsed_data_i(p_trc_file_id);
+	remove_source_data_i(p_trc_file_id, false);
+	remove_parsed_data_i(p_trc_file_id, false);
   end;
 
   procedure drop_file(p_trc_file_id trc_files.trc_file_id%type)
@@ -306,9 +313,9 @@ PACKAGE BODY TRC_FILE_API AS
 
     TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_drop);
 
-    remove_source_data_i(p_trc_file_id);
-	remove_parsed_data_i(p_trc_file_id);
-	remove_report_i    (p_trc_file_id);
+    remove_source_data_i(p_trc_file_id, false);
+	remove_parsed_data_i(p_trc_file_id, false);
+	remove_report_i     (p_trc_file_id);
 	delete from trc_files where trc_file_id = p_trc_file_id;
   end;
 
