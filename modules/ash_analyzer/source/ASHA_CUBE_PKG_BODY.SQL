@@ -133,6 +133,8 @@ PACKAGE BODY ASHA_CUBE_PKG AS
   begin
     select sess_par_val into l_val from asha_cube_sess_pars where sess_id=p_sess_id and sess_par_nm=upper(p_param_name);
     return l_val;
+  exception
+    when no_data_found then return null;
   end;
 
   function get_metric_tab(p_sess_id        asha_cube_sess.sess_id%type) return tt_metric_tab
@@ -515,7 +517,7 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
                                                     '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
                                             '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
                                     '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
-                            '<AGGFNC>',case when p_metricagg in ('AVG', 'COUNT', 'SUM') then p_metricagg||'(value)'
+                            '<AGGFNC>',case when p_metricagg in ('AVG', 'COUNT', 'SUM', 'MIN', 'MAX') then p_metricagg||'(value)'
                                             when instr(p_metricagg,'PCT')>0 then 'PERCENTILE_CONT('||to_number(ltrim(p_metricagg,'PCT'))/100||') WITHIN GROUP (ORDER BY value ASC)'
                                             end),
                             '<P_INST_ID>',p_inst_list);
@@ -525,7 +527,7 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
         when p_cubeagg = 'no_agg'  then
           l_sql := replace(l_sql,'<GROUPBY_COL>','end_time');
         when p_cubeagg = 'by_mi'   then
-          if l_int_size<6000 then
+          if l_int_size<=6000 then
             l_sql := replace(l_sql,'<GROUPBY_COL>',q'[trunc(end_time,'mi')]');
           else
             l_sql := replace(l_sql,'<GROUPBY_COL>','end_time');

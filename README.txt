@@ -1,4 +1,4 @@
-Oracle Performance Analytic Suite Version 5.0.2 PROD
+Oracle Performance Analytic Suite Version 5.0.4 PROD
 (former AWR Tools)
 
 Demo version is available at:
