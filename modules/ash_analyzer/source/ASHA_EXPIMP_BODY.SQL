@@ -240,8 +240,8 @@ PACKAGE BODY ASHA_EXPIMP AS
              select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),sample_time,wait_class,sql_id,event,event_id,module,action,sql_id1,sql_plan_hash_value,segment_id,g1,g2,g3,g4,g5,g6,smpls from ei$asha_cube s;
         INSERT INTO asha_cube_block (sess_id,session_id,session_serial#,inst_id,sql_id,module,action,blocking_session,blocking_session_serial#,blocking_inst_id,cnt,blocker_id)
              select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),session_id,session_serial#,inst_id,sql_id,module,action,blocking_session,blocking_session_serial#,blocking_inst_id,cnt,blocker_id from ei$asha_cube_block s;
-        INSERT INTO asha_cube_metrics (sess_id,metric_id,end_time,value)
-             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),metric_id,end_time,value from ei$asha_cube_metrics s;
+        INSERT INTO asha_cube_metrics (sess_id,metric_id,end_time,value,inst_id,group_id,aggfnc)
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),metric_id,end_time,value,inst_id,group_id,aggfnc from ei$asha_cube_metrics s;
         INSERT INTO asha_cube_seg (sess_id,segment_id,segment_name)
              select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),segment_id,segment_name from ei$asha_cube_seg s;
         INSERT INTO asha_cube_snap_ash (sess_id,inst_id,sample_id,sample_time,sample_time_utc,usecs_per_row,is_awr_sample,

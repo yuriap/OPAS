@@ -45,7 +45,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
       INSERT INTO asha_cube_sess_tmpl (tmpl_proj_id, tmpl_name, tmpl_description, tmpl_created, tmpl_base )
         VALUES (p_tmpl_proj_id, p_tmpl_name, p_tmpl_description, default, default) returning tmpl_id into p_tmpl_id;
     else
-      update asha_cube_sess_tmpl set tmpl_name = p_tmpl_name, tmpl_description = p_tmpl_description where tmpl_id = p_tmpl_id and tmpl_base='N';
+      update asha_cube_sess_tmpl set tmpl_proj_id = p_tmpl_proj_id, tmpl_name = p_tmpl_name, tmpl_description = p_tmpl_description where tmpl_id = p_tmpl_id and tmpl_base='N';
     end if;
   end;
   procedure set_tmpl_par   (p_tmpl_id          asha_cube_sess_tmpl_pars.tmpl_id%type,
@@ -488,24 +488,43 @@ PACKAGE BODY ASHA_CUBE_PKG AS
                                )
   is
     l_sql_template_metrics varchar2(32765):=
-q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
-   select   :P_SESS_ID, metric_id, <GROUPBY_COL>, <AGGFNC>
+q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value, inst_id, group_id, aggfnc)
+   select   :P_SESS_ID, :P_METRIC_ID, <GROUPBY_COL>, <AGGFNC>, <INSTANCE_NUMBER>, :p_metricgroup_id, '<AGGFNCNM>'
      from   <SOURCE_TABLE>
     where   <DBID>
       AND   <INSTANCE_NUMBER> in (<P_INST_ID>)
       AND   <SNAP_FILTER>
       AND   end_time BETWEEN :P_START_DT AND :P_END_DT
       and   metric_id = :P_METRIC_ID
-      and   group_id=:p_metricgroup_id
-    group by <GROUPBY_COL>, metric_id]';
-    l_sql varchar2(32765);
+      and   group_id  = :p_metricgroup_id
+    group by <GROUPBY_COL>, <INSTANCE_NUMBER>]';
+
+    l_sql_template_metrics_summ varchar2(32765):=
+q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, aggfnc)
+   with summ as (
+   select   :P_SESS_ID sess_id, :P_METRIC_ID metric_id, avg(value) avg_val, PERCENTILE_CONT(0.95) WITHIN GROUP(ORDER BY value ASC) pct95_val, <INSTANCE_NUMBER> inst_id, :p_metricgroup_id group_id
+     from   <SOURCE_TABLE>
+    where   <DBID>
+      AND   <INSTANCE_NUMBER> in (<P_INST_ID>)
+      AND   <SNAP_FILTER>
+      AND   end_time BETWEEN :P_START_DT AND :P_END_DT
+      and   metric_id = :P_METRIC_ID
+      and   group_id  = :p_metricgroup_id
+    group by <INSTANCE_NUMBER>)
+    select sess_id, metric_id, avg_val value, inst_id, group_id, 'SUMMAVG' aggfnc from summ
+    union all
+    select sess_id, metric_id, pct95_val value, inst_id, group_id, 'SUMM95PCT' aggfnc from summ]';
+
+    l_sql1 varchar2(32765);
+    l_sql2 varchar2(32765);
+
     l_crsr sys_refcursor;
     l_int_size number;
   begin
     coremod_log.log('Start calc_metric_cube, p_metric_id:'||p_metric_id,'DEBUG');
     if p_metric_id is not null then
 
-      l_sql := replace(replace(replace(replace(replace(replace(l_sql_template_metrics,
+      l_sql1 := replace(replace(replace(replace(replace(replace(replace(l_sql_template_metrics,
                                                             '<SOURCE_TABLE>',case
                                                                                when p_source = 'V$VIEW' then case when p_dblink = '$LOCAL$' then 'gv$sysmetric_history'
                                                                                                             else 'gv$sysmetric_history@'||p_dblink
@@ -520,48 +539,80 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, end_time, value)
                             '<AGGFNC>',case when p_metricagg in ('AVG', 'COUNT', 'SUM', 'MIN', 'MAX') then p_metricagg||'(value)'
                                             when instr(p_metricagg,'PCT')>0 then 'PERCENTILE_CONT('||to_number(ltrim(p_metricagg,'PCT'))/100||') WITHIN GROUP (ORDER BY value ASC)'
                                             end),
+                            '<AGGFNCNM>',p_metricagg),
+                            '<P_INST_ID>',p_inst_list);
+
+      l_sql2 := replace(replace(replace(replace(replace(l_sql_template_metrics_summ,
+                                                            '<SOURCE_TABLE>',case
+                                                                               when p_source = 'V$VIEW' then case when p_dblink = '$LOCAL$' then 'gv$sysmetric_history'
+                                                                                                            else 'gv$sysmetric_history@'||p_dblink
+                                                                                                            end
+                                                                               when p_source = 'AWR' then case when p_dblink = '$LOCAL$' then 'dba_hist_sysmetric_history'
+                                                                                                          else 'dba_hist_sysmetric_history@'||p_dblink
+                                                                                                          end
+                                                                             end),
+                                                    '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
+                                            '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
+                                    '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
                             '<P_INST_ID>',p_inst_list);
 
       select interval_size into l_int_size from V$METRICGROUP where group_id = p_metricgroup_id;
       case
         when p_cubeagg = 'no_agg'  then
-          l_sql := replace(l_sql,'<GROUPBY_COL>','end_time');
+          l_sql1 := replace(l_sql1,'<GROUPBY_COL>','end_time');
         when p_cubeagg = 'by_mi'   then
           if l_int_size<=6000 then
-            l_sql := replace(l_sql,'<GROUPBY_COL>',q'[trunc(end_time,'mi')]');
+            l_sql1 := replace(l_sql1,'<GROUPBY_COL>',q'[trunc(end_time,'mi')]');
           else
-            l_sql := replace(l_sql,'<GROUPBY_COL>','end_time');
+            l_sql1 := replace(l_sql1,'<GROUPBY_COL>','end_time');
           end if;
         when p_cubeagg = 'by_hour' then
           if l_int_size<360000 then
-            l_sql := replace(l_sql,'<GROUPBY_COL>',q'[trunc(end_time,'hh')]');
+            l_sql1 := replace(l_sql1,'<GROUPBY_COL>',q'[trunc(end_time,'hh')]');
           else
-            l_sql := replace(l_sql,'<GROUPBY_COL>','end_time');
+            l_sql1 := replace(l_sql1,'<GROUPBY_COL>','end_time');
           end if;
         when p_cubeagg = 'by_day'  then
-          l_sql := replace(l_sql,'<GROUPBY_COL>',q'[trunc(end_time,'dd')]');
+          l_sql1 := replace(l_sql1,'<GROUPBY_COL>',q'[trunc(end_time,'dd')]');
         else
           null;
       end case;
 
+      if p_monitor then
+        delete from asha_cube_metrics where sess_id=p_sess_id;
+      end if;
+
       begin
         coremod_log.log('Start metrics loading','DEBUG');
-        coremod_log.log(l_sql,'DEBUG');
+        coremod_log.log(l_sql1,'DEBUG');
 
-        if p_monitor then
-          delete from asha_cube_metrics where sess_id=p_sess_id;
-        end if;
         coremod_log.log('p_sess_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt, p_metric_id, p_metricgroup_id:'||
                         p_sess_id||':'||p_dbid||':'||p_min_snap||':'||p_max_snap||':'||p_start_dt||':'||p_end_dt||':'||p_metric_id||':'||p_metricgroup_id,'DEBUG');
-        execute immediate l_sql using p_sess_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt, p_metric_id, p_metricgroup_id;
+        execute immediate l_sql1 using p_sess_id, p_metric_id, p_metricgroup_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt, p_metric_id, p_metricgroup_id;
 
         coremod_log.log('End metrics loading','DEBUG');
       exception
         when others then
-          coremod_log.log('Error SQL: '||chr(10)||l_sql||chr(10)||sqlerrm);
+          coremod_log.log('Error SQL: '||chr(10)||l_sql1||chr(10)||sqlerrm);
+          raise_application_error(-20000,sqlerrm);
+      end;
+
+      begin
+        coremod_log.log('Start metrics summary loading','DEBUG');
+        coremod_log.log(l_sql2,'DEBUG');
+
+        coremod_log.log('p_sess_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt, p_metric_id, p_metricgroup_id:'||
+                        p_sess_id||':'||p_dbid||':'||p_min_snap||':'||p_max_snap||':'||p_start_dt||':'||p_end_dt||':'||p_metric_id||':'||p_metricgroup_id,'DEBUG');
+        execute immediate l_sql2 using p_sess_id, p_metric_id, p_metricgroup_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt, p_metric_id, p_metricgroup_id;
+
+        coremod_log.log('End metrics summary loading','DEBUG');
+      exception
+        when others then
+          coremod_log.log('Error SQL: '||chr(10)||l_sql2||chr(10)||sqlerrm);
           raise_application_error(-20000,sqlerrm);
       end;
     end if;
+
     coremod_log.log('End calc_metric_cube','DEBUG');
   end;
 

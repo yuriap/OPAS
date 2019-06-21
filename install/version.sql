@@ -1,2 +1,2 @@
 -- Oracle Performance Analytic Suite version
-define OPASVER=5.0.4
+define OPASVER=5.0.5

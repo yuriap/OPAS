@@ -246,3 +246,4 @@ create index idx_asha_cube_reports_rep  on asha_cube_reports(report_id);
 create index idx_asha_cube_reports_sess  on asha_cube_reports(sess_id);
 
 @@upgrade_struct_3.4.9_3.4.10.sql
+@@upgrade_struct_3.4.12_3.4.13.sql

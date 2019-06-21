@@ -34,6 +34,9 @@ PACKAGE ASHA_CUBE_PKG AS
   stMONITOR            constant varchar2(100) := 'MONITOR';
   stFAILED             constant varchar2(100) := 'FAILED';
 
+  c_summAVG            constant varchar2(100) := 'SUMMAVG';
+  c_summ95PCT          constant varchar2(100) := 'SUMM95PCT';
+
   type tt_params_t is table of asha_cube_sess_pars.sess_par_val%type index by asha_cube_sess_pars.sess_par_nm%type;
 
   type tt_metric_r is record(

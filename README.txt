@@ -1,4 +1,4 @@
-Oracle Performance Analytic Suite Version 5.0.4 PROD
+Oracle Performance Analytic Suite Version 5.0.5 PROD
 (former AWR Tools)
 
 Demo version is available at:
@@ -31,3 +31,7 @@ Version 5.0.4
 -------------
  - SQL Trace - LOB calls
  - Up to 3 system metrics at ASH Diagram page
+
+Version 5.0.5
+-------------
+ - ASHA mertic diagrams redefined.
