@@ -5,6 +5,9 @@ Demo version is available at:
 https://apex.oracle.com/pls/apex/f?p=1841
 opasdemo/opasdemo
 
+Oracle Virtual Box Image with Oracle XE 18c and OPAS 5.0.5 is available here
+ftp://78.159.49.194/VirtualBox_Images/OracleXE18c_OPAS_505/
+
 Release notes:
 ==============
 

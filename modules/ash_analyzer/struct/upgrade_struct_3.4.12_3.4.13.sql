@@ -1,6 +1,6 @@
 alter table asha_cube_metrics add (inst_id number, group_id number, aggfnc varchar2(10));
 
-
+prompt Ignoreble errors during initial installation
 declare
   l_inst number;
   l_grp number;

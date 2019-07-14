@@ -305,7 +305,7 @@ src_version    varchar2(100),
 trg_version    varchar2(100)
 );
 
-create or replace view v$opas_expimp_sessions as
+create or replace force view v$opas_expimp_sessions as
 select 
     x.sess_id,
     x.tq_id,

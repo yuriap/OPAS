@@ -50,6 +50,8 @@ set define off
 @../../modules/sql_trace/source/create_stored.sql
 set define on
 
+@../../modules/sql_trace/struct/upgrade_structure_2.3.1-2.4.0_mv.sql
+
 exec COREMOD.register(p_modname => '&MODNM.', p_modver => '&MODVER.', p_installed => sysdate);
 commit;
 
@@ -71,6 +73,8 @@ commit;
 set define off
 @../../modules/awr_warehouse/source/create_stored.sql
 set define on
+
+@../../modules/awr_warehouse/struct/upgrade_struct_4.4.1_4.4.2_mv.sql
 
 exec COREMOD.register(p_modname => '&MODNM.', p_modver => '&MODVER.', p_installed => sysdate);
 commit;

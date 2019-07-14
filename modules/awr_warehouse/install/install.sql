@@ -21,6 +21,8 @@ conn &localscheme./&localscheme.@&localdb.
 @../modules/awr_warehouse/struct/create_struct.sql
 @../modules/awr_warehouse/source/create_stored.sql
 
+@../modules/awr_warehouse/struct/upgrade_struct_4.4.0_4.4.1_mv.sql
+@../modules/awr_warehouse/struct/upgrade_struct_4.4.1_4.4.2_mv.sql
 
 
 exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'AWR WareHouse module', p_modver => '&MODVER.', p_installed => sysdate);

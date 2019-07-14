@@ -17,9 +17,12 @@ grant execute on dbms_xplan to &localscheme.;
 grant create database link to &localscheme.;
 grant alter session to &localscheme.;
 grant create materialized view to &localscheme.;
+grant execute on dbms_log to &localscheme.;
 
 --APEX 18.1 uploading files
 grant update on apex_180100.WWV_FLOW_TEMP_FILES to &localscheme.;
+--APEX 19.1 uploading files
+grant update on apex_190100.WWV_FLOW_TEMP_FILES to &localscheme.;
 grant select on v_$session to &localscheme.;
 grant select on gv_$session to &localscheme.;
 grant select on v_$parameter to &localscheme.;

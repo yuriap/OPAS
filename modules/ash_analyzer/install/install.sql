@@ -11,6 +11,8 @@ conn &localscheme./&localscheme.@&localdb.
 
 @../modules/ash_analyzer/source/create_stored.sql
 
+@../modules/ash_analyzer/struct/upgrade_struct_3.4.9_3.4.10_mv.sql
+
 exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'ASH Analyzer module', p_modver => '&MODVER.', p_installed => sysdate);
 
 @../modules/ash_analyzer/data/load.sql

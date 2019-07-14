@@ -13,6 +13,9 @@ conn &localscheme./&localscheme.@&localdb.
 
 @../modules/sql_trace/source/create_stored.sql
 
+@../modules/sql_trace/struct/upgrade_structure_2.3.0-2.3.1_p2_mv.sql
+@../modules/sql_trace/struct/upgrade_structure_2.3.1-2.4.0_mv.sql
+
 exec COREMOD.register(p_modname => '&MODNM.', p_moddescr => 'Extended SQL Trace Module', p_modver => '&MODVER.', p_installed => sysdate);
 
 @../modules/sql_trace/data/load.sql
