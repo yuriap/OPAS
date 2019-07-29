@@ -365,7 +365,15 @@ PACKAGE BODY TRC_FILE_API AS
     TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_startparse);	 --autonomous
 
     TRC_PROCESSFILE.parse_file(p_trc_file_id);
+    --commit;
+
+    --for i in (select table_name from user_tables where table_name like 'TRC%') loop
+    --  dbms_stats.gather_table_stats(OWNNAME => user, TABNAME=> i.table_name, CASCADE => true);
+    --end loop;
+
     trc_report.getreport(p_trc_file_id);
+
+    --commit;
 
     TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_finishparse);
 
@@ -373,6 +381,8 @@ PACKAGE BODY TRC_FILE_API AS
       when others then
         rollback;
         coremod_log.log('TRC_FILE_API.parse_file error: '||sqlerrm);
+        COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_STACK);
+        COREMOD_LOG.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
         TRC_FILE_LCC.trcfile_exec_action(p_trc_file_id,TRC_FILE_LCC.c_trcfile_failparse);
         raise_application_error(-20000,'parse_file exception: '||sqlerrm);
   end;

@@ -2,7 +2,7 @@ CREATE OR REPLACE
 PACKAGE BODY TRC_EXPIMP AS
 
   gTrcTables COREMOD_EXPIMP.t_object_names :=
-                         COREMOD_EXPIMP.t_object_names('TRC_BINDS','TRC_CALL','TRC_CALL_SELF','TRC_CLIENT_IDENTITY','TRC_FILES','TRC_OBJ_DIC','TRC_SESSION','TRC_STAT','TRC_STATEMENT','TRC_TRANS','TRC_WAIT', 'TRC_LOBCALL');
+                         COREMOD_EXPIMP.t_object_names('TRC_BINDS','TRC_CALL','TRC_CALL_SELF','TRC_CLIENT_IDENTITY','TRC_FILES','TRC_OBJ_DIC','TRC_SESSION','TRC_STAT','TRC_STATEMENT','TRC_TRANS','TRC_WAIT', 'TRC_LOBCALL', 'TRC_SIMILAR_STMT');
   gProjList COREMOD_EXPIMP.t_object_names :=
                          COREMOD_EXPIMP.t_object_names('TRC_PROJECTS');
 
@@ -329,6 +329,12 @@ PACKAGE BODY TRC_EXPIMP AS
             (select new_id from ei$trc_files i where i.trc_file_id=o.trc_file_id) trc_file_id,
             call_type, lob_type, row_num, trc_slot, bytes, c, e, p, cr, cu, tim
           from ei$trc_lobcall o;
+
+          INSERT INTO trc_similar_stmt (stmt_id_sim, stmt_id_base, trc_file_id)
+          select (select new_id from ei$trc_statement i where i.stmt_id=o.stmt_id_sim),
+                 (select new_id from ei$trc_statement i where i.stmt_id=o.stmt_id_base),
+                 (select new_id from ei$trc_files i where i.trc_file_id=o.trc_file_id) trc_file_id
+          from ei$trc_similar_stmt o;
 
           insert into trc_obj_dic (trc_file_id, object_id, object_name)
           SELECT (select new_id from ei$trc_files i where i.trc_file_id=o.trc_file_id) trc_file_id, object_id, object_name FROM ei$trc_obj_dic o;

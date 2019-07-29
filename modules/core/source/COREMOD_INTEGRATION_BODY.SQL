@@ -61,13 +61,15 @@ PACKAGE BODY COREMOD_INTEGRATION AS
   is
     l_int opas_integration%rowtype;
   begin
-    select i.* into l_int from opas_integration i, opas_integration_tmpl t where t.trg_modname = p_modname and i.int_key=t.int_key and i.int_key = p_int_key and trg_entity_id=p_trg_entity_id and trg_prnt_entity_id=p_trg_prnt_entity_id;
-    COREMOD_INTEGRATION.create_integration (
-      P_INT_KEY => p_int_key,
-      P_SRC_ENTITY_ID => l_int.src_entity_id,
-      P_SRC_PRNT_ENTITY_ID => l_int.src_prnt_entity_id,
-      P_TRG_ENTITY_ID => p_new_trg_entity_id,
-      P_TRG_PRNT_ENTITY_ID => l_int.trg_prnt_entity_id) ;
+    for l_int in (select i.* from opas_integration i, opas_integration_tmpl t where t.trg_modname = p_modname and i.int_key=t.int_key and i.int_key = p_int_key and trg_entity_id=p_trg_entity_id and trg_prnt_entity_id=p_trg_prnt_entity_id)
+    loop
+      COREMOD_INTEGRATION.create_integration (
+        P_INT_KEY => p_int_key,
+        P_SRC_ENTITY_ID => l_int.src_entity_id,
+        P_SRC_PRNT_ENTITY_ID => l_int.src_prnt_entity_id,
+        P_TRG_ENTITY_ID => p_new_trg_entity_id,
+        P_TRG_PRNT_ENTITY_ID => l_int.trg_prnt_entity_id) ;
+    end loop;
   exception
     when others then coremod_log.log('clone_integration: '||sqlerrm);
   end;

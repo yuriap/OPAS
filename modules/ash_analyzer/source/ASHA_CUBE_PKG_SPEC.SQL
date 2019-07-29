@@ -27,6 +27,10 @@ PACKAGE ASHA_CUBE_PKG AS
 
   c_date_interval        constant varchar2(100) := 'DATE_INTERVAL';
 
+  c_PAUSEMONITOR        constant varchar2(100) := 'PAUSEMONITOR';      -- Seconds between cube refresh in Monitor mode
+  c_ITERATIONSMONITOR   constant varchar2(100) := 'ITERATIONSMONITOR'; --Number of refresh iteration of cube in Monitor mode
+  c_SNAP_ASH_FREQ       constant varchar2(100) := 'SNAP_ASH_FREQ';     --Frequency sec^-1 of snapping V$SESSION in Monitor mode (Standard Edition)
+
   stNEW                constant varchar2(100) := 'NEW';
   stINQUEUE            constant varchar2(100) := 'INQUEUE';
   stCALC               constant varchar2(100) := 'CALCULATING';
@@ -87,6 +91,8 @@ PACKAGE ASHA_CUBE_PKG AS
   function metric_str2tab(p_metric_str varchar2) return tt_metric_tab;
 
   procedure validate_params(p_sess_id         asha_cube_sess.sess_id%type);
+
+  procedure stop_cube(p_sess_id         asha_cube_sess.sess_id%type);
 
 END ASHA_CUBE_PKG;
 /

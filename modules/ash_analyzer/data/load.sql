@@ -6,9 +6,9 @@ INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RE
 
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RETENTION','METRICSDICRETENTION', 90,'Time of METRICS dictionary expiration, days');
 INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','RETENTION','RACNODEDICRETENTION',  8,'Time of RAC nodes dictionary expiration, days');
-INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','MONITOR',  'PAUSEMONITOR',        10,'Seconds between cube refresh in Monitor mode');
-INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','MONITOR',  'ITERATIONSMONITOR',   60,'Number of refresh iteration of cube in Monitor mode');
-INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','MONITOR',  'SNAP_ASH_FREQ',      0.5,'Frequency sec^-1 of snapping V$SESSION in Monitor mode (Standard Edition)');
+--INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','MONITOR',  'PAUSEMONITOR',        10,'Seconds between cube refresh in Monitor mode');
+--INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','MONITOR',  'ITERATIONSMONITOR',   60,'Number of refresh iteration of cube in Monitor mode');
+--INSERT INTO opas_config (modname,cgroup,ckey,cvalue,descr) VALUES ('&MODNM.','MONITOR',  'SNAP_ASH_FREQ',      0.5,'Frequency sec^-1 of snapping V$SESSION in Monitor mode (Standard Edition)');
 
 @@expimp_compat.sql
 @@load_tmpls.sql

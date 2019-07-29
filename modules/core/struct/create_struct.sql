@@ -152,7 +152,7 @@ select tq.*,
        case 
          when message is null then 'N/A' 
          else opname || ':' || message || '; elapsed: ' || elapsed_seconds || '; remaining: ' || nvl(to_char(time_remaining), 'N/A') end msg,
-       round(100 * (sofar / totalwork)) pct_done,
+       round(100 * (sofar / decode(totalwork,0,1,totalwork))) pct_done,
        units,opname,module,action
   from V$OPAS_TASK_QUEUE           tq,
        gv$session_longops           lo,

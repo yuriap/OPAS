@@ -217,6 +217,8 @@ package body coremod_tasks as
     l_job_name opas_task_queue.job_name%type;
   begin
     select job_name into l_job_name from opas_task_queue where tq_id=p_tq_id;
+    update opas_task_queue set status=gtqCanceled where tq_id = p_tq_id and status in (gtqRUNNING);
+    commit;
     dbms_scheduler.stop_job(l_job_name);
   exception
      when others then

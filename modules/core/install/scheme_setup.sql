@@ -57,3 +57,5 @@ create or replace directory &OPASEXPIMP_DIR. as '&OPASEXPIMP_DIRPATH.';
 grant read, write on directory &OPASEXPIMP_DIR. to &localscheme.;
 
 grant create table to &localscheme.;
+
+grant MANAGE SCHEDULER to &localscheme.;

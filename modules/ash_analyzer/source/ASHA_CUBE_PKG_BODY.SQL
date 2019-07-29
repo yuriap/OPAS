@@ -2,27 +2,30 @@ CREATE OR REPLACE
 PACKAGE BODY ASHA_CUBE_PKG AS
 
   type tt_all_params_r is record (
-    pa_source varchar2(100),
-    pa_dblink varchar2(100),
-    pa_cubeagg varchar2(100),
-    pa_inst_id varchar2(100),
-    pa_start_dt timestamp,
-    pa_end_dt timestamp,
-    pa_filter varchar2(4000),
-    pa_dump_id number,
-    pa_metric_id number,
-    pa_metricgroup_id number,
-    pa_metricagg varchar2(100),
-    pa_metric_tab tt_metric_tab,
-    pa_block_analyze boolean,
-    pa_unknown_analyze boolean,
-    pa_monitor boolean,
-    pa_top_sess boolean,
-    pa_snap_ash boolean,
+    pa_source               varchar2(100),
+    pa_dblink               varchar2(100),
+    pa_cubeagg              varchar2(100),
+    pa_inst_id              varchar2(100),
+    pa_start_dt             timestamp,
+    pa_end_dt               timestamp,
+    pa_filter               varchar2(4000),
+    pa_dump_id              number,
+    pa_metric_id            number,
+    pa_metricgroup_id       number,
+    pa_metricagg            varchar2(100),
+    pa_metric_tab           tt_metric_tab,
+    pa_block_analyze        boolean,
+    pa_unknown_analyze      boolean,
+    pa_monitor              boolean,
+    pa_top_sess             boolean,
+    pa_snap_ash             boolean,
     pa_filtered_separatelly boolean,
-    pa_dbid number,
-    pa_start_snap number,
-    pa_end_snap number
+    pa_dbid                 number,
+    pa_start_snap           number,
+    pa_end_snap             number,
+    pa_PAUSEMONITOR         number,
+    pa_ITERATIONSMONITOR    number,
+    pa_SNAP_ASH_FREQ        number
     );
 
   g_params_t tt_params_t;
@@ -89,7 +92,8 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     coremod_log.log('get param:'||p_param_name||':'||g_params_t(upper(p_param_name)),'DEBUG');
     return g_params_t(upper(p_param_name));
   exception
-    when no_data_found then raise_application_error(-20000,'Parameter "'||p_param_name||'" is not specified for session '||g_params_t(c_sess)||chr(10)||DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+    when no_data_found then
+      raise_application_error(-20000,'Parameter "'||p_param_name||'" is not specified for session '||g_params_t(c_sess)||chr(10)||DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
   end;
 
   function metric_tab2str(p_metric_tab tt_metric_tab) return varchar2
@@ -171,6 +175,10 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     g_allpars.pa_start_snap := get_parameter(c_START_SNAP);
     g_allpars.pa_end_snap := get_parameter(c_END_SNAP);
 
+    g_allpars.pa_PAUSEMONITOR          := get_parameter(c_PAUSEMONITOR);
+    g_allpars.pa_ITERATIONSMONITOR     := get_parameter(c_ITERATIONSMONITOR);
+    g_allpars.pa_SNAP_ASH_FREQ         := get_parameter(c_SNAP_ASH_FREQ);
+
     --g_allpars.pa_snap_duration := get_parameter(c_SNAP_DURATION);
   end;
 
@@ -182,6 +190,18 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     if to_bool(get_parameter(c_SNAP_ASH)) then
       add_parameter(p_sess_id,c_monitor,'Y');
       add_parameter(p_sess_id,c_date_interval,'-1');
+      if get_parameter_db(p_sess_id,c_SNAP_ASH_FREQ) is null then
+        add_parameter(p_sess_id,c_SNAP_ASH_FREQ,0.5);
+      end if;
+    end if;
+
+    if nvl(get_parameter(c_monitor),'~') = 'Y' then
+      if get_parameter_db(p_sess_id,c_PAUSEMONITOR) is null then
+        add_parameter(p_sess_id,c_PAUSEMONITOR,10);
+      end if;
+      if get_parameter_db(p_sess_id,c_ITERATIONSMONITOR) is null then
+        add_parameter(p_sess_id,c_ITERATIONSMONITOR,60);
+      end if;
     end if;
 
     if get_parameter(c_date_interval) is not null then
@@ -201,6 +221,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
       add_parameter(p_sess_id,c_start_dt,to_char(l_dt1,c_datetime_fmt));
       add_parameter(p_sess_id,c_end_dt,to_char(l_dt2,c_datetime_fmt));
     end if;
+
   end;
 
   procedure load_par_tmpl(p_tmpl_id          asha_cube_sess_tmpl.tmpl_id%type,
@@ -244,6 +265,10 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     if l_params_t.exists(c_DBID) then add_parameter(p_sess_id,c_DBID,l_params_t(c_DBID)); end if;
     if l_params_t.exists(c_START_SNAP) then add_parameter(p_sess_id,c_START_SNAP,l_params_t(c_START_SNAP)); end if;
     if l_params_t.exists(c_END_SNAP) then add_parameter(p_sess_id,c_END_SNAP,l_params_t(c_END_SNAP)); end if;
+
+    if l_params_t.exists(c_PAUSEMONITOR) then add_parameter(p_sess_id,c_PAUSEMONITOR,l_params_t(c_PAUSEMONITOR)); end if;
+    if l_params_t.exists(c_ITERATIONSMONITOR) then add_parameter(p_sess_id,c_ITERATIONSMONITOR,l_params_t(c_ITERATIONSMONITOR)); end if;
+    if l_params_t.exists(c_SNAP_ASH_FREQ) then add_parameter(p_sess_id,c_SNAP_ASH_FREQ,l_params_t(c_SNAP_ASH_FREQ)); end if;
 
     coremod_log.log('load_par_tmpl finished','DEBUG');
   end;
@@ -579,7 +604,7 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
       end case;
 
       if p_monitor then
-        delete from asha_cube_metrics where sess_id=p_sess_id;
+        delete from asha_cube_metrics where sess_id=p_sess_id and metric_id=p_metric_id and group_id=p_metricgroup_id;
       end if;
 
       begin
@@ -1098,15 +1123,17 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
       ----------------------------------------------------
       init_params(p_sess_id);
       --for i in 1..to_number(COREMOD_API.getconf('ITERATIONSMONITOR',ASHA_CUBE_API.gMODNAME))
-      l_duration:=to_number(COREMOD_API.getconf('ITERATIONSMONITOR',ASHA_CUBE_API.gMODNAME))*to_number(COREMOD_API.getconf('PAUSEMONITOR',ASHA_CUBE_API.gMODNAME)); --seconds
+      --l_duration:=to_number(COREMOD_API.getconf('ITERATIONSMONITOR',ASHA_CUBE_API.gMODNAME))*to_number(COREMOD_API.getconf('PAUSEMONITOR',ASHA_CUBE_API.gMODNAME)); --seconds
+      l_duration:=to_number(get_parameter(c_ITERATIONSMONITOR))*to_number(get_parameter(c_PAUSEMONITOR)); --seconds
       l_end_time:=sysdate+(l_duration/3600/24);
       coremod_log.log('load_cube_mon.l_end_time: '||to_char(l_end_time,'YYYY-MON-DD HH24:MI:SS')||':'||to_char(sysdate,'YYYY-MON-DD HH24:MI:SS'),'DEBUG');
       loop
         --coremod_log.log('Start load Cube from job, iteration: '||i,'DEBUG');
         check_params(p_sess_id);
         calc_cube (p_sess_id);
+        commit;
         exit when sysdate>l_end_time;
-        dbms_lock.sleep(to_number(COREMOD_API.getconf('PAUSEMONITOR',ASHA_CUBE_API.gMODNAME)));
+        dbms_lock.sleep(to_number(get_parameter(c_PAUSEMONITOR)));
       end loop;
       ----------------------------------------------------
       set_cube_sess_status(p_sess_id,stREADY);
@@ -1157,7 +1184,9 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
 --    if l_parent_sess is null then
 --      coremod_tasks.stop_previous_user_task(P_TASKNAME => 'ASHA_SNAP_ASH');
 --    end if;
-    coremod_tasks.stop_previous_user_task(P_TASKNAME => 'ASHA_MONITOR');
+
+    --is it necessary...
+    --coremod_tasks.stop_previous_user_task(P_TASKNAME => 'ASHA_MONITOR');
 
     if pa_monitor then
       if to_bool(get_parameter(c_SNAP_ASH)) then
@@ -1189,6 +1218,33 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
     when others then
       coremod_log.log('ASHA_CUBE_PKG.queue_load_cube'||chr(10)||sqlerrm||chr(10)||DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
       raise_application_error(-20000,'ASHA_CUBE_PKG.queue_load_cube'||chr(10)||sqlerrm);
+  end;
+
+  procedure stop_cube(p_sess_id         asha_cube_sess.sess_id%type)
+  is
+    l_cube asha_cube_sess%rowtype;
+  begin
+    select * into l_cube from asha_cube_sess where sess_id=p_sess_id;
+    if l_cube.sess_status = stINQUEUE then
+      dbms_lock.sleep(15);
+      select * into l_cube from asha_cube_sess where sess_id=p_sess_id for update;
+      if l_cube.sess_status = stINQUEUE then
+        coremod_tasks.cancel_task(l_cube.sess_tq_id);
+        update asha_cube_sess set sess_status=stFAILED where sess_id=p_sess_id;
+        commit;
+        return;
+      end if;
+      rollback;
+    end if;
+    select * into l_cube from asha_cube_sess where sess_id=p_sess_id;
+    if l_cube.sess_status in ( stMONITOR, stCALC ) then
+      update asha_cube_sess set sess_status=stREADY where sess_id=p_sess_id;
+      commit;
+      coremod_tasks.stop_task(l_cube.sess_tq_id);
+      if l_cube.sess_tq_id_snap is not null then
+        coremod_tasks.stop_task(l_cube.sess_tq_id_snap);
+      end if;
+    end if;
   end;
 
   procedure snap_ash (p_dblink opas_db_links.db_link_name%type, p_sess_id number)
@@ -1268,8 +1324,10 @@ select :sample_id sample_id, :p_timestamp sample_time, sst.statistic#, sst.value
    l_sql_stat varchar2(32765);
   begin
     l_filter:=get_parameter_db(p_sess_id, c_filter);
-    l_frequency:=to_number(COREMOD_API.getconf('SNAP_ASH_FREQ',ASHA_CUBE_API.gMODNAME));
-    l_duration:=to_number(COREMOD_API.getconf('ITERATIONSMONITOR',ASHA_CUBE_API.gMODNAME))*to_number(COREMOD_API.getconf('PAUSEMONITOR',ASHA_CUBE_API.gMODNAME)); --seconds
+    --l_frequency:=to_number(COREMOD_API.getconf('SNAP_ASH_FREQ',ASHA_CUBE_API.gMODNAME));
+    l_frequency:=to_number(get_parameter_db(p_sess_id, c_SNAP_ASH_FREQ));
+    --l_duration:=to_number(COREMOD_API.getconf('ITERATIONSMONITOR',ASHA_CUBE_API.gMODNAME))*to_number(COREMOD_API.getconf('PAUSEMONITOR',ASHA_CUBE_API.gMODNAME)); --seconds
+    l_duration:=to_number(get_parameter_db(p_sess_id, c_ITERATIONSMONITOR))*to_number(get_parameter_db(p_sess_id, c_PAUSEMONITOR)); --seconds
 
     l_sql_dt  := replace(l_sql_sysdt_tmpl,'<dblink>',COREMOD_API.get_ora_dblink(p_dblink));
     l_sql_ash := replace(replace(l_sql_tmpl_ash,'<dblink>',     COREMOD_API.get_ora_dblink(p_dblink)),'<FILTER>',case when l_filter is not null then ' and ('||l_filter||')' else null end);

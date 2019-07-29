@@ -17,6 +17,7 @@ package body trc_report as
 
     l_cnt number;
     l_lobsect number;
+    l_simsect number;
 
     l_file_tot_time number;
     l_cpu           number;
@@ -195,10 +196,11 @@ order by 1,4 desc]';
     COREMOD_LOG.Start_SQL_TRACE('TRC_REPORT.GETREPORT_I.SQL_TRACE');
 
     execute immediate q'[alter session set nls_numeric_characters='. ']';
-    select 1 into l_lobsect from dual where exists (select 1 from trc_lobcall where trc_file_id=p_trc_file_id);
+    select count(1) into l_lobsect from dual where exists (select 1 from trc_lobcall where trc_file_id=p_trc_file_id);
+    select count(1) into l_simsect from dual where exists (select 1 from trc_similar_stmt where trc_file_id=p_trc_file_id);
 
     COREMOD_REPORT_UTILS.set_report_timing(true);
-    COREMOD_REPORT_UTILS.init_lo_report(p_op_name => l_report_name, p_target_desc => 'section', p_units => 'sections', p_totalwork => 5 + nvl(l_lobsect,0));
+    COREMOD_REPORT_UTILS.init_lo_report(p_op_name => l_report_name, p_target_desc => 'section', p_units => 'sections', p_totalwork => 5 + nvl(l_lobsect,0) + nvl(l_simsect,0) );
 
     p(HTF.header (1,l_report_name,cattributes=>'class="awr"'));
     p(HTF.BR);
@@ -207,12 +209,16 @@ order by 1,4 desc]';
     p(HTF.BR);
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#summary',ctext=>'Summary',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#topsqls',ctext=>'Top '||l_topsql||' SQLs',cattributes=>'class="awr"')));
-    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#call_tree',ctext=>'Call Tree',cattributes=>'class="awr"')));
+    --p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#call_tree',ctext=>'Call Tree',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sqlstmts',ctext=>'SQL statements',cattributes=>'class="awr"')));
 
     if nvl(l_lobsect,0)=1 then
       p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#lobops',ctext=>'LOB Operations',cattributes=>'class="awr"')));
     end if;
+    if nvl(l_simsect,0)=1 then
+      p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#simsqlstmts',ctext=>'Similar SQL statements',cattributes=>'class="awr"')));
+    end if;
+
 /*    p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sql_mon',ctext=>'SQL Monitor report',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sql_workarea',ctext=>'SQL Workarea',cattributes=>'class="awr"')));
     p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#cbo_env',ctext=>'CBO environment',cattributes=>'class="awr"')));
@@ -231,19 +237,19 @@ order by 1,4 desc]';
     COREMOD_REPORT_UTILS.start_lo_section(p_module_name => l_module_name, p_action_name => 'Calculating data');
 
     insert /*+ qb_name(TRC_REP1) */ into trc$tmp_call_stats
-     select st.sqlid, c.call_type, count(c.call_type) cnt, sum(c) c, sum(e) e, sum(p) p, sum(cr) cr, sum(cu) cu, sum(r) r, sum(mis) mis
+     select /*+ leading(st) index(c idx_trc_call_sess) use_nl(c) */ st.sqlid, c.call_type, count(c.call_type) cnt, sum(c) c, sum(e) e, sum(p) p, sum(cr) cr, sum(cu) cu, sum(r) r, sum(mis) mis
        from trc_call c, trc_statement st
       where c.trc_file_id=p_trc_file_id and c.trc_file_id=st.trc_file_id and c.stmt_id=st.stmt_id
       group by c.call_type,st.sqlid;
 
     insert /*+ qb_name(TRC_REP1) */ into trc$tmp_call_self_stats
-    select st.sqlid, c.call_type, count(c.call_type) cnt, sum(cs.c) c, sum(cs.e) e, sum(cs.p) p, sum(cs.cr) cr, sum(cs.cu) cu
+    select /*+ leading(st c cs) index(c idx_trc_call_sess) use_nl(c) */ st.sqlid, c.call_type, count(c.call_type) cnt, sum(nvl(cs.c,c.c)) c, sum(nvl(cs.e,c.e)) e, sum(nvl(cs.p,c.p)) p, sum(nvl(cs.cr,c.cr)) cr, sum(nvl(cs.cu,c.cu)) cu
       from trc_call c, trc_call_self cs, trc_statement st
-     where c.call_id=cs.call_id and c.trc_file_id=p_trc_file_id and c.trc_file_id=st.trc_file_id and c.stmt_id=st.stmt_id
+     where c.call_id=cs.call_id(+) and c.trc_file_id=p_trc_file_id and c.trc_file_id=st.trc_file_id and c.stmt_id=st.stmt_id
      group by c.call_type, st.sqlid;
 
     insert /*+ qb_name(TRC_REP1) */ into trc$tmp_wait_stats
-    select st.sqlid, ev.wait_class, nam, count(1) cnt, sum(ela) ela, avg(ela) avg_ela, max(ela) max_ela, PERCENTILE_CONT(0.95) within group (order by ela) ela_95
+    select /*+ leading(st w) index(w idx_trc_wait_stmt) use_nl(w) */ st.sqlid, ev.wait_class, nam, count(1) cnt, sum(ela) ela, avg(ela) avg_ela, max(ela) max_ela, PERCENTILE_CONT(0.95) within group (order by ela) ela_95
       from trc_wait w, trc_statement st, V$EVENT_NAME ev
      where w.trc_file_id=p_trc_file_id and w.trc_file_id=st.trc_file_id and nam = ev.name
        and w.stmt_id=st.stmt_id  group by nam, st.sqlid, ev.wait_class;
@@ -256,7 +262,7 @@ order by 1,4 desc]';
     ela_32768, ela_65536, ela_131072, ela_262144, ela_524288,
     ela_1048576, ela_2097152, ela_4194304, ela_8388608, ela_16777216, ela_33554432, ELA_GR_32S
     )
-    select st.sqlid, ev.wait_class, nam, count(1) cnt, sum(ela) ela,
+    select /*+ leading(st w) index(w idx_trc_wait_stmt) use_nl(w) */ st.sqlid, ev.wait_class, nam, count(1) cnt, sum(ela) ela,
     sum(case when ela <= 32 then 1 else 0 end),
     sum(case when ela > 32 and ela <= 64 then 1 else 0 end),
     sum(case when ela > 64 and ela <= 128 then 1 else 0 end),
@@ -765,6 +771,220 @@ order by row_num)]';
       p(HTF.BR);
     end if;
 --  =============================================================================================================================================
+--  =============================================================================================================================================
+    --Similar SQL statements
+    COREMOD_REPORT_UTILS.start_lo_section(p_module_name => l_module_name, p_action_name => 'Similar SQL statements');
+
+    p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'Similar SQL statements',cname=>'simsqlstmts',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
+    p(HTF.BR);
+
+    for i in (select /*+ qb_name(TRC_REP1) */ x.stmt_id_base, x.cnt, st.hv, substr(st.sql_text,1,100) sql_short
+               from (select stmt_id_base, count(1) cnt from trc_similar_stmt where trc_file_id = p_trc_file_id group by stmt_id_base) x,
+                    trc_statement st
+                where st.stmt_id=x.stmt_id_base
+               order by 1)
+    loop
+      p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#stmt_id_base'||i.stmt_id_base,ctext=>i.cnt||' Similars SQLs, PLAN_HASH='||i.hv||' "'||i.sql_short||'..."',cattributes=>'class="awr"')));
+    end loop;
+
+    for i in (select /*+ qb_name(TRC_REP1) */ stmt_id_base, count(1) cnt from trc_similar_stmt where trc_file_id = p_trc_file_id group by stmt_id_base order by 1)
+    loop
+      p(HTF.header (4,cheader=>HTF.ANCHOR (curl=>'',ctext=>i.cnt||' Similars SQLs',cname=>'stmt_id_base'||i.stmt_id_base,cattributes=>'class="awr"'),cattributes=>'class="awr"'));
+      select sql_text into l_sql_text from trc_statement where trc_file_id=p_trc_file_id and stmt_id=i.stmt_id_base;
+      COREMOD_REPORT_UTILS.print_text_as_table_new
+                                               (  P_TEXT => l_sql_text,
+                                                  P_T_HEADER => 'SQL Text',
+                                                  P_WIDTH => l_default_width,
+                                                  --P_SEARCH => P_SEARCH,
+                                                  --P_REPLACEMENT => P_REPLACEMENT,
+                                                  --P_COMPARISON => P_COMPARISON,
+                                                  p_style_tab => 'trctd',
+                                                  p_style_head => 'trchd', --head
+                                                  p_style_r1 => 'trcr1',   --odd rows
+                                                  p_style_r2  => 'trcr2', --even rows
+                                                  P_OUTPUT => p_report) ;
+      p(HTF.BR);
+
+      p(HTF.BIG('Cumulative statistics'));
+
+      l_sql := q'[select * from (
+with call_list
+  as (select 'PARSE' nm from dual union select 'EXEC' from dual union select 'FETCH' from dual union select 'CLOSE' from dual)
+select /*+ qb_name(TRC_REP1) */
+  call_list.nm "Call", sum(cnt) "Count", sum(c)/1e6 "CPU, sec", sum(e)/1e6 "Elapsed, sec", sum(p) "Disk", sum(cr) "Query", sum(cu) "Current", sum(r) "Rows", sum(mis) "Mis" , 0 noprn_lastrow
+  from trc$tmp_call_stats c1, call_list, trc_similar_stmt ss, trc_statement st
+ where c1.call_type(+)=call_list.nm and c1.sqlid(+)= st.sqlid
+   and ss.stmt_id_base=<STMT_BASE>
+   and ss.trc_file_id=<TRC_FILE_ID>
+   and ss.stmt_id_sim = st.stmt_id
+group by nm
+union all
+select
+  'Total:' "Call", sum(cnt) "Count", sum(c)/1e6 "CPU, sec", sum(e)/1e6 "Elapsed, sec", sum(p) "Disk", sum(cr) "Query", sum(cu) "Current", sum(r) "Rows", sum(mis) "Mis", 1  noprn_lastrow
+  from trc$tmp_call_stats c, trc_similar_stmt ss, trc_statement st
+ where c.sqlid=st.sqlid
+   and ss.stmt_id_base=<STMT_BASE>
+   and ss.trc_file_id=<TRC_FILE_ID>
+   and ss.stmt_id_sim = st.stmt_id
+ )
+order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';
+      l_sql:=replace(replace(l_sql,'<STMT_BASE>',i.stmt_id_base),'<TRC_FILE_ID>',p_trc_file_id);
+      COREMOD_REPORT_UTILS.print_table_html_new
+                                           (p_query => l_sql,
+                                            p_width => l_default_width,
+                                            p_summary => 'Cumulative statistics',
+                                            --p_search varchar2 default null,
+                                            --p_replacement varchar2 default null,
+                                            p_style_tab => 'trctd',
+                                            p_style_head => 'trchd', --head
+                                            p_style_r1 => 'trcr1',   --odd rows
+                                            p_style_r2  => 'trcr2', --even rows
+                                            p_style_finrow => 'trctotr',
+                                            --p_header number default 0,
+                                            --p_break_col varchar2 default null,
+                                            p_output => p_report);
+      p(HTF.BR);
+
+      select count(1) into l_cnt from dual where exists (select 1 from trc$tmp_wait_stats w, trc_similar_stmt ss, trc_statement st
+                                                          where st.sqlid=w.sqlid
+                                                            and st.stmt_id=ss.stmt_id_sim
+                                                            and ss.stmt_id_base=i.stmt_id_base);
+      if l_cnt>0 then
+        p(HTF.BIG('Cursor waits'));
+
+        l_sql := q'[select /*+ qb_name(TRC_REP1) */ 0 noprn_lastrow, nam "Event", sum(CNT) "Times waited", sum(ela)/1e6 "Total time, sec", max(MAX_ELA)/1e6 "Max time, sec"
+from trc$tmp_wait_stats w, trc_similar_stmt ss, trc_statement st
+where w.sqlid=st.sqlid
+ and ss.stmt_id_base=<STMT_BASE>
+ and ss.trc_file_id=<TRC_FILE_ID>
+ and ss.stmt_id_sim = st.stmt_id
+group by nam
+union all
+select 1 noprn_lastrow, 'Total:' "Event", sum(CNT) "Times waited, sec", sum(ela)/1e6 "Total time, sec", max(MAX_ELA)/1e6 "Max time, sec"
+from trc$tmp_wait_stats w, trc_similar_stmt ss, trc_statement st
+where w.sqlid=st.sqlid
+ and ss.stmt_id_base=<STMT_BASE>
+ and ss.trc_file_id=<TRC_FILE_ID>
+ and ss.stmt_id_sim = st.stmt_id
+order by 1,4 desc]';
+        l_sql:=replace(replace(l_sql,'<STMT_BASE>',i.stmt_id_base),'<TRC_FILE_ID>',p_trc_file_id);
+        COREMOD_REPORT_UTILS.print_table_html_new
+                                           (p_query => l_sql,
+                                            p_width => l_default_width,
+                                            p_summary => 'Cursor waits',
+                                            --p_search varchar2 default null,
+                                            --p_replacement varchar2 default null,
+                                            p_style_tab => 'trctd',
+                                            p_style_head => 'trchd', --head
+                                            p_style_r1 => 'trcr1',   --odd rows
+                                            p_style_r2  => 'trcr2', --even rows
+                                            p_style_finrow => 'trctotr',
+                                            --p_header number default 0,
+                                            --p_break_col varchar2 default null,
+                                            p_output => p_report);
+
+        --p(HTF.BR);
+        --print_event_histogram('Cursor waits histogram', i.sqlid);
+        p(HTF.BR);
+      end if;
+
+      select count(1) into l_cnt from dual where exists (select 1 from TRC$TMP_CALL_SELF_STATS s, trc_similar_stmt ss, trc_statement st
+                                                          where st.sqlid=s.sqlid
+                                                            and st.stmt_id=ss.stmt_id_sim
+                                                            and ss.stmt_id_base=i.stmt_id_base);
+      if l_cnt>0 then
+        p(HTF.BIG('Self statistics'));
+
+        l_sql := q'[select * from (
+with call_list as (select 'PARSE' nm from dual union select 'EXEC' from dual union select 'FETCH' from dual union select 'CLOSE' from dual)
+select /*+ qb_name(TRC_REP1) */
+  call_list.nm "Call", sum(CNT) "Count", sum(c)/1e6 "CPU, sec", sum(e)/1e6 "Elapsed, sec", sum(p) "Disk", sum(cr) "Query", sum(cu) "Current", 0 noprn_lastrow
+from TRC$TMP_CALL_SELF_STATS c, call_list, trc_similar_stmt ss, trc_statement st
+where c.call_type(+)=call_list.nm and c.sqlid(+)=st.sqlid
+ and ss.stmt_id_base=<STMT_BASE>
+ and ss.trc_file_id=<TRC_FILE_ID>
+ and ss.stmt_id_sim = st.stmt_id
+group by nm
+union all
+select
+  'Total:' "Call", sum(CNT) "Count", sum(c.c)/1e6 "CPU, sec", sum(c.e)/1e6 "Elapsed, sec", sum(c.p) "Disk", sum(c.cr) "Query", sum(c.cu) "Current", 1  noprn_lastrow
+from TRC$TMP_CALL_SELF_STATS c, trc_similar_stmt ss, trc_statement st
+where c.sqlid=st.sqlid
+ and ss.stmt_id_base=<STMT_BASE>
+ and ss.trc_file_id=<TRC_FILE_ID>
+ and ss.stmt_id_sim = st.stmt_id
+)
+order by decode("Call",'PARSE',1,'EXEC',2,'FETCH',3,'CLOSE',4,5)]';
+        l_sql:=replace(replace(l_sql,'<STMT_BASE>',i.stmt_id_base),'<TRC_FILE_ID>',p_trc_file_id);
+        COREMOD_REPORT_UTILS.print_table_html_new
+                                           (p_query => l_sql,
+                                            p_width => l_default_width,
+                                            p_summary => 'Self statistics',
+                                            --p_search varchar2 default null,
+                                            --p_replacement varchar2 default null,
+                                            p_style_tab => 'trctd',
+                                            p_style_head => 'trchd', --head
+                                            p_style_r1 => 'trcr1',   --odd rows
+                                            p_style_r2  => 'trcr2', --even rows
+                                            p_style_finrow => 'trctotr',
+                                            --p_header number default 0,
+                                            --p_break_col varchar2 default null,
+                                            p_output => p_report);
+        p(HTF.BR);
+      end if;
+      --select count(1) into l_cnt from dual where exists (select 1 from trc$tmp_plan_stats where sqlid=i.sqlid);
+
+      --if l_cnt>0 then
+      for j in (select p.sqlid, p.PLH, sum(str) restarts
+                 from trc$tmp_plan_stats p, trc_statement st
+                where p.sqlid=st.sqlid
+                  and st.stmt_id = i.stmt_id_base
+                group by p.sqlid, p.PLH) loop
+        p(HTF.BIG('Execution Plan Hash: '||j.PLH)); --||p_trc_file_id||':'||i.stmt_id));
+
+        l_sql := q'[with pl as (select /*+ materialize */ * from trc$tmp_plan_stats where sqlid='<SQL_ID>'<PLANHASH>)
+select /*+ qb_name(TRC_REP1) */
+id,
+rpad('.',(level-1),'.')||op "Operation/Name",
+dbms_xplan.format_number(card) "E-Rows",
+dbms_xplan.format_size(sz) "Bytes",
+dbms_xplan.format_number(cost) "Cost",
+dbms_xplan.format_number(cnt) "A-Rows",
+tim/1e6 "A-Time, sec",
+dbms_xplan.format_number(cr) "Buffers",
+dbms_xplan.format_number(pr) "Reads",
+dbms_xplan.format_number(pw) "Writes"]' || case when j.restarts > 0 then q'[, str "Restarts"]' else null end ||
+q'[from pl
+start with pid=0 connect by prior id=pid
+order siblings by pos]';
+        l_sql:=replace(l_sql,'<SQL_ID>',j.sqlid);
+        if j.PLH is not null then
+          l_sql:=replace(l_sql,'<PLANHASH>',' and plh='||j.PLH);
+        else
+          l_sql:=replace(l_sql,'<PLANHASH>','');
+        end if;
+        COREMOD_REPORT_UTILS.print_table_html_new
+                                             (p_query => l_sql,
+                                              p_width => l_default_width,
+                                              p_summary => 'Execution Plan',
+                                             --p_search varchar2 default null,
+                                             --p_replacement varchar2 default null,
+                                              p_style_tab => 'trctd',
+                                              p_style_head => 'trchd', --head
+                                              p_style_r1 => 'trcr1',   --odd rows
+                                              p_style_r2  => 'trcr2', --even rows
+                                              p_style_finrow => null, --'trctotr',
+                                              --p_header number default 0,
+                                              --p_break_col varchar2 default null,
+                                              p_output => p_report);
+        p(HTF.BR);
+      --end if;
+      end loop;
+
+      p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
+      p(HTF.BR);
+      p(HTF.BR);
+    end loop;
 
     p(COREMOD_REPORT_UTILS.end_lo_section);
     p(COREMOD_REPORT_UTILS.end_lo_section(p_is_finished=>true));
@@ -773,7 +993,7 @@ order by row_num)]';
 --  =============================================================================================================================================
 --  =============================================================================================================================================
 --  =============================================================================================================================================
-    commit; --to cleanup temp tables
+    --commit; --to cleanup temp tables
 
     COREMOD_LOG.Stop_SQL_GATHER_STAT('TRC_REPORT.GETREPORT_I.GATHER_SQL_STAT');
     COREMOD_LOG.Stop_SQL_TRACE('TRC_REPORT.GETREPORT_I.SQL_TRACE');
@@ -816,7 +1036,7 @@ order by row_num)]';
        SET report_content = l_file
      WHERE trc_file_id = p_trc_file_id;
 
-    commit;
+    --commit;
 
     COREMOD_REPORT_UTILS.save_report_for_download (  P_FILE => l_file) ;
   end;

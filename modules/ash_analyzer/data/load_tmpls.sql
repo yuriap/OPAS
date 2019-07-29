@@ -28,6 +28,9 @@ begin
   insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'START_SNAP',null); 
   insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'END_SNAP',null); 
   
+  insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'PAUSEMONITOR','10');    
+  insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'ITERATIONSMONITOR','60');    
+  insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'SNAP_ASH_FREQ','0.5');   
   
   INSERT INTO asha_cube_sess_tmpl (tmpl_id,tmpl_proj_id,tmpl_name,tmpl_description,tmpl_created) 
        VALUES (default,null,'Last 30 minutes','Set parameters to show last 30 minutes of ASH',default) returning tmpl_id into l_tmpl;
@@ -49,11 +52,16 @@ begin
   insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'MONITOR','Y');
   insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'DATE_INTERVAL','-1');
   insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'SNAP_ASH','Y');    
+  insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'PAUSEMONITOR','10');    
+  insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'ITERATIONSMONITOR','60');    
+  insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'SNAP_ASH_FREQ','0.5');    
   
   INSERT INTO asha_cube_sess_tmpl (tmpl_id,tmpl_proj_id,tmpl_name,tmpl_description,tmpl_created) 
        VALUES (default,null,'Monitor ASH','Auto refreshed ASH statistics',default) returning tmpl_id into l_tmpl;
   insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'MONITOR','Y');
   insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'DATE_INTERVAL','-1');
+  insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'PAUSEMONITOR','10');    
+  insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values (l_tmpl,'ITERATIONSMONITOR','60');    
   
   INSERT INTO asha_cube_sess_tmpl (tmpl_id,tmpl_proj_id,tmpl_name,tmpl_description,tmpl_created) 
        VALUES (default,null,'AWR ASH','AWR ASH statistics for the recent 24 hours',default) returning tmpl_id into l_tmpl;

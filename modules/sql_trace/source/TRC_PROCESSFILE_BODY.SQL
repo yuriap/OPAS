@@ -521,10 +521,11 @@ PACKAGE BODY TRC_PROCESSFILE AS
     l_lops_idx_rows pls_integer;
 
     l_modnm varchar2(64):='SQL_TRACE: File processing';
+    l_cnt number;
   begin
     COREMOD_LOG.log('Start parsing: p_trc_file_id='||p_trc_file_id);
 
-    COREMOD_API.init_longops(p_op_name=>'Processing: '||p_filename,p_target_desc=>'step',p_units=>'steps',p_totalwork=>7,p_lops_ind=>l_lops_idx_global);
+    COREMOD_API.init_longops(p_op_name=>'Processing: '||p_filename,p_target_desc=>'step',p_units=>'steps',p_totalwork=> 8 ,p_lops_ind=>l_lops_idx_global);
     COREMOD_API.init_longops(p_op_name=>'Step: Parsing: '||p_filename,p_target_desc=>'row',p_units=>'rows',p_totalwork=>p_num_rows,p_lops_ind=>l_lops_idx_rows);
     COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Step: Parsing');
 
@@ -863,8 +864,8 @@ PACKAGE BODY TRC_PROCESSFILE AS
     for i in (select * from trc_call where trc_file_id = p_trc_file_id) loop
       INSERT INTO trc_call_self (call_id, c, e, p, cr, cu)
           select * from (
-             select i.call_id, i.c - sum(c) cs, i.e - sum(e) es, i.p - sum(p) ps, i.cr - sum(cr) crs, i.cu - sum(cu) cus
-               from trc_call where trc_file_id = p_trc_file_id and parent_id=i.call_id)
+             select /*+ index(c idx_trc_call_file)*/ i.call_id, i.c - sum(c.c) cs, i.e - sum(c.e) es, i.p - sum(c.p) ps, i.cr - sum(c.cr) crs, i.cu - sum(c.cu) cus
+               from trc_call c where trc_file_id = p_trc_file_id and c.parent_id=i.call_id)
                where cs is not null or es is not null or ps is not null or crs is not null or cus is not null;
     end loop;
 
@@ -884,6 +885,95 @@ PACKAGE BODY TRC_PROCESSFILE AS
       where trc_file_id=p_trc_file_id;
     COREMOD_LOG.log('Finished "Calc STATs to CALLs binding"');
     COREMOD_API.end_longops_section(p_sofar => 1, p_lops_ind => l_lops_idx_global);
+
+    COREMOD_API.start_longops_section(p_module_name => l_modnm, p_action_name => 'Searching for similar queries');
+    declare
+      type r_sim_sqls is record (
+        stmt_id  number,
+        plh      number,
+        sqlid    varchar2(100),
+        sql_text clob
+      );
+      type t_sim_sqls is table of r_sim_sqls index by varchar2(500);
+      l_sim_sqls t_sim_sqls;
+      l_sim_sqls1 t_sim_sqls;
+      l_sql      clob;
+      l_curr_idx varchar2(500);
+      l_idx varchar2(500);
+      l_curr_stmt number;
+    begin
+      -- get list of plan hash values which have more than configured similar queries
+      for i in (SELECT c.plh
+                  FROM trc_statement st, trc_call c
+                 WHERE st.trc_file_id = p_trc_file_id
+                   AND st.trc_file_id= c.trc_file_id
+                   AND st.stmt_id = c.stmt_id
+                   AND c.call_type = 'FETCH'
+                   AND st.uid#<> 0
+                   AND c.plh<>0
+                 GROUP BY c.plh
+                HAVING COUNT(UNIQUE st.sqlid) > to_number(coremod_api.getconf('SIMILARNUM',TRC_FILE_API.gMODNAME)))
+      loop
+        -- fill up the list of simial qieries for a given plan hash value
+        for x1 in (SELECT st.stmt_id||':'||c.plh||':'||st.sqlid idx, st.stmt_id, c.plh, st.sqlid, st.sql_text
+                     FROM trc_statement st, trc_call c
+                    WHERE st.trc_file_id = p_trc_file_id
+                      AND st.trc_file_id = c.trc_file_id
+                      AND st.stmt_id = c.stmt_id
+                      AND c.call_type = 'FETCH'
+                      AND st.uid# <> 0
+                      and c.plh = i.plh
+        )
+        loop
+          l_sim_sqls(x1.idx).stmt_id:=x1.stmt_id;
+          l_sim_sqls(x1.idx).plh:=x1.plh;
+          l_sim_sqls(x1.idx).sqlid:=x1.sqlid;
+          l_sim_sqls(x1.idx).sql_text:=x1.sql_text;
+        end loop;
+
+        loop
+          exit when l_sim_sqls.count=0;
+          -- compare the firts sql from the list with others
+          l_curr_idx := l_sim_sqls.first;
+          l_sql := l_sim_sqls(l_curr_idx).sql_text;
+          l_curr_stmt := l_sim_sqls(l_curr_idx).stmt_id;
+          for x2 in (
+            select stmt_id||':'||plh||':'||sqlid idx from (
+            SELECT st.stmt_id, c.plh, st.sqlid, UTL_MATCH.jaro_winkler_similarity(st.sql_text,l_sql) matching_pct
+              FROM trc_statement st, trc_call c
+                     WHERE st.trc_file_id = p_trc_file_id
+                       AND st.trc_file_id = c.trc_file_id
+                       AND st.stmt_id = c.stmt_id
+                       AND c.call_type = 'FETCH'
+                       AND st.uid# <> 0
+                       and c.plh = i.plh)
+                       where matching_pct > to_number(coremod_api.getconf('SIMILARPCT',TRC_FILE_API.gMODNAME)))
+          loop
+            --move those who similar to another list
+            if l_sim_sqls.exists(x2.idx) then
+              l_sim_sqls1(x2.idx):=l_sim_sqls(x2.idx);
+              l_sim_sqls.delete(x2.idx);
+            end if;
+          end loop;
+          --save references from base statement to all similar
+          l_idx := l_sim_sqls1.first;
+          loop
+            exit when l_idx is null;
+            insert into trc_similar_stmt(stmt_id_sim,stmt_id_base, trc_file_id) values (l_sim_sqls1(l_idx).stmt_id,l_curr_stmt, p_trc_file_id);
+            l_idx:=l_sim_sqls1.next(l_idx);
+            exit when l_idx is null;
+          end loop;
+          l_sim_sqls1.delete;
+          exit when l_sim_sqls.count=0;
+        end loop;
+        --cleanup list
+        l_sim_sqls.delete;
+      end loop;
+    end;
+
+    COREMOD_LOG.log('Finished "Searching for similar queries"');
+    COREMOD_API.end_longops_section(p_sofar => 1, p_lops_ind => l_lops_idx_global);
+
 
     COREMOD_LOG.log('Finished file processing');
   exception
