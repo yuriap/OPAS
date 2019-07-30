@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   12:49 Tuesday July 30, 2019
+--   Date and Time:   17:03 Tuesday July 30, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -128,7 +128,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190730124550'
+,p_last_upd_yyyymmddhh24miss=>'20190730165836'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -26018,7 +26018,7 @@ wwv_flow_api.create_page(
 ,p_html_page_header=>'<meta http-equiv="refresh" content="&P303_PAGE_REFRESH_INTERVAL.">'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190730124550'
+,p_last_upd_yyyymmddhh24miss=>'20190730165836'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(89458583189737531)
@@ -30466,9 +30466,9 @@ wwv_flow_api.create_page_process(
 '  :P303_DATE_INTERVAL:=l_params(ASHA_CUBE_PKG.c_date_interval);',
 '  :P303_CUBEAGG:=l_params(ASHA_CUBE_PKG.c_cubeagg);',
 '  ',
-'  :P303_PAUSEMONITOR:=l_params(ASHA_CUBE_PKG.c_PAUSEMONITOR);',
-'  :P303_ITERATIONSMONITOR:=l_params(ASHA_CUBE_PKG.c_ITERATIONSMONITOR);',
-'  :P303_SNAP_ASH_FREQ:=l_params(ASHA_CUBE_PKG.c_SNAP_ASH_FREQ);',
+'  if l_params.exists(ASHA_CUBE_PKG.c_PAUSEMONITOR) then :P303_PAUSEMONITOR:=l_params(ASHA_CUBE_PKG.c_PAUSEMONITOR); end if;',
+'  if l_params.exists(ASHA_CUBE_PKG.c_ITERATIONSMONITOR) then :P303_ITERATIONSMONITOR:=l_params(ASHA_CUBE_PKG.c_ITERATIONSMONITOR); end if;',
+'  if l_params.exists(ASHA_CUBE_PKG.c_SNAP_ASH_FREQ) then :P303_SNAP_ASH_FREQ:=l_params(ASHA_CUBE_PKG.c_SNAP_ASH_FREQ); end if;',
 '  ',
 '  :P303_METRIC_GROUP_1:=null;',
 '  :P303_METRIC_ID_1:=null;',
