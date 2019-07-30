@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   20:27 Friday July 26, 2019
+--   Date and Time:   12:49 Tuesday July 30, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -128,7 +128,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190725131817'
+,p_last_upd_yyyymmddhh24miss=>'20190730124550'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -26018,7 +26018,7 @@ wwv_flow_api.create_page(
 ,p_html_page_header=>'<meta http-equiv="refresh" content="&P303_PAGE_REFRESH_INTERVAL.">'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190724154814'
+,p_last_upd_yyyymmddhh24miss=>'20190730124550'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(89458583189737531)
@@ -29635,7 +29635,7 @@ wwv_flow_api.create_page_item(
 ,p_item_default=>'10'
 ,p_prompt=>'Refresh Rate'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC:3 seconds;3,5 seconds;5,10 seconds;10,15 seconds;15,20 seconds;20,25 seconds;25,30 seconds;30,45 seconds;45,30 seconds;30'
+,p_lov=>'STATIC:3 seconds;3,5 seconds;5,10 seconds;10,15 seconds;15,20 seconds;20,25 seconds;25,30 seconds;30,45 seconds;45,60 seconds;60'
 ,p_cHeight=>1
 ,p_colspan=>2
 ,p_field_template=>wwv_flow_api.id(163643109900454028)
@@ -30794,6 +30794,10 @@ wwv_flow_api.create_page_process(
 '    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_end_dt, :P303_END_DATE) ; ',
 '    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_dump_id, null) ;  ',
 '    ',
+'    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_PAUSEMONITOR, :P303_PAUSEMONITOR);',
+'    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_ITERATIONSMONITOR, :P303_ITERATIONSMONITOR);',
+'    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_SNAP_ASH_FREQ, :P303_SNAP_ASH_FREQ);',
+'    ',
 '    if (:P303_METRIC_ID_1 is not null and :P303_METRIC_GROUP_1 is not null and :P303_METRIC_AGG_1 is not null)  or',
 '       (:P303_METRIC_ID_2 is not null and :P303_METRIC_GROUP_2 is not null and :P303_METRIC_AGG_2 is not null) ',
 '    then',
@@ -30878,6 +30882,10 @@ wwv_flow_api.create_page_process(
 '    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_end_dt, :P303_END_DATE) ; ',
 '    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_dump_id, null) ;  ',
 '    ',
+'    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_PAUSEMONITOR, :P303_PAUSEMONITOR);',
+'    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_ITERATIONSMONITOR, :P303_ITERATIONSMONITOR);',
+'    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_SNAP_ASH_FREQ, :P303_SNAP_ASH_FREQ);    ',
+'    ',
 '    if (:P303_METRIC_ID_1 is not null and :P303_METRIC_GROUP_1 is not null and :P303_METRIC_AGG_1 is not null)  or',
 '       (:P303_METRIC_ID_2 is not null and :P303_METRIC_GROUP_2 is not null and :P303_METRIC_AGG_2 is not null) ',
 '    then',
@@ -30948,6 +30956,10 @@ wwv_flow_api.create_page_process(
 '    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_start_dt, :P303_START_DATE) ;  ',
 '    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_end_dt, :P303_END_DATE) ; ',
 '    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_dump_id, null) ;  ',
+'    ',
+'    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_PAUSEMONITOR, :P303_PAUSEMONITOR);',
+'    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_ITERATIONSMONITOR, :P303_ITERATIONSMONITOR);',
+'    ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_SNAP_ASH_FREQ, :P303_SNAP_ASH_FREQ);',
 '    ',
 '    --ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_metric_id, :P303_METRIC_ID) ;  ',
 '    --ASHA_CUBE_PKG.add_parameter (  :P303_SESS_ID, ASHA_CUBE_PKG.c_metricgroup_id, :P303_METRIC_GROUP) ;  ',
