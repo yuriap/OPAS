@@ -1,6 +1,7 @@
 define MODNM=ASH_ANALYZER
 @@version.sql
---Core installation script
+
+--Scheme setup script
 conn sys/&localsys.@&localdb. as sysdba
 
 @@scheme_setup.sql

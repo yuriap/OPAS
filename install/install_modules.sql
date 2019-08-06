@@ -12,6 +12,9 @@
 --AWR WareHouse
 @../modules/awr_warehouse/install/install.sql
 
+--DB Growth Tracker
+@../modules/db_growth/install/install.sql
+
 
 conn &localscheme./&localscheme.@&localdb.
 

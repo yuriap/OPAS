@@ -106,3 +106,4 @@ where x1.dbid<>(select dbid from v$database_rem)
 order by x1.dbid,x1.snap_id;
 
 @@upgrade_struct_4.4.0_4.4.1.sql
+@@upgrade_struct_4.4.3_4.4.4.sql

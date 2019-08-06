@@ -377,3 +377,55 @@ spool off
 --=============================================================================================
 --=============================================================================================
 --=============================================================================================
+
+define COREMODPATH="..\modules\db_growth\source\"
+
+rem "
+
+spool &COREMODPATH.\DB_GROWTH_API_SPEC.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='DB_GROWTH_API' and type='PACKAGE' order by line;
+prompt /
+spool off
+spool &COREMODPATH.\DB_GROWTH_API_BODY.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='DB_GROWTH_API' and type='PACKAGE BODY' order by line;
+prompt /
+spool off
+
+spool &COREMODPATH.\DB_GROWTH_EXPIMP_SPEC.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='DB_GROWTH_EXPIMP' and type='PACKAGE' order by line;
+prompt /
+spool off
+spool &COREMODPATH.\DB_GROWTH_EXPIMP_BODY.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='DB_GROWTH_EXPIMP' and type='PACKAGE BODY' order by line;
+prompt /
+spool off
+
+spool &COREMODPATH.\DB_GROWTH_PROJ_API_SPEC.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='DB_GROWTH_PROJ_API' and type='PACKAGE' order by line;
+prompt /
+spool off
+spool &COREMODPATH.\DB_GROWTH_PROJ_API_BODY.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='DB_GROWTH_PROJ_API' and type='PACKAGE BODY' order by line;
+prompt /
+spool off
+
+spool &COREMODPATH.\DB_GROWTH_PROJ_LCC_SPEC.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='DB_GROWTH_PROJ_LCC' and type='PACKAGE' order by line;
+prompt /
+spool off
+spool &COREMODPATH.\DB_GROWTH_PROJ_LCC_BODY.SQL
+prompt CREATE OR REPLACE
+select text from user_source where name='DB_GROWTH_PROJ_LCC' and type='PACKAGE BODY' order by line;
+prompt /
+spool off
+
+--=============================================================================================
+--=============================================================================================
+--=============================================================================================

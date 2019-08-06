@@ -1,0 +1,1 @@
+-- DB Growth Tracker schema setup

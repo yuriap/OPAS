@@ -1,12 +1,12 @@
-Oracle Performance Analytic Suite Version 5.0.6 PROD
+Oracle Performance Analytic Suite Version 5.0.7 PROD
 (former AWR Tools)
 
 Demo version is available at:
 https://apex.oracle.com/pls/apex/f?p=1841
 opasdemo/opasdemo
 
-Oracle Virtual Box Image with Oracle XE 18c and OPAS 5.0.6 is available here
-ftp://78.159.49.194/VirtualBox_Images/OracleXE18c_OPAS_506/
+Oracle Virtual Box Image with Oracle XE 18c and OPAS 5.0.7 is available here
+ftp://78.159.49.194/VirtualBox_Images/OracleXE18c_OPAS_507/
 
 Release notes:
 ==============
@@ -43,3 +43,9 @@ Version 5.0.6
 -------------
  - ASHA V$SESSION snapper improved
  - SQL Trace Similar Queries repotr section
+ 
+Version 5.0.7
+-------------
+ - DB Growth Tracker 
+ - ASHA cube tables compression
+ - TRC tables compression

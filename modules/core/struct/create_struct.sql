@@ -325,3 +325,5 @@ select
 from opas_expimp_sessions x, opas_expimp_metadata m, opas_files f
 where x.owner=decode(x.owner,'PUBLIC',x.owner,nvl(V('APP_USER'),'~^'))
 and x.sess_id=m.sess_id and x.expimp_file=f.file_id(+);
+
+@@upgrade_struct_1.3.11_1.3.12.sql

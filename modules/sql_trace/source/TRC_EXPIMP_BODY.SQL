@@ -349,7 +349,7 @@ PACKAGE BODY TRC_EXPIMP AS
   is
     l_module      varchar2(100) := 'Process imported file';
     l_ei_metadata OPAS_EXPIMP_METADATA%rowtype;
-    l_proj_id     awrwh_projects.proj_id%type:=p_proj_id; -- -1: project mode, all traces projects preserved,  >0: either project or file mode, all goes to the specified project
+    l_proj_id     trc_projects.proj_id%type:=p_proj_id; -- -1: project mode, all traces projects preserved,  >0: either project or file mode, all goes to the specified project
   begin
     COREMOD_API.init_longops(l_module,'section','sections',2,g_lops_ind);
     COREMOD_API.start_longops_section ( l_module, 'Analyzing import structures');
