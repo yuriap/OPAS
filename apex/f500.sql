@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   10:04 Wednesday August 7, 2019
+--   Date and Time:   12:55 Wednesday August 7, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -128,7 +128,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190807100347'
+,p_last_upd_yyyymmddhh24miss=>'20190807125453'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -11224,7 +11224,7 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(163017955059958755)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190801122613'
+,p_last_upd_yyyymmddhh24miss=>'20190807125453'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(56361777906727840)
@@ -11240,8 +11240,8 @@ wwv_flow_api.create_page_plug(
 'The &P1_DBG_NAME. allows gathering segment sizes for a given scheme or list of schemes in a remote database, analyzing growth of the entire schemes or a given object(s) with dependent segments.<br>',
 'Goto <a href="f?p=&APP_ID.:500:&SESSION.">DB Growth Home page</a> '))
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
-,p_plug_required_role=>wwv_flow_api.id(181420099136448447)
-,p_required_patch=>wwv_flow_api.id(181421782444469088)
+,p_plug_required_role=>wwv_flow_api.id(56657728100893359)
+,p_required_patch=>wwv_flow_api.id(56668527757205547)
 ,p_attribute_01=>'N'
 ,p_attribute_02=>'HTML'
 );
@@ -49033,7 +49033,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(56657728100893359)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190807100347'
+,p_last_upd_yyyymmddhh24miss=>'20190807120825'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(254248211799234768)
@@ -49239,7 +49239,7 @@ wwv_flow_api.create_page_plug(
 ,p_plug_source_type=>'NATIVE_IR'
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 ,p_plug_display_condition_type=>'PLSQL_EXPRESSION'
-,p_plug_display_when_condition=>':P501_START_DT is not null and :P501_END_DT is not null'
+,p_plug_display_when_condition=>':P501_START_DT is not null or :P501_END_DT is not null'
 ,p_prn_content_disposition=>'ATTACHMENT'
 ,p_prn_document_header=>'APEX'
 ,p_prn_units=>'INCHES'
@@ -50327,7 +50327,7 @@ wwv_flow_api.create_page_item(
 ,p_name=>'P501_END_DT'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_api.id(56769278709874046)
-,p_prompt=>'End Date'
+,p_prompt=>'End Date (specify this only date to see object sizes for a given date)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select to_char(last_updated,''YYYY-MM-DD HH24:MI'') d,to_char(last_updated,''YYYY-MM-DD HH24:MI'') r from DB_GROWTH_SIZES where proj_id=:P501_PROJ_ID order by 1 desc'
 ,p_lov_display_null=>'YES'
@@ -50345,7 +50345,7 @@ wwv_flow_api.create_page_item(
 ,p_name=>'P501_TABLE_NAME_LIKE'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_api.id(56769278709874046)
-,p_prompt=>'Table Name Like'
+,p_prompt=>'Table Name Like (% can be used)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
 ,p_begin_on_new_line=>'N'
@@ -50434,8 +50434,8 @@ wwv_flow_api.create_page_process(
 '      case when nvl(last_validated,last_changed-1) > last_changed then ''Y'' else ''N'' end,',
 '      job_name,',
 '      to_char(last_updated,''DD-MON-YYYY HH24:MI:SS''),',
-'      case when tot_size>=0 then dbms_xplan.format_size(tot_size) else ''-''||dbms_xplan.format_size(abs(tot_size)) end,',
-'      case when delta>=0 then dbms_xplan.format_size(delta) else ''-''||dbms_xplan.format_size(abs(delta)) end,',
+'      case when tot_size is not null then case when tot_size>=0 then dbms_xplan.format_size(tot_size) else ''-''||dbms_xplan.format_size(abs(tot_size)) end else ''N/A'' end,',
+'      case when delta is not null then case when delta>=0 then dbms_xplan.format_size(delta) else ''-''||dbms_xplan.format_size(abs(delta)) end else ''N/A'' end,',
 '      to_char(delta_alert,''999G999G999G999G999G999G999G999G990''),',
 '      to_char(size_alert,''999G999G999G999G999G999G999G999G990'')',
 '    into ',

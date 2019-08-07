@@ -176,6 +176,12 @@ end;
 
 select * from user_errors order by 1,2,3,4,5;
 
+begin
+  for i in (select index_name, status from user_indexes where status<>'VALID') loop
+    execute immediate 'alter index '||i.index_name||' rebuild';
+  end loop;
+end;
+/
 
 exec COREMOD.register(p_modname => 'OPASAPP', p_modver => '&OPASVER.', p_installed => sysdate);
 commit;
