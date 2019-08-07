@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   12:55 Wednesday August 7, 2019
+--   Date and Time:   16:15 Wednesday August 7, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -41,7 +41,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 --     Computations:             3
 --     Validations:              2
 --     Processes:              244
---     Regions:                324
+--     Regions:                325
 --     Buttons:                283
 --     Dynamic Actions:         40
 --   Shared Components:
@@ -128,7 +128,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190807125453'
+,p_last_upd_yyyymmddhh24miss=>'20190807161255'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -49033,7 +49033,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(56657728100893359)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190807120825'
+,p_last_upd_yyyymmddhh24miss=>'20190807161255'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(254248211799234768)
@@ -49097,7 +49097,7 @@ wwv_flow_api.create_page_plug(
 '       sub_object,',
 '       case when seg_delta>=0 then dbms_xplan.format_size(seg_delta) else ''-''||dbms_xplan.format_size(abs(seg_delta)) end seg_delta,',
 '       case when table_tot_delta>=0 then dbms_xplan.format_size(table_tot_delta) else ''-''||dbms_xplan.format_size(abs(table_tot_delta)) end table_tot_delta,',
-'       dbms_xplan.format_size(tot_delta) tot_delta,',
+'       case when tot_delta>=0 then dbms_xplan.format_size(tot_delta) else ''-''||dbms_xplan.format_size(abs(tot_delta)) end tot_delta,',
 '       table_tot_delta table_tot_delta_r',
 '  from (select x.a, ',
 '               x.table_name,',
@@ -49239,7 +49239,7 @@ wwv_flow_api.create_page_plug(
 ,p_plug_source_type=>'NATIVE_IR'
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 ,p_plug_display_condition_type=>'PLSQL_EXPRESSION'
-,p_plug_display_when_condition=>':P501_START_DT is not null or :P501_END_DT is not null'
+,p_plug_display_when_condition=>':P501_END_DT is not null or (:P501_TABLE_NAME_LIKE is not null and :P501_END_DT is not null)'
 ,p_prn_content_disposition=>'ATTACHMENT'
 ,p_prn_document_header=>'APEX'
 ,p_prn_units=>'INCHES'
@@ -49339,6 +49339,185 @@ wwv_flow_api.create_worksheet_rpt(
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'TABLE_NAME:SUB_OBJECT:TABLE_TOT_DELTA_R'
+);
+wwv_flow_api.create_page_plug(
+ p_id=>wwv_flow_api.id(56879447311029819)
+,p_plug_name=>'Objects size'
+,p_parent_plug_id=>wwv_flow_api.id(56769278709874046)
+,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
+,p_escape_on_http_output=>'Y'
+,p_plug_template=>wwv_flow_api.id(163591464529453905)
+,p_plug_display_sequence=>10
+,p_plug_display_point=>'BODY'
+,p_plug_source_type=>'NATIVE_JET_CHART'
+,p_plug_query_num_rows=>15
+,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
+,p_plug_display_condition_type=>'PLSQL_EXPRESSION'
+,p_plug_display_when_condition=>':P501_END_DT is not null or (:P501_TABLE_NAME_LIKE is not null and :P501_END_DT is not null)'
+);
+wwv_flow_api.create_jet_chart(
+ p_id=>wwv_flow_api.id(56879585945029820)
+,p_region_id=>wwv_flow_api.id(56879447311029819)
+,p_chart_type=>'line'
+,p_animation_on_display=>'none'
+,p_animation_on_data_change=>'none'
+,p_orientation=>'vertical'
+,p_data_cursor=>'auto'
+,p_data_cursor_behavior=>'auto'
+,p_hide_and_show_behavior=>'none'
+,p_hover_behavior=>'none'
+,p_stack=>'off'
+,p_connect_nulls=>'Y'
+,p_sorting=>'label-asc'
+,p_fill_multi_series_gaps=>true
+,p_zoom_and_scroll=>'off'
+,p_tooltip_rendered=>'Y'
+,p_show_series_name=>true
+,p_show_group_name=>true
+,p_show_value=>true
+,p_show_label=>true
+,p_legend_rendered=>'on'
+,p_legend_position=>'top'
+,p_time_axis_type=>'mixedFrequency'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(56879678554029821)
+,p_chart_id=>wwv_flow_api.id(56879585945029820)
+,p_seq=>10
+,p_name=>'Objects size'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with tbls as',
+' (select table_name',
+'    from db_growth_tables x',
+'   where proj_id=:P501_PROJ_ID and iot_name is null and table_name like case when :P501_TABLE_NAME_LIKE is not null then :P501_TABLE_NAME_LIKE else table_name end),',
+'iottbls as',
+' (select table_name, iot_name',
+'    from db_growth_tables x',
+'   where proj_id=:P501_PROJ_ID and iot_name is not null and table_name like case when :P501_TABLE_NAME_LIKE is not null then :P501_TABLE_NAME_LIKE else table_name end)',
+' select last_updated, sum(bytes) bytes',
+'          from',
+'               (',
+'               select ''1.1'' a,',
+'                       last_updated,',
+'                       q1.table_name,',
+'                       q1.sub_object,',
+'                       q1.bytes',
+'                  from (select trunc(s.last_updated,''mi'') last_updated,',
+'                               tbls.table_name, ',
+'                               segment_type || case when partition_name is not null then '': '' || partition_name else null end sub_object,',
+'                               size_b bytes',
+'                          from db_growth_segs s, tbls',
+'                         where proj_id=:P501_PROJ_ID and segment_name = tbls.table_name',
+'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                union all',
+'                select ''1.2'' a,',
+'                       last_updated,',
+'                       q1.table_name,',
+'                       q1.sub_object,',
+'                       q1.bytes',
+'                  from (select trunc(s.last_updated,''mi'') last_updated,',
+'                               iottbls.iot_name table_name, ',
+'                               segment_type || case when partition_name is not null then '': '' || partition_name else null end sub_object,',
+'                               size_b bytes',
+'                          from db_growth_segs s, iottbls',
+'                         where proj_id=:P501_PROJ_ID and segment_name = iottbls.iot_name',
+'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                union all',
+'                select ''2.1'' a,',
+'                       last_updated,',
+'                       q1.table_name,',
+'                       q1.sub_object,',
+'                       q1.bytes ',
+'                  from (select trunc(s.last_updated,''mi'') last_updated,',
+'                               tbls.table_name, ',
+'                               segment_type || '':'' || segment_name ||'':''||index_type|| case when partition_name is not null then '': '' || partition_name else null end sub_object, ',
+'                               size_b bytes',
+'                          from db_growth_segs s, tbls, db_growth_indexes i',
+'                         where s.proj_id=:P501_PROJ_ID and s.proj_id=i.proj_id and segment_name = i.index_name',
+'                           and i.table_name = tbls.table_name',
+'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                union all',
+'                select ''2.2'' a,',
+'                       last_updated,',
+'                       q1.table_name,',
+'                       q1.sub_object,',
+'                       q1.bytes ',
+'                  from (select trunc(s.last_updated,''mi'') last_updated,',
+'                               iottbls.iot_name table_name, ',
+'                               segment_type || '':'' || segment_name ||'':''||index_type|| case when partition_name is not null then '': '' || partition_name else null end sub_object, ',
+'                               size_b bytes',
+'                          from db_growth_segs s, iottbls, db_growth_indexes i',
+'                         where s.proj_id=:P501_PROJ_ID and s.proj_id=i.proj_id and segment_name = i.index_name',
+'                           and i.table_name = iottbls.iot_name',
+'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                union all',
+'                select ''3.1'' a,',
+'                       last_updated,',
+'                       q1.table_name,',
+'                       q1.sub_object,',
+'                       q1.bytes ',
+'                  from (select trunc(s.last_updated,''mi'') last_updated,',
+'                               tbls.table_name, ',
+'                               segment_type || '':'' || s.segment_name || case when partition_name is not null then '': '' || partition_name else null end sub_object,',
+'                               size_b bytes',
+'                          from db_growth_segs s, tbls, db_growth_lobs l',
+'                         where s.proj_id=:P501_PROJ_ID and s.proj_id=l.proj_id and s.segment_name = l.segment_name',
+'                           and l.table_name = tbls.table_name',
+'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                union all',
+'                select ''3.2'' a,',
+'                       last_updated,',
+'                       q1.table_name,',
+'                       q1.sub_object,',
+'                       q1.bytes ',
+'                  from (select trunc(s.last_updated,''mi'') last_updated,',
+'                               iottbls.iot_name table_name, ',
+'                               segment_type || '':'' || s.segment_name || case when partition_name is not null then '': '' || partition_name else null end sub_object,',
+'                               size_b bytes',
+'                          from db_growth_segs s, iottbls, db_growth_lobs l',
+'                         where s.proj_id=:P501_PROJ_ID and s.proj_id=l.proj_id and s.segment_name = l.segment_name',
+'                           and l.table_name = iottbls.iot_name',
+'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+') x ',
+'group by last_updated',
+'order by 1',
+''))
+,p_items_value_column_name=>'BYTES'
+,p_items_label_column_name=>'LAST_UPDATED'
+,p_line_style=>'solid'
+,p_line_type=>'auto'
+,p_marker_rendered=>'auto'
+,p_marker_shape=>'auto'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>false
+);
+wwv_flow_api.create_jet_chart_axis(
+ p_id=>wwv_flow_api.id(56879746333029822)
+,p_chart_id=>wwv_flow_api.id(56879585945029820)
+,p_axis=>'x'
+,p_is_rendered=>'on'
+,p_format_scaling=>'auto'
+,p_scaling=>'linear'
+,p_baseline_scaling=>'zero'
+,p_major_tick_rendered=>'on'
+,p_minor_tick_rendered=>'off'
+,p_tick_label_rendered=>'on'
+,p_tick_label_rotation=>'auto'
+,p_tick_label_position=>'outside'
+);
+wwv_flow_api.create_jet_chart_axis(
+ p_id=>wwv_flow_api.id(56879822215029823)
+,p_chart_id=>wwv_flow_api.id(56879585945029820)
+,p_axis=>'y'
+,p_is_rendered=>'on'
+,p_format_scaling=>'auto'
+,p_scaling=>'linear'
+,p_baseline_scaling=>'min'
+,p_position=>'auto'
+,p_major_tick_rendered=>'on'
+,p_minor_tick_rendered=>'off'
+,p_tick_label_rendered=>'on'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(56878545666029810)
@@ -49529,6 +49708,9 @@ wwv_flow_api.create_report_columns(
 ,p_derived_column=>'N'
 ,p_include_in_export=>'Y'
 );
+end;
+/
+begin
 wwv_flow_api.create_report_region(
  p_id=>wwv_flow_api.id(56765999184874013)
 ,p_name=>'Job run details (last 8 days)'
@@ -49804,7 +49986,7 @@ wwv_flow_api.create_page_plug(
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
 ,p_escape_on_http_output=>'Y'
 ,p_plug_template=>wwv_flow_api.id(163591464529453905)
-,p_plug_display_sequence=>30
+,p_plug_display_sequence=>40
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
 ,p_plug_query_num_rows=>15
@@ -49835,9 +50017,6 @@ wwv_flow_api.create_jet_chart(
 ,p_legend_position=>'top'
 ,p_time_axis_type=>'mixedFrequency'
 );
-end;
-/
-begin
 wwv_flow_api.create_jet_chart_series(
  p_id=>wwv_flow_api.id(56768931474874043)
 ,p_chart_id=>wwv_flow_api.id(56768864102874042)
@@ -50492,6 +50671,9 @@ wwv_flow_api.create_page_process(
 ,p_process_success_message=>'Project attributes saved'
 ,p_security_scheme=>wwv_flow_api.id(56658021094893360)
 );
+end;
+/
+begin
 wwv_flow_api.create_page_process(
  p_id=>wwv_flow_api.id(56714044443301462)
 ,p_process_sequence=>20
