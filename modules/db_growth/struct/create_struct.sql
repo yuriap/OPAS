@@ -51,7 +51,8 @@ case
   else
     replace('Will be kept till <%p1>','<%p1>',to_char(created + TO_DSINTERVAL(COREMOD_API.getconf('PROJECTRETENTION',DB_GROWTH_API.getMODNAME)||' 00:00:00'),'YYYY-MON-DD HH24:MI' ))
 end retention,
-'Schema size: '||dbms_xplan.format_size(pars.tot_size) || '; Delta: ' ||  dbms_xplan.format_size(pars.delta) sizes,
+'Schema size: '||case when pars.tot_size is not null then case when pars.tot_size>=0 then dbms_xplan.format_size(pars.tot_size) else '-'||dbms_xplan.format_size(abs(pars.tot_size)) end else 'N/A' end || 
+'; Delta: ' ||   case when pars.delta is not null then case when pars.delta>=0 then dbms_xplan.format_size(pars.delta) else '-'||dbms_xplan.format_size(abs(pars.delta)) end else 'N/A' end sizes,
 case when keep_forever = 'N' and created + COREMOD_API.getconf('PROJECTRETENTION',DB_GROWTH_API.getMODNAME) < (sysdate + COREMOD_API.getconf('SHOWEXPBEFORE',COREMOD_API.getMODNAME)) then ' Project is expiring.' else null end ||
 case when tot_size > nvl(size_alert,1e50) then ' DB Size Alert!' else null end ||
 case when delta > nvl(delta_alert,1e50) then ' DB Delta Alert!' else null end

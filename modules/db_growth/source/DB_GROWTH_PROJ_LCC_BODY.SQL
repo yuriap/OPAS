@@ -8,7 +8,7 @@ PACKAGE BODY DB_GROWTH_PROJ_LCC AS
     return
       case
         when p_action = c_project_create    and l_status in (c_projstate_new)                                                                then true
-        when p_action = c_project_edit      and l_status in (c_projstate_new,c_projstate_suspended,c_projstate_preparing)                    then true
+        when p_action = c_project_edit      and l_status in (c_projstate_new,c_projstate_suspended,c_projstate_preparing,c_projstate_active)                      then true
         when p_action = c_project_drop      and l_status in (c_projstate_new,c_projstate_preparing,c_projstate_suspended,c_projstate_archived)                    then true
         when p_action = c_project_rocontent and l_status in (c_projstate_new,c_projstate_preparing,c_projstate_active,c_projstate_suspended,c_projstate_archived) then true
         when p_action = c_project_rwcontent and l_status in (c_projstate_new,c_projstate_preparing,c_projstate_suspended)                    then true

@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   17:56 Tuesday August 6, 2019
+--   Date and Time:   10:04 Wednesday August 7, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -128,7 +128,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190806175208'
+,p_last_upd_yyyymmddhh24miss=>'20190807100347'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -49033,7 +49033,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(56657728100893359)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190806175207'
+,p_last_upd_yyyymmddhh24miss=>'20190807100347'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(254248211799234768)
@@ -49095,8 +49095,8 @@ wwv_flow_api.create_page_plug(
 'dts as (select to_date(:P501_START_DT,''YYYY-MM-DD HH24:MI'') dts, to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'') dte from dual)',
 'select table_name,',
 '       sub_object,',
-'       case when seg_delta>0 then dbms_xplan.format_size(seg_delta) else ''-''||dbms_xplan.format_size(abs(seg_delta)) end seg_delta,',
-'       case when table_tot_delta>0 then dbms_xplan.format_size(table_tot_delta) else ''-''||dbms_xplan.format_size(abs(table_tot_delta)) end table_tot_delta,',
+'       case when seg_delta>=0 then dbms_xplan.format_size(seg_delta) else ''-''||dbms_xplan.format_size(abs(seg_delta)) end seg_delta,',
+'       case when table_tot_delta>=0 then dbms_xplan.format_size(table_tot_delta) else ''-''||dbms_xplan.format_size(abs(table_tot_delta)) end table_tot_delta,',
 '       dbms_xplan.format_size(tot_delta) tot_delta,',
 '       table_tot_delta table_tot_delta_r',
 '  from (select x.a, ',
@@ -49672,7 +49672,7 @@ wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(56768189519874035)
 ,p_plug_name=>'Parameters. Status: &P501_LAST_VALIDATION_STATUS.'
 ,p_parent_plug_id=>wwv_flow_api.id(249022232183589381)
-,p_region_template_options=>'#DEFAULT#:is-expanded:t-Region--scrollBody'
+,p_region_template_options=>'#DEFAULT#:is-collapsed:t-Region--scrollBody'
 ,p_plug_template=>wwv_flow_api.id(163580428178453883)
 ,p_plug_display_sequence=>15
 ,p_plug_display_point=>'BODY'
@@ -49948,6 +49948,9 @@ wwv_flow_api.create_page_button(
 ,p_button_template_id=>wwv_flow_api.id(163643609632454047)
 ,p_button_image_alt=>'Save'
 ,p_button_position=>'BELOW_BOX'
+,p_button_alignment=>'LEFT'
+,p_button_condition=>'DB_GROWTH_PROJ_LCC.project_check_action(:P501_PROJ_ID,DB_GROWTH_PROJ_LCC.c_project_edit)'
+,p_button_condition_type=>'PLSQL_EXPRESSION'
 );
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(56696594637301393)
@@ -50431,8 +50434,8 @@ wwv_flow_api.create_page_process(
 '      case when nvl(last_validated,last_changed-1) > last_changed then ''Y'' else ''N'' end,',
 '      job_name,',
 '      to_char(last_updated,''DD-MON-YYYY HH24:MI:SS''),',
-'      dbms_xplan.format_size(tot_size),',
-'      dbms_xplan.format_size(delta),',
+'      case when tot_size>=0 then dbms_xplan.format_size(tot_size) else ''-''||dbms_xplan.format_size(abs(tot_size)) end,',
+'      case when delta>=0 then dbms_xplan.format_size(delta) else ''-''||dbms_xplan.format_size(abs(delta)) end,',
 '      to_char(delta_alert,''999G999G999G999G999G999G999G999G990''),',
 '      to_char(size_alert,''999G999G999G999G999G999G999G999G990'')',
 '    into ',
@@ -50466,19 +50469,6 @@ wwv_flow_api.create_page_process(
 '      :P501_DELTA_ALERT:=null;',
 '      :P501_SIZE_ALERT:=null;',
 '  end;',
-'/*  ',
-'  select to_char(nvl(sum(round(COREFILE_API.get_file_size(t.filebody)/1024)),0),''999G999G999G999G999G999G990'') src_size_kb',
-'    into :P501_SOURCE_SZ',
-'    from awrwh_dumps t',
-'   where proj_id=:P501_PROJ_ID;',
-'    ',
-'  select to_char(nvl(sum(round(COREFILE_API.get_file_size(r.report_content)/1024)),0),''999G999G999G999G999G999G990'') rpt_size_kb',
-'    into :P501_REPORT_SZ',
-'    from awrwh_reports t, opas_reports r',
-'   where t.report_id=r.report_id and proj_id=:P501_PROJ_ID;   ',
-'*/',
-'  ',
-'  --:P501_DB_LINK := DB_GROWTH_PROJ_API.get_proj_dblink(P_PROJ_ID => :P501_PROJ_ID);',
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 );
