@@ -172,3 +172,5 @@ select proj_id,
 ;
 
 create index idx_DB_GROWTH_SIZES_proj on DB_GROWTH_SIZES(proj_id);
+
+@@upgrade_struct_1.0.0_1.0.1.sql

@@ -16,6 +16,7 @@ PACKAGE BODY DB_GROWTH_PROJ_LCC AS
         when p_action = c_project_activate  and l_status in (c_projstate_suspended,c_projstate_preparing)                                    then true
         when p_action = c_project_validate  and l_status in (c_projstate_suspended,c_projstate_preparing)                                    then true
         when p_action = c_project_archive   and l_status in (c_projstate_suspended,c_projstate_preparing)                 then true
+        when p_action = c_project_chng_conf and l_status in (c_projstate_new,c_projstate_suspended,c_projstate_preparing)                    then true
       else
         false
       end;
@@ -49,6 +50,7 @@ PACKAGE BODY DB_GROWTH_PROJ_LCC AS
       when p_action = c_project_activate   then project_set_status(p_proj.proj_id,c_projstate_active);
       when p_action = c_project_validate   then null;
       when p_action = c_project_archive    then project_set_status(p_proj.proj_id,c_projstate_archived);
+      when p_action = c_project_chng_conf  then null;
       else
         raise_application_error(-20000,'Unimplemented project action: '||p_action);
       end case;

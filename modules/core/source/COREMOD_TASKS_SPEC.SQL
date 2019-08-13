@@ -4,6 +4,7 @@ package coremod_tasks as
   gtqNEW       constant varchar2(10):='NEW';
   gtqQUEUED    constant varchar2(10):='QUEUED';
   gtqSTARTED   constant varchar2(10):='STARTED';
+  gtqSCHEDULED constant varchar2(10):='SCHEDULED';
   gtqRUNNING   constant varchar2(10):='RUNNING';
   gtqSUCCEEDED constant varchar2(10):='SUCCEEDED';
   gtqFAILED    constant varchar2(10):='FAILED';
@@ -21,7 +22,7 @@ package coremod_tasks as
 
   function  prep_execute_task(p_taskname opas_task.taskname%type,
                               p_task_subname opas_task_queue.task_subname%type default null) return opas_task_queue.tq_id%type;
-  procedure queue_task(p_tq_id opas_task_queue.tq_id%type);
+  procedure queue_task(p_tq_id opas_task_queue.tq_id%type, p_start_time date default null);
   procedure cancel_task(p_tq_id opas_task_queue.tq_id%type);
 
   procedure set_task_param(p_tq_id opas_task_queue.tq_id%type, p_name opas_task_pars.par_name%type, p_num_par number);

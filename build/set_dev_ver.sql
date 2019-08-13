@@ -24,4 +24,10 @@ define MODNM=AWR_WAREHOUSE
 update opas_modules set modver='&MODVER.' where modname='&MODNM.';
 @../modules/awr_warehouse/data/expimp_compat.sql
 
+define MODNM=DB_GROWTH
+@../modules/db_growth/install/version.sql 
+update opas_modules set modver='&MODVER.' where modname='&MODNM.';
+@../modules/db_growth/data/expimp_compat.sql
+
+
 commit;

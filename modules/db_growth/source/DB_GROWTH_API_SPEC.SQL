@@ -9,7 +9,8 @@ PACKAGE DB_GROWTH_API AS
                             p_src_dblink  db_growth_parameters.src_dblink%type,
                             p_scheme_list db_growth_parameters.scheme_list%type,
                             p_schedule    db_growth_parameters.schedule%type,
-                            p_start_date  db_growth_parameters.start_date%type);
+                            p_start_date  db_growth_parameters.start_date%type,
+                            p_minimum_seg_sz db_growth_parameters.minimum_seg_sz%type);
 
   procedure set_alerts (p_proj_id     db_growth_parameters.proj_id%type,
                         p_delta_alert db_growth_parameters.delta_alert%type,

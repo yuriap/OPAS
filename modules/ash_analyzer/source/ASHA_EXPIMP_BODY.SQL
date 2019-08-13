@@ -5,7 +5,8 @@ PACKAGE BODY ASHA_EXPIMP AS
                          COREMOD_EXPIMP.t_object_names('ASHA_CUBE','ASHA_CUBE_BLOCK','ASHA_CUBE_METRICS',
                                                        'ASHA_CUBE_REPORTS','ASHA_CUBE_SEG',
                                                        'ASHA_CUBE_SESS','ASHA_CUBE_SESS_PARS','ASHA_CUBE_SNAP_ASH',
-                                                       'ASHA_CUBE_TIMELINE','ASHA_CUBE_TOP_SESS','ASHA_CUBE_UNKNOWN');
+                                                       'ASHA_CUBE_TIMELINE','ASHA_CUBE_TOP_SESS','ASHA_CUBE_UNKNOWN',
+                                                       'ASHA_CUBE_STAT_PARS','ASHA_CUBE_STATISTICS','ASHA_CUBE_WAITS');
   gProjList COREMOD_EXPIMP.t_object_names :=
                          COREMOD_EXPIMP.t_object_names('ASHA_CUBE_PROJECTS');
 
@@ -274,6 +275,13 @@ PACKAGE BODY ASHA_EXPIMP AS
              select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),session_id,session_serial#,inst_id,module,action,program,client_id,machine,ecid,username,smpls from ei$asha_cube_top_sess s;
         INSERT INTO asha_cube_unknown (sess_id,unknown_type,session_type,program,client_id,machine,ecid,username,smpls)
              select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),unknown_type,session_type,program,client_id,machine,ecid,username,smpls from ei$asha_cube_unknown s;
+
+        INSERT INTO asha_cube_stat_pars ( sess_id, sample_id1, sample_time1, sample_id2, sample_time2)
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id), sample_id1, sample_time1, sample_id2, sample_time2 from ei$asha_cube_stat_pars s;
+        INSERT INTO asha_cube_statistics ( sess_id, sid, inst_id, statistic#, value)
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id), sid, inst_id, statistic#, value from ei$asha_cube_statistics s;
+        INSERT INTO asha_cube_waits (sess_id, sid, inst_id, event_id, total_waits, time_waited_micro)
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id), sid, inst_id, event_id, total_waits, time_waited_micro from ei$asha_cube_waits s;
       end;' using p_proj_id;
   end;
 

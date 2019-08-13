@@ -2,7 +2,7 @@ CREATE OR REPLACE
 PACKAGE BODY DB_GROWTH_EXPIMP AS
 
   gDBGTables COREMOD_EXPIMP.t_object_names :=
-                         COREMOD_EXPIMP.t_object_names('DB_GROWTH_SEGS','DB_GROWTH_TABLES','DB_GROWTH_INDEXES','DB_GROWTH_LOBS');
+                         COREMOD_EXPIMP.t_object_names('DB_GROWTH_SEGS','DB_GROWTH_TABLES','DB_GROWTH_INDEXES','DB_GROWTH_LOBS','DB_GROWTH_SIZES');
   gProjList COREMOD_EXPIMP.t_object_names :=
                          COREMOD_EXPIMP.t_object_names('DB_GROWTH_PROJECTS');
 
@@ -179,6 +179,11 @@ PACKAGE BODY DB_GROWTH_EXPIMP AS
             select l_proj_id, last_updated, owner, table_name, column_name, segment_name, tablespace_name, index_name, chunk,
               compression, deduplication, in_row, partitioned, securefile, segment_created
             from ei$db_growth_lobs
+            where proj_id = i.proj_id;
+
+          INSERT INTO db_growth_sizes (proj_id, last_updated, size_b, delta)
+            select l_proj_id, last_updated, size_b, delta
+            from ei$db_growth_sizes
             where proj_id = i.proj_id;
         end loop;
       end;

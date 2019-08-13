@@ -25,7 +25,8 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     pa_end_snap             number,
     pa_PAUSEMONITOR         number,
     pa_ITERATIONSMONITOR    number,
-    pa_SNAP_ASH_FREQ        number
+    pa_SNAP_ASH_FREQ        number,
+    pa_STATSNWAITS          boolean
     );
 
   g_params_t tt_params_t;
@@ -179,6 +180,8 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     g_allpars.pa_ITERATIONSMONITOR     := get_parameter(c_ITERATIONSMONITOR);
     g_allpars.pa_SNAP_ASH_FREQ         := get_parameter(c_SNAP_ASH_FREQ);
 
+    g_allpars.pa_STATSNWAITS := to_bool(get_parameter(c_STATSNWAITS));
+
     --g_allpars.pa_snap_duration := get_parameter(c_SNAP_DURATION);
   end;
 
@@ -269,6 +272,8 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     if l_params_t.exists(c_PAUSEMONITOR) then add_parameter(p_sess_id,c_PAUSEMONITOR,l_params_t(c_PAUSEMONITOR)); end if;
     if l_params_t.exists(c_ITERATIONSMONITOR) then add_parameter(p_sess_id,c_ITERATIONSMONITOR,l_params_t(c_ITERATIONSMONITOR)); end if;
     if l_params_t.exists(c_SNAP_ASH_FREQ) then add_parameter(p_sess_id,c_SNAP_ASH_FREQ,l_params_t(c_SNAP_ASH_FREQ)); end if;
+
+    if l_params_t.exists(c_STATSNWAITS) then add_parameter(p_sess_id,c_STATSNWAITS,l_params_t(c_STATSNWAITS)); end if;
 
     coremod_log.log('load_par_tmpl finished','DEBUG');
   end;
@@ -1100,12 +1105,185 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
     coremod_log.log('End calc_cube. p_sess_id: '||p_sess_id,'DEBUG');
   end;
 
-  procedure set_cube_sess_status(p_sess_id asha_cube_sess.sess_id%type, p_status varchar2, p_tq_id opas_task_queue.tq_id%type default null)
+  procedure snap_stats_waits(p_sess_id asha_cube_sess.sess_id%type,
+                             p_dblink opas_db_links.db_link_name%type,
+                             p_filter varchar2,
+                             p_sample_id out number,
+                             p_sample_time out timestamp)
+  is
+    l_sql_tmpl_ash varchar2(32765) := q'[INSERT INTO asha_cube_snap_ash (sess_id,
+    inst_id,    sample_id,    sample_time,    session_id,
+    session_serial#,    session_type,    user_id,    sql_id,    sql_child_number,
+    sql_plan_hash_value,    sql_exec_id,    sql_exec_start,    plsql_entry_object_id,
+    ---
+    plsql_entry_subprogram_id,    plsql_object_id,    plsql_subprogram_id,
+    current_obj#,
+    ---
+    current_file#,    current_block#,    current_row#,    top_level_call#,     xid,
+    ---
+    program,    module,
+    action,    client_id,    machine,    port,    ecid)
+SELECT :p_sess_id,
+    inst_id, :sample_id, :p_timestamp, sid,
+    serial#,    type,  user#, sql_id, sql_child_number,
+    sql_hash_value, sql_exec_id, sql_exec_start,    plsql_entry_object_id,
+    ---
+    plsql_entry_subprogram_id,    plsql_object_id,   plsql_subprogram_id,
+    row_wait_obj#,
+    ---
+    row_wait_file#,  row_wait_block#,  row_wait_row#, top_level_call#, taddr,
+    ---
+    program,module,
+    action,client_info,machine, port,ecid
+from gv$session@<dblink> x where 1=1 <FILTER>]';
+
+    l_sql_stat_flt_tmpl varchar2(32765) := q'[
+INSERT INTO asha_cube$tmp_statistics ( sample_id, sid, inst_id, statistic#, value )
+select :sample_id, sst.sid, sst.inst_id, sst.statistic#, sst.value
+  from gv$sesstat@<dblink> sst, gv$session@<dblink> x
+ where sst.inst_id = x.inst_id
+   and sst.sid = x.sid
+   and sst.value > 0
+   <FILTER>]';
+
+    l_sql_stat_tmpl varchar2(32765) := q'[
+INSERT INTO asha_cube$tmp_statistics ( sample_id, sid, inst_id, statistic#, value )
+select :sample_id, sst.sid, sst.inst_id, sst.statistic#, sst.value
+  from gv$sesstat@<dblink> sst
+ where sst.value > 0]';
+
+    l_sql_sysstat_tmpl varchar2(32765) := q'[
+INSERT INTO asha_cube$tmp_statistics ( sample_id, sid, inst_id, statistic#, value )
+select :sample_id, null, sst.inst_id, sst.statistic#, sst.value
+  from gv$sysstat@<dblink> sst
+ where sst.value > 0]';
+
+    l_sql_wait_flt_tmpl varchar2(32765) := q'[
+INSERT INTO ASHA_CUBE$TMP_WAITS ( sample_id, sid, inst_id, EVENT_ID, TOTAL_WAITS, TIME_WAITED_MICRO)
+select :sample_id, ev.sid, ev.inst_id, ev.EVENT_ID, ev.TOTAL_WAITS, ev.TIME_WAITED_MICRO
+  from gv$session_event@<dblink> ev, gv$session@<dblink> x
+ where ev.inst_id = x.inst_id
+   and ev.sid = x.sid
+   <FILTER>]';
+
+    l_sql_wait_tmpl varchar2(32765) := q'[
+INSERT INTO ASHA_CUBE$TMP_WAITS ( sample_id, sid, inst_id, EVENT_ID, TOTAL_WAITS, TIME_WAITED_MICRO)
+select :sample_id, ev.sid, ev.inst_id, ev.EVENT_ID, ev.TOTAL_WAITS, ev.TIME_WAITED_MICRO
+  from gv$session_event@<dblink> ev]';
+
+    l_sql_syswait_tmpl varchar2(32765) := q'[
+INSERT INTO ASHA_CUBE$TMP_WAITS ( sample_id, sid, inst_id, EVENT_ID, TOTAL_WAITS, TIME_WAITED_MICRO)
+select :sample_id, null, ev.inst_id, ev.EVENT_ID, ev.TOTAL_WAITS, ev.TIME_WAITED_MICRO
+  from gv$system_event@<dblink> ev]';
+
+   l_sql_sysdt_tmpl varchar2(32765) := q'[select systimestamp from dual@<dblink>]';
+   --l_sample_time timestamp;
+
+  begin
+    p_sample_id := asha_snap_ash.nextval;
+    l_sql_sysdt_tmpl  := replace(l_sql_sysdt_tmpl,'<dblink>',p_dblink);
+    execute immediate l_sql_sysdt_tmpl   into p_sample_time;
+
+    l_sql_tmpl_ash := replace(replace(l_sql_tmpl_ash,'<dblink>', p_dblink),'<FILTER>', case when p_filter is not null then ' and ('||p_filter||')' else null end);
+    execute immediate l_sql_tmpl_ash using p_sess_id, p_sample_id, p_sample_time;
+
+    --sessions statistics
+    if p_filter is not null then
+      l_sql_stat_flt_tmpl := replace(replace(l_sql_stat_flt_tmpl,'<dblink>', p_dblink),'<FILTER>',' and ('||p_filter||')');
+      begin
+        execute immediate l_sql_stat_flt_tmpl using p_sample_id;
+      exception
+        when others then
+          coremod_log.log('snap_stats_waits error SQL: '||chr(10)||l_sql_stat_flt_tmpl);
+          raise_application_error(-20000,sqlerrm);
+      end;
+      l_sql_wait_flt_tmpl := replace(replace(l_sql_wait_flt_tmpl,'<dblink>', p_dblink),'<FILTER>',' and ('||p_filter||')');
+      begin
+        execute immediate l_sql_wait_flt_tmpl using p_sample_id;
+      exception
+        when others then
+          coremod_log.log('snap_stats_waits error SQL: '||chr(10)||l_sql_wait_flt_tmpl);
+          raise_application_error(-20000,sqlerrm);
+      end;
+    else
+      l_sql_stat_tmpl := replace(l_sql_stat_tmpl,'<dblink>', p_dblink);
+      execute immediate l_sql_stat_tmpl using p_sample_id;
+      l_sql_wait_tmpl := replace(l_sql_wait_tmpl,'<dblink>', p_dblink);
+      execute immediate l_sql_wait_tmpl using p_sample_id;
+    end if;
+
+    --instance wide statistics
+    l_sql_sysstat_tmpl := replace(l_sql_sysstat_tmpl,'<dblink>', p_dblink);
+    execute immediate l_sql_sysstat_tmpl using p_sample_id;
+    l_sql_syswait_tmpl := replace(l_sql_syswait_tmpl,'<dblink>', p_dblink);
+    execute immediate l_sql_syswait_tmpl using p_sample_id;
+  end;
+
+  procedure calc_stats_waits(p_sess_id asha_cube_sess.sess_id%type,
+                             p_sample_id1 number, p_sample_time1 timestamp,
+                             p_sample_id2 number, p_sample_time2 timestamp)
+  is
+  begin
+    INSERT INTO asha_cube_stat_pars
+             ( sess_id,   sample_id1,   sample_time1,   sample_id2,   sample_time2)
+      values ( p_sess_id, p_sample_id1, p_sample_time1, p_sample_id2, p_sample_time2);
+
+    --session statistics
+    INSERT INTO asha_cube_statistics (sess_id, sid, inst_id, statistic#, value)
+      select
+        p_sess_id, s2.sid, s2.inst_id, s2.statistic#, s2.value-nvl(s1.value,0) value
+      from
+       (select * from asha_cube$tmp_statistics where sample_id=p_sample_id1 and sid is not null) s1,
+       (select * from asha_cube$tmp_statistics where sample_id=p_sample_id2 and sid is not null) s2
+     where s1.inst_id(+)=s2.inst_id
+       and s1.sid(+)=s2.sid
+       and s1.statistic#(+)=s2.statistic#
+       and nvl(s1.value(+),0)<>s2.value;
+
+    INSERT INTO asha_cube_statistics (sess_id, sid, inst_id, statistic#, value)
+      select
+        p_sess_id, null, s2.inst_id, s2.statistic#, s2.value-nvl(s1.value,0) value
+      from
+       (select * from asha_cube$tmp_statistics where sample_id=p_sample_id1 and sid is null) s1,
+       (select * from asha_cube$tmp_statistics where sample_id=p_sample_id2 and sid is null) s2
+     where s1.inst_id(+)=s2.inst_id
+       and s1.statistic#(+)=s2.statistic#
+       and nvl(s1.value(+),0)<>s2.value;
+
+    INSERT INTO asha_cube_waits (sess_id, sid, inst_id, EVENT_ID, TOTAL_WAITS, TIME_WAITED_MICRO)
+     select
+       p_sess_id, s2.sid, s2.inst_id,
+       s2.EVENT_ID,
+       s2.TOTAL_WAITS-nvl(s1.TOTAL_WAITS,0) TOTAL_WAITS,
+       s2.TIME_WAITED_MICRO-nvl(s1.TIME_WAITED_MICRO,0) TIME_WAITED_MICRO
+     from
+       (select * from ASHA_CUBE$TMP_WAITS where sample_id=p_sample_id1 and sid is not null) s1,
+       (select * from ASHA_CUBE$TMP_WAITS where sample_id=p_sample_id2 and sid is not null) s2
+    where s1.inst_id(+)=s2.inst_id
+      and s1.sid(+)=s2.sid
+      and s1.EVENT_ID(+)=s2.EVENT_ID
+      and nvl(s1.TOTAL_WAITS(+),0)<>s2.TOTAL_WAITS;
+
+    INSERT INTO asha_cube_waits (sess_id, sid, inst_id, EVENT_ID, TOTAL_WAITS, TIME_WAITED_MICRO)
+     select
+       p_sess_id, null, s2.inst_id,
+       s2.EVENT_ID,
+       s2.TOTAL_WAITS-nvl(s1.TOTAL_WAITS,0) TOTAL_WAITS,
+       s2.TIME_WAITED_MICRO-nvl(s1.TIME_WAITED_MICRO,0) TIME_WAITED_MICRO
+     from
+       (select * from ASHA_CUBE$TMP_WAITS where sample_id=p_sample_id1 and sid is null) s1,
+       (select * from ASHA_CUBE$TMP_WAITS where sample_id=p_sample_id2 and sid is null) s2
+    where s1.inst_id(+)=s2.inst_id
+      and s1.EVENT_ID(+)=s2.EVENT_ID
+      and nvl(s1.TOTAL_WAITS(+),0)<>s2.TOTAL_WAITS;
+  end;
+
+  procedure set_cube_sess_status(p_sess_id asha_cube_sess.sess_id%type, p_status varchar2/*, p_tq_id opas_task_queue.tq_id%type default null*/)
   is
     pragma autonomous_transaction;
     l_status varchar2(100);
   begin
-    update asha_cube_sess set sess_status = p_status, sess_tq_id=nvl(p_tq_id,sess_tq_id) where sess_id=p_sess_id returning sess_status into l_status;
+    update asha_cube_sess set sess_status = p_status/*, sess_tq_id=nvl(p_tq_id,sess_tq_id)*/ where sess_id=p_sess_id returning sess_status into l_status;
     coremod_log.log('Set status: '||l_status||'; p_sess_id: '||p_sess_id||'; rows: '||sql%rowcount, 'DEBUG');
     commit;
   end;
@@ -1114,27 +1292,52 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
   is
     l_duration number;
     l_end_time date;
+    l_db_link varchar2(100) := COREMOD_API.get_ora_dblink(get_parameter_db(p_sess_id,c_dblink));
+    l_filter varchar2(4000) :=get_parameter_db(p_sess_id, c_filter);
+
+    l_sample_id1 number;
+    l_sample_id2 number;
+    l_sample_time1 timestamp;
+    l_sample_time2 timestamp;
   begin
     coremod_log.log('load_cube_mon p_sess_id: '||p_sess_id,'DEBUG');
     ----------------------------------------------------
     for i in (select sess_id from asha_cube_sess where sess_id=p_sess_id and sess_status=stINQUEUE) loop
       ----------------------------------------------------
-      set_cube_sess_status(p_sess_id,stMONITOR,coremod_tasks.get_curr_tq_id);
+      set_cube_sess_status(p_sess_id,stMONITOR/*,coremod_tasks.get_curr_tq_id*/);
       ----------------------------------------------------
       init_params(p_sess_id);
-      --for i in 1..to_number(COREMOD_API.getconf('ITERATIONSMONITOR',ASHA_CUBE_API.gMODNAME))
-      --l_duration:=to_number(COREMOD_API.getconf('ITERATIONSMONITOR',ASHA_CUBE_API.gMODNAME))*to_number(COREMOD_API.getconf('PAUSEMONITOR',ASHA_CUBE_API.gMODNAME)); --seconds
       l_duration:=to_number(get_parameter(c_ITERATIONSMONITOR))*to_number(get_parameter(c_PAUSEMONITOR)); --seconds
       l_end_time:=sysdate+(l_duration/3600/24);
       coremod_log.log('load_cube_mon.l_end_time: '||to_char(l_end_time,'YYYY-MON-DD HH24:MI:SS')||':'||to_char(sysdate,'YYYY-MON-DD HH24:MI:SS'),'DEBUG');
+
+      if to_bool(get_parameter_db(p_sess_id, c_STATSNWAITS)) then
+        snap_stats_waits(p_sess_id => p_sess_id,
+                         p_dblink  => l_db_link,
+                         p_filter  => l_filter,
+                         p_sample_id => l_sample_id1,
+                         p_sample_time => l_sample_time1);
+        commit;
+      end if;
+
       loop
-        --coremod_log.log('Start load Cube from job, iteration: '||i,'DEBUG');
         check_params(p_sess_id);
         calc_cube (p_sess_id);
         commit;
         exit when sysdate>l_end_time;
         dbms_lock.sleep(to_number(get_parameter(c_PAUSEMONITOR)));
       end loop;
+
+      if to_bool(get_parameter_db(p_sess_id, c_STATSNWAITS)) then
+        snap_stats_waits(p_sess_id => p_sess_id,
+                         p_dblink  => l_db_link,
+                         p_filter  => l_filter,
+                         p_sample_id => l_sample_id2,
+                         p_sample_time => l_sample_time2);
+
+        calc_stats_waits(p_sess_id, l_sample_id1, l_sample_time1, l_sample_id2, l_sample_time2);
+        commit;
+      end if;
       ----------------------------------------------------
       set_cube_sess_status(p_sess_id,stREADY);
     end loop;
@@ -1150,7 +1353,7 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
   begin
     coremod_log.log('load_cube_inqueue p_sess_id: '||p_sess_id,'DEBUG');
     for i in (select sess_id from asha_cube_sess where sess_id=p_sess_id and sess_status=stINQUEUE) loop
-      set_cube_sess_status(p_sess_id,stCALC,coremod_tasks.get_curr_tq_id);
+      set_cube_sess_status(p_sess_id,stCALC/*,coremod_tasks.get_curr_tq_id*/);
       init_params(i.sess_id);
       check_params(i.sess_id);
       calc_cube (i.sess_id);
@@ -1163,7 +1366,7 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
       raise_application_error(-20000,'ASHA_CUBE_PKG.load_cube_inqueue'||chr(10)||sqlerrm);
   end;
 
-  procedure queue_load_cube(p_sess_id asha_cube_sess.sess_id%type, p_tq_id out opas_task_queue.tq_id%type)
+  procedure queue_load_cube(p_sess_id asha_cube_sess.sess_id%type, p_tq_id out opas_task_queue.tq_id%type, p_start_time date default null)
   is
     l_tq_id           opas_task_queue.tq_id%type;
     pa_monitor        boolean;
@@ -1179,40 +1382,33 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
 
     set_cube_sess_status(p_sess_id,stINQUEUE);
 
-
---    select parent_id into l_parent_sess from asha_cube_sess where sess_id=p_sess_id;
---    if l_parent_sess is null then
---      coremod_tasks.stop_previous_user_task(P_TASKNAME => 'ASHA_SNAP_ASH');
---    end if;
-
-    --is it necessary...
-    --coremod_tasks.stop_previous_user_task(P_TASKNAME => 'ASHA_MONITOR');
-
     if pa_monitor then
       if to_bool(get_parameter(c_SNAP_ASH)) then
         l_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => 'ASHA_SNAP_ASH') ;
         COREMOD_TASKS.set_task_param( p_tq_id => l_tq_id, p_name => 'B1', p_varchar_par => get_parameter(c_dblink));
         COREMOD_TASKS.set_task_param( p_tq_id => l_tq_id, p_name => 'B2', p_num_par => p_sess_id);
-        COREMOD_TASKS.queue_task ( p_tq_id => l_tq_id ) ;
+        COREMOD_TASKS.queue_task ( p_tq_id => l_tq_id, p_start_time => p_start_time ) ;
       end if;
       p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => 'ASHA_MONITOR') ;
       COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_sess_id);
-      COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id ) ;
+      COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id, p_start_time => p_start_time ) ;
     else
       p_tq_id:=COREMOD_TASKS.prep_execute_task (  P_TASKNAME => 'ASHA_CALC_CUBE') ;
       COREMOD_TASKS.set_task_param( p_tq_id => p_tq_id, p_name => 'B1', p_num_par => p_sess_id);
-      COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id ) ;
---      coremod_log.log('MAIN CUBE SESS: '||p_sess_id);
---      coremod_log.log('MAIN CUBE TQ: '||p_tq_id);
+      COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id, p_start_time => p_start_time ) ;
       begin
         select sess_id into l_parent_sess from asha_cube_sess where parent_id=p_sess_id;
---        coremod_log.log('FILTERED CUBE SESS: '||l_parent_sess);
         queue_load_cube(l_parent_sess,l_tq_id);
---        coremod_log.log('FILTERED CUBE TQ: '||l_tq_id);
       exception
         when no_data_found then null;
       end;
     end if;
+
+    update asha_cube_sess set
+       sess_tq_id=p_tq_id, sess_tq_id_snap=l_tq_id,
+       SESS_RETENTION_DAYS = case when p_start_time is null or p_start_time - sysdate < 0 then null else 0 end
+      where sess_id=p_sess_id;
+
     commit;
   exception
     when others then
@@ -1230,6 +1426,9 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
       select * into l_cube from asha_cube_sess where sess_id=p_sess_id for update;
       if l_cube.sess_status = stINQUEUE then
         coremod_tasks.cancel_task(l_cube.sess_tq_id);
+        if l_cube.sess_tq_id_snap is not null then
+          coremod_tasks.cancel_task(l_cube.sess_tq_id_snap);
+        end if;
         update asha_cube_sess set sess_status=stFAILED where sess_id=p_sess_id;
         commit;
         return;
@@ -1299,23 +1498,6 @@ SELECT :p_sess_id,
     null,  null
 from gv$session@<dblink> where (type='USER' and status='ACTIVE' and wait_class<>'Idle') or (type='BACKGROUND' and wait_class<>'Idle') <FILTER>]';
 
-    l_sql_stat_flt_tmpl varchar2(32765) := q'[
-INSERT INTO asha_cube$tmp_statistics ( sample_id, sample_time, statistic#, value )
-select sample_id, sample_time, statistic#, sum(value) from
-(select :sample_id sample_id, :p_timestamp sample_time, sst.statistic#, sst.value
-  from gv$sesstat@<dblink> sst, gv$session@<dblink> s
- where sst.inst_id = s.inst_id
-   and sst.sid = s.sid
-   and sst.value > 0
-   <FILTER>)
-   group by sess_id, sample_id, sample_time, /*sid, serial#, inst_id,*/ statistic#]';
-
-    l_sql_stat_tmpl varchar2(32765) := q'[
-INSERT INTO asha_cube$tmp_statistics ( sample_id, sample_time, statistic#, value )
-select :sample_id sample_id, :p_timestamp sample_time, sst.statistic#, sst.value
-  from gv$sysstat@<dblink> sst
- where sst.value > 0]';
-
    l_sql_sysdt_tmpl varchar2(32765) := q'[select systimestamp from dual@<dblink>]';
    l_filter varchar2(4000);
 
@@ -1324,9 +1506,7 @@ select :sample_id sample_id, :p_timestamp sample_time, sst.statistic#, sst.value
    l_sql_stat varchar2(32765);
   begin
     l_filter:=get_parameter_db(p_sess_id, c_filter);
-    --l_frequency:=to_number(COREMOD_API.getconf('SNAP_ASH_FREQ',ASHA_CUBE_API.gMODNAME));
     l_frequency:=to_number(get_parameter_db(p_sess_id, c_SNAP_ASH_FREQ));
-    --l_duration:=to_number(COREMOD_API.getconf('ITERATIONSMONITOR',ASHA_CUBE_API.gMODNAME))*to_number(COREMOD_API.getconf('PAUSEMONITOR',ASHA_CUBE_API.gMODNAME)); --seconds
     l_duration:=to_number(get_parameter_db(p_sess_id, c_ITERATIONSMONITOR))*to_number(get_parameter_db(p_sess_id, c_PAUSEMONITOR)); --seconds
 
     l_sql_dt  := replace(l_sql_sysdt_tmpl,'<dblink>',COREMOD_API.get_ora_dblink(p_dblink));
@@ -1337,51 +1517,23 @@ select :sample_id sample_id, :p_timestamp sample_time, sst.statistic#, sst.value
     else
       l_sql_ash := replace(l_sql_ash,'<con_id>','con_id');
     end if;
-    --if l_filter is not null then
-    --  l_sql_stat := replace(replace(l_sql_stat_flt_tmpl,'<dblink>',COREMOD_API.get_ora_dblink(p_dblink)),'<FILTER>',' and ('||l_filter||')');
-    --else
-    --  l_sql_stat := replace(l_sql_stat_tmpl,'<dblink>',COREMOD_API.get_ora_dblink(p_dblink));
-    --end if;
 
-    --delete from asha_cube_snap_ash where sess_id=p_sess_id;
     update asha_cube_sess set sess_tq_id_snap=nvl(coremod_tasks.get_curr_tq_id,sess_tq_id_snap) where sess_id=p_sess_id;
     commit;
 
     l_end_time:=sysdate+(l_duration/3600/24);
     coremod_log.log('snap_ash.l_end_time: '||to_char(l_end_time,'YYYY-MON-DD HH24:MI:SS')||':'||to_char(sysdate,'YYYY-MON-DD HH24:MI:SS'),'DEBUG');
-    --for i in 1..round(p_duration*60*l_frequency)
     loop
       execute immediate l_sql_dt   into l_sample_time;
       execute immediate l_sql_ash  using p_sess_id, asha_snap_ash.nextval, l_sample_time;
-      --execute immediate l_sql_stat using asha_snap_ash.nextval, l_sample_time;
-
-      --if mod(l_iter,20)=0 then
-      --  delete from asha_cube_statistics where sess_id = p_sess_id;
-      --  insert into asha_cube_statistics (sess_id, sample_id, sample_time, statistic#, value)
-      --    select * from (
-      --      select p_sess_id,sample_id,sample_time,statistic#, value - first_value(value)over(partition by statistic# order by sample_id) d
-      --        from asha_cube$tmp_statistics)
-      --     where d > 0;
-      --end if;
       commit;
 
       exit when sysdate>l_end_time;
-
-      --select count(1) into l_cnt from user_scheduler_running_jobs where job_name=g_mon_job_name;
-      --if l_cnt=0 then l_iter:=l_iter+1; end if;
-      --exit when l_iter>3;
 
       dbms_lock.sleep(1/l_frequency);
       l_iter:=l_iter+1;
     end loop;
 
-    --delete from asha_cube_statistics where sess_id = p_sess_id;
-    --insert into asha_cube_statistics (sess_id, sample_id, sample_time, statistic#, value)
-    --    select * from (
-    --      select p_sess_id,sample_id,sample_time,statistic#, value - first_value(value)over(partition by statistic# order by sample_id) d
-    --        from asha_cube$tmp_statistics)
-    --     where d > 0;
-    --commit;
   end;
 
 END ASHA_CUBE_PKG;

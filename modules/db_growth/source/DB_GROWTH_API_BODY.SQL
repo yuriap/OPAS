@@ -7,7 +7,8 @@ PACKAGE BODY DB_GROWTH_API AS
                             p_src_dblink  db_growth_parameters.src_dblink%type,
                             p_scheme_list db_growth_parameters.scheme_list%type,
                             p_schedule    db_growth_parameters.schedule%type,
-                            p_start_date  db_growth_parameters.start_date%type)
+                            p_start_date  db_growth_parameters.start_date%type,
+                            p_minimum_seg_sz db_growth_parameters.minimum_seg_sz%type)
   is
     l_curproj db_growth_projects%rowtype;
   begin
@@ -16,7 +17,7 @@ PACKAGE BODY DB_GROWTH_API AS
     DB_GROWTH_PROJ_LCC.project_exec_action(p_proj_id,DB_GROWTH_PROJ_LCC.c_project_edit);
 
     merge into db_growth_parameters t
-     using (select p_proj_id proj_id, p_src_dblink src_dblink, p_start_date start_date, p_scheme_list scheme_list, p_schedule schedule from dual) s
+     using (select p_proj_id proj_id, p_src_dblink src_dblink, p_start_date start_date, p_scheme_list scheme_list, p_schedule schedule, p_minimum_seg_sz minimum_seg_sz from dual) s
      on (t.proj_id=s.proj_id)
      when matched then update set
        t.src_dblink=s.src_dblink,
@@ -24,7 +25,8 @@ PACKAGE BODY DB_GROWTH_API AS
        t.scheme_list=s.scheme_list,
        t.schedule=s.schedule,
        t.last_changed = systimestamp,
-       t.last_validated = null
+       t.last_validated = null,
+       t.minimum_seg_sz = s.minimum_seg_sz
      when not matched then insert
        (t.proj_id, t.src_dblink, t.start_date, t.scheme_list, t.schedule, t.last_changed, t.last_validated)
        values
@@ -163,15 +165,15 @@ PACKAGE BODY DB_GROWTH_API AS
 	  s.deduplication, s.in_row, s.partitioned, s.securefile, s.segment_created)]';
 
     l_sql_seg_sizes varchar2(4000) := q'[INSERT INTO db_growth_segs ( proj_id, last_updated, owner, segment_type, segment_name, partition_name, tablespace_name, size_b)
-      select <PROJ_ID>, to_timestamp('<TS>','YYYYMMDDHH24MISSff9'), owner, segment_type, segment_name, partition_name, tablespace_name, bytes from dba_segments@<DBLINK>  where owner='<OWNER>']';
+      select <PROJ_ID>, to_timestamp('<TS>','YYYYMMDDHH24MISSff9'), owner, segment_type, segment_name, partition_name, tablespace_name, bytes from dba_segments@<DBLINK>  where owner='<OWNER> and bytes >= <MINSZ>']';
 
     l_sql_summary varchar2(4000) := q'[select sum(bytes) from dba_segments@<DBLINK> where owner='<OWNER>']';
 
-    procedure get_data(p_sql_tmpl varchar2, p_dblink varchar2, p_owner varchar2, p_proj_id number, p_ts varchar2)
+    procedure get_data(p_sql_tmpl varchar2, p_dblink varchar2, p_owner varchar2, p_proj_id number, p_ts varchar2, p_minsz number default null)
     is
     begin
       begin
-        execute immediate replace(replace(replace(replace(p_sql_tmpl,'<DBLINK>',p_dblink),'<OWNER>',p_owner),'<PROJ_ID>',p_proj_id),'<TS>',p_ts);
+        execute immediate replace(replace(replace(replace(replace(p_sql_tmpl,'<DBLINK>',p_dblink),'<OWNER>',p_owner),'<PROJ_ID>',p_proj_id),'<TS>',p_ts),'<MINSZ>',p_minsz);
       exception
         when others then
           COREMOD_LOG.log('DB_GROWTH_API.gather_data: DBLINK:'||p_dblink||'; OWNER:'||p_owner||'; error: '||sqlerrm);
@@ -191,7 +193,7 @@ PACKAGE BODY DB_GROWTH_API AS
       get_data(l_sql_tab_dict,  COREMOD_API.get_ora_dblink ( l_params.src_dblink), l_users(i), p_proj_id, l_ts_c);
       get_data(l_sql_idx_dict,  COREMOD_API.get_ora_dblink ( l_params.src_dblink), l_users(i), p_proj_id, l_ts_c);
       get_data(l_sql_lob_dict,  COREMOD_API.get_ora_dblink ( l_params.src_dblink), l_users(i), p_proj_id, l_ts_c);
-      get_data(l_sql_seg_sizes, COREMOD_API.get_ora_dblink ( l_params.src_dblink), l_users(i), p_proj_id, l_ts_c);
+      get_data(l_sql_seg_sizes, COREMOD_API.get_ora_dblink ( l_params.src_dblink), l_users(i), p_proj_id, l_ts_c, nvl(l_params.minimum_seg_sz,0));
       execute immediate replace(replace(l_sql_summary,'<DBLINK>',COREMOD_API.get_ora_dblink ( l_params.src_dblink)),'<OWNER>',l_users(i)) into l_size;
       l_size_tot := l_size_tot + l_size;
     end loop;
@@ -201,6 +203,10 @@ PACKAGE BODY DB_GROWTH_API AS
            tot_size = l_size_tot,
            delta = l_size_tot - nvl(l_params.tot_size,l_size_tot)
      where proj_id=p_proj_id;
+
+    INSERT INTO db_growth_sizes ( proj_id, last_updated, size_b, delta )
+      values (p_proj_id, trunc(l_ts,'mi'), l_size_tot, l_size_tot - nvl(l_params.tot_size,l_size_tot));
+
     commit;
 
     refresh_matviews();
@@ -211,7 +217,8 @@ PACKAGE BODY DB_GROWTH_API AS
   procedure refresh_matviews
   is
   begin
-    DBMS_MVIEW.REFRESH(list=>'DB_GROWTH_SIZES');
+    --DBMS_MVIEW.REFRESH(list=>'DB_GROWTH_SIZES');
+    null;
   end;
 
   procedure validate_config(p_proj_id db_growth_projects.proj_id%type)

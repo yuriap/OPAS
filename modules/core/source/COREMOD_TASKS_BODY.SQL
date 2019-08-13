@@ -101,22 +101,50 @@ package body coremod_tasks as
     when not matched then insert (tq_id,par_name,list_par) values (s.id, s.nm, s.val);
   end;
 
-  procedure queue_task(p_tq_id opas_task_queue.tq_id%type)
+  procedure queue_task(p_tq_id opas_task_queue.tq_id%type, p_start_time date default null)
   is
+    l_task_name opas_task_queue.taskname%type;
+    l_job_name  opas_task_queue.job_name%type;
   begin
-    update opas_task_queue set status=gtqQUEUED, queued=systimestamp where tq_id = p_tq_id and status=gtqNEW;
-    if sql%rowcount<1 then
-      raise_application_error(-20000,'Unable to change task status ID, Status: '||p_tq_id||', '||gtqQUEUED);
+    if p_start_time is null then
+      update opas_task_queue set status=gtqQUEUED, queued=systimestamp where tq_id = p_tq_id and status=gtqNEW returning taskname into l_task_name;
+      if sql%rowcount<1 then
+        raise_application_error(-20000,'Unable to change task status ID, Status: '||p_tq_id||', '||gtqQUEUED);
+      end if;
+    else
+      select taskname into l_task_name from opas_task_queue where tq_id = p_tq_id;
+
+      l_job_name := gJOBNMPREF||'_'||upper(l_task_name)||'_'||DBMS_RANDOM.STRING('X',6);
+
+      update opas_task_queue set status=gtqSCHEDULED, queued=systimestamp, job_name = l_job_name where tq_id = p_tq_id and status=gtqNEW;
+      if sql%rowcount<1 then
+        raise_application_error(-20000,'Unable to change task status ID, Status: '||p_tq_id||', '||gtqQUEUED);
+      end if;
+
+      dbms_scheduler.create_job(job_name => l_job_name,
+                                job_type => 'PLSQL_BLOCK',
+                                job_action => 'begin coremod_tasks.execute_task('||p_tq_id||'); end;',
+                                start_date => p_start_time,
+                                enabled => true,
+                                auto_drop=> true);
     end if;
   end;
 
   procedure cancel_task(p_tq_id opas_task_queue.tq_id%type)
   is
+    l_job_name  opas_task_queue.job_name%type;
   begin
-    update opas_task_queue set status=gtqCanceled where tq_id = p_tq_id and status in (gtqNEW,gtqQUEUED);
+    update opas_task_queue set status=gtqCanceled where tq_id = p_tq_id and status in (gtqNEW,gtqQUEUED,gtqSCHEDULED) returning job_name into l_job_name;
     if sql%rowcount<1 then
       raise_application_error(-20000,'Unable to change task status ID, Status: '||p_tq_id||', '||gtqCanceled);
     end if;
+    if l_job_name is not null then
+      dbms_scheduler.disable(l_job_name);
+      dbms_scheduler.drop_job(l_job_name);
+    end if;
+  exception
+    when others then
+      log('cancel_task error: '||sqlerrm,p_tq_id);
   end;
 
 
@@ -141,7 +169,7 @@ package body coremod_tasks as
            serial#=(select serial# from gv$session where sid=SYS_CONTEXT('USERENV','SID') and inst_id=SYS_CONTEXT('USERENV','INSTANCE')),
            inst_id=SYS_CONTEXT('USERENV','INSTANCE'),
            status=gtqRUNNING
-     where tq_id=p_tq_id and status in (gtqSTARTED);
+     where tq_id=p_tq_id and status in (gtqSTARTED, gtqSCHEDULED);
     if sql%rowcount<1 then
       raise_application_error(-20000,'Unable to change task status ID, Status: '||p_tq_id||', '||gtqRUNNING);
     end if;
@@ -219,7 +247,7 @@ package body coremod_tasks as
     select job_name into l_job_name from opas_task_queue where tq_id=p_tq_id;
     update opas_task_queue set status=gtqCanceled where tq_id = p_tq_id and status in (gtqRUNNING);
     commit;
-    dbms_scheduler.stop_job(l_job_name);
+    dbms_scheduler.stop_job(l_job_name, true);
   exception
      when others then
        log('Stop job error: '||l_job_name||':'||p_tq_id||chr(10)||sqlerrm);

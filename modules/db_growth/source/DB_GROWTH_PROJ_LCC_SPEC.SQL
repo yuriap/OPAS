@@ -6,6 +6,7 @@ PACKAGE DB_GROWTH_PROJ_LCC AS
   c_project_activate      constant VARCHAR2(20) :='ACTIVATE';
   c_project_validate      constant VARCHAR2(20) :='VALIDATE';
   c_project_edit          constant VARCHAR2(20) :='EDIT';
+  c_project_chng_conf     constant VARCHAR2(20) :='CHANGE_CONFIG';
   c_project_drop          constant VARCHAR2(20) :='DROP';
   c_project_rocontent     constant VARCHAR2(20) :='R/O CONTENT';  -- Read-only project content
   c_project_rwcontent     constant VARCHAR2(20) :='R/W CONTENT';  -- Read-write project content

@@ -31,6 +31,8 @@ PACKAGE ASHA_CUBE_PKG AS
   c_ITERATIONSMONITOR   constant varchar2(100) := 'ITERATIONSMONITOR'; --Number of refresh iteration of cube in Monitor mode
   c_SNAP_ASH_FREQ       constant varchar2(100) := 'SNAP_ASH_FREQ';     --Frequency sec^-1 of snapping V$SESSION in Monitor mode (Standard Edition)
 
+  c_STATSNWAITS         constant varchar2(100) := 'STATSNWAITS';        --Gather Statistics and Waits whan Monitor is ON
+
   stNEW                constant varchar2(100) := 'NEW';
   stINQUEUE            constant varchar2(100) := 'INQUEUE';
   stCALC               constant varchar2(100) := 'CALCULATING';
@@ -61,7 +63,7 @@ PACKAGE ASHA_CUBE_PKG AS
                             p_tmpl_par_expr    asha_cube_sess_tmpl_pars.tmpl_par_expr%type);
   procedure remove_tmpl    (p_tmpl_id          asha_cube_sess_tmpl.tmpl_id%type);
 
-  procedure queue_load_cube   (p_sess_id asha_cube_sess.sess_id%type, p_tq_id out opas_task_queue.tq_id%type); --from UI
+  procedure queue_load_cube   (p_sess_id asha_cube_sess.sess_id%type, p_tq_id out opas_task_queue.tq_id%type, p_start_time date default null); --from UI
 
   procedure load_cube_inqueue (p_sess_id asha_cube_sess.sess_id%type); --from OPAS Task
   procedure load_cube_mon     (p_sess_id asha_cube_sess.sess_id%type); --from monitor job

@@ -1,4 +1,4 @@
-Oracle Performance Analytic Suite Version 5.0.7 PROD
+Oracle Performance Analytic Suite Version 5.0.8 PROD
 (former AWR Tools)
 
 Demo version is available at:
@@ -49,3 +49,8 @@ Version 5.0.7
  - DB Growth Tracker 
  - ASHA cube tables compression
  - TRC tables compression
+
+Version 5.0.8
+-------------
+ - ASHA delayed cube calc start
+ 
