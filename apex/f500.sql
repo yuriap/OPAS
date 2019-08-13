@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   13:57 Tuesday August 13, 2019
+--   Date and Time:   18:04 Tuesday August 13, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190813134352'
+,p_last_upd_yyyymmddhh24miss=>'20190813180216'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -45784,7 +45784,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(56657728100893359)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190809104246'
+,p_last_upd_yyyymmddhh24miss=>'20190813180215'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(254248211799234768)
@@ -47337,7 +47337,8 @@ wwv_flow_api.create_page_item(
 ,p_name=>'P501_SIZE_LIMIT'
 ,p_item_sequence=>50
 ,p_item_plug_id=>wwv_flow_api.id(56769278709874046)
-,p_item_default=>'1e9'
+,p_item_default=>':P501_MIN_SEG_SZ'
+,p_item_default_type=>'PLSQL_EXPRESSION'
 ,p_prompt=>'Size Limit (1e9 for compatibility with the old data)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30

@@ -165,7 +165,7 @@ PACKAGE BODY DB_GROWTH_API AS
 	  s.deduplication, s.in_row, s.partitioned, s.securefile, s.segment_created)]';
 
     l_sql_seg_sizes varchar2(4000) := q'[INSERT INTO db_growth_segs ( proj_id, last_updated, owner, segment_type, segment_name, partition_name, tablespace_name, size_b)
-      select <PROJ_ID>, to_timestamp('<TS>','YYYYMMDDHH24MISSff9'), owner, segment_type, segment_name, partition_name, tablespace_name, bytes from dba_segments@<DBLINK>  where owner='<OWNER> and bytes >= <MINSZ>']';
+      select <PROJ_ID>, to_timestamp('<TS>','YYYYMMDDHH24MISSff9'), owner, segment_type, segment_name, partition_name, tablespace_name, bytes from dba_segments@<DBLINK>  where owner='<OWNER>' and bytes >= <MINSZ>]';
 
     l_sql_summary varchar2(4000) := q'[select sum(bytes) from dba_segments@<DBLINK> where owner='<OWNER>']';
 
