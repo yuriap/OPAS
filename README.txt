@@ -53,4 +53,5 @@ Version 5.0.7
 Version 5.0.8
 -------------
  - ASHA delayed cube calc start
+ - ASHA Statistics and Waits snapper
  
