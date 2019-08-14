@@ -137,7 +137,7 @@ PACKAGE BODY DB_GROWTH_API AS
     l_size      number;
     l_size_tot  number := 0;
 
-    l_sql_tab_dict varchar2(4000) := q'[merge into db_growth_tables t using (select * from dba_tables@<DBLINK> where owner='<OWNER>') s
+    l_sql_tab_dict varchar2(4000) := q'[merge into db_growth_tables t using (select * from dba_tables@<DBLINK> where owner='<OWNER>' and table_name not like 'BIN%') s
       on (t.owner=s.owner and t.table_name=s.table_name)
     when not matched then insert (
       t.proj_id, t.last_updated, t.owner, t.table_name, t.tablespace_name, t.cluster_name, t.iot_name, t.status, t.partitioned,
@@ -146,7 +146,7 @@ PACKAGE BODY DB_GROWTH_API AS
       <PROJ_ID>, to_timestamp('<TS>','YYYYMMDDHH24MISSff9'), s.owner, s.table_name, s.tablespace_name, s.cluster_name, s.iot_name, s.status, s.partitioned,
       s.iot_type, s.temporary, s.secondary, s.nested, s.cluster_owner, s.compression, s.compress_for, s.segment_created)]';
 
-    l_sql_idx_dict varchar2(4000) := q'[merge into db_growth_indexes t using (select * from dba_indexes@<DBLINK> where owner='<OWNER>') s
+    l_sql_idx_dict varchar2(4000) := q'[merge into db_growth_indexes t using (select * from dba_indexes@<DBLINK> where owner='<OWNER>' and table_name not like 'BIN%' and index_name not like 'BIN%') s
       on (t.owner=s.owner and t.INDEX_NAME=s.INDEX_NAME)
     when not matched then insert (
       t.proj_id, t.last_updated, t.owner, t.INDEX_NAME, t.INDEX_TYPE, t.TABLE_OWNER, t.TABLE_NAME, t.TABLE_TYPE, t.COMPRESSION, t.PREFIX_LENGTH, t.TABLESPACE_NAME,
@@ -155,7 +155,7 @@ PACKAGE BODY DB_GROWTH_API AS
       <PROJ_ID>, to_timestamp('<TS>','YYYYMMDDHH24MISSff9'), s.owner, s.INDEX_NAME, s.INDEX_TYPE, s.TABLE_OWNER, s.TABLE_NAME, s.TABLE_TYPE, s.COMPRESSION, s.PREFIX_LENGTH, s.TABLESPACE_NAME,
       s.INCLUDE_COLUMN, s.STATUS, s.PARTITIONED, s.TEMPORARY, s.SECONDARY, s.FUNCIDX_STATUS, s.JOIN_INDEX, s.DROPPED, s.SEGMENT_CREATED)]';
 
-    l_sql_lob_dict varchar2(4000) := q'[merge into db_growth_lobs t using (select * from dba_lobs@<DBLINK> where owner='<OWNER>') s
+    l_sql_lob_dict varchar2(4000) := q'[merge into db_growth_lobs t using (select * from dba_lobs@<DBLINK> where owner='<OWNER>' and table_name not like 'BIN%') s
       on (t.owner=s.owner and t.table_name=s.table_name and t.column_name=s.column_name and t.segment_name=s.segment_name)
     when not matched then insert (
       t.proj_id, t.last_updated, t.owner, t.table_name, t.COLUMN_NAME, t.SEGMENT_NAME, t.TABLESPACE_NAME, t.INDEX_NAME, t.CHUNK, t.COMPRESSION,
@@ -165,9 +165,10 @@ PACKAGE BODY DB_GROWTH_API AS
 	  s.deduplication, s.in_row, s.partitioned, s.securefile, s.segment_created)]';
 
     l_sql_seg_sizes varchar2(4000) := q'[INSERT INTO db_growth_segs ( proj_id, last_updated, owner, segment_type, segment_name, partition_name, tablespace_name, size_b)
-      select <PROJ_ID>, to_timestamp('<TS>','YYYYMMDDHH24MISSff9'), owner, segment_type, segment_name, partition_name, tablespace_name, bytes from dba_segments@<DBLINK>  where owner='<OWNER>' and bytes >= <MINSZ>]';
+      select <PROJ_ID>, to_timestamp('<TS>','YYYYMMDDHH24MISSff9'), owner, segment_type, segment_name, partition_name, tablespace_name, bytes from dba_segments@<DBLINK>
+      where owner='<OWNER>' and bytes >= <MINSZ> and segment_name not like 'BIN%']';
 
-    l_sql_summary varchar2(4000) := q'[select sum(bytes) from dba_segments@<DBLINK> where owner='<OWNER>']';
+    l_sql_summary varchar2(4000) := q'[select sum(bytes) from dba_segments@<DBLINK> where owner='<OWNER>' and segment_name not like 'BIN%']';
 
     procedure get_data(p_sql_tmpl varchar2, p_dblink varchar2, p_owner varchar2, p_proj_id number, p_ts varchar2, p_minsz number default null)
     is
