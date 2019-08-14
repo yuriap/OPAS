@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   18:04 Tuesday August 13, 2019
+--   Date and Time:   14:12 Wednesday August 14, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190813180216'
+,p_last_upd_yyyymmddhh24miss=>'20190814141011'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -26704,7 +26704,7 @@ wwv_flow_api.create_page(
 ,p_html_page_header=>'<meta http-equiv="refresh" content="&P303_PAGE_REFRESH_INTERVAL.">'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190812172856'
+,p_last_upd_yyyymmddhh24miss=>'20190814141011'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(89458583189737531)
@@ -31239,7 +31239,7 @@ wwv_flow_api.create_page_process(
 '    case when l_params(ASHA_CUBE_PKG.c_unknown_analyze)=''Y'' then ''4:'' else null end ||',
 '    case when l_params(ASHA_CUBE_PKG.c_top_sess)=''Y'' then ''5:'' else null end ||',
 '    case when l_params(ASHA_CUBE_PKG.c_FILTERED_SEPARATLY)=''Y'' then ''6:'' else null end||',
-'    case when l_params(ASHA_CUBE_PKG.c_STATSNWAITS)=''Y'' then ''7:'' else null end',
+'    case when l_params.exists(ASHA_CUBE_PKG.c_STATSNWAITS) and l_params(ASHA_CUBE_PKG.c_STATSNWAITS)=''Y'' then ''7:'' else null end',
 '    ,'':'');',
 '    ',
 '  --STATIC:a. Monitor;1,b. Snap V$SESSION;2,c. Blocked;3,d. Unknown;4,e. Top sessions;5,f. Filtered separatly;6,g. Statistics and Waits;7',
