@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   14:12 Wednesday August 14, 2019
+--   Date and Time:   13:32 Friday August 16, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190814141011'
+,p_last_upd_yyyymmddhh24miss=>'20190816125115'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -26704,7 +26704,7 @@ wwv_flow_api.create_page(
 ,p_html_page_header=>'<meta http-equiv="refresh" content="&P303_PAGE_REFRESH_INTERVAL.">'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190814141011'
+,p_last_upd_yyyymmddhh24miss=>'20190816125115'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(89458583189737531)
@@ -27580,8 +27580,10 @@ wwv_flow_api.create_report_region(
 '    action,',
 '    blocking_session||'';''||blocking_session_serial#||'';''||blocking_inst_id blocking_session,',
 '    cnt,',
-'    blocker_id',
-'from ASHA_CUBE_BLOCK x where sess_id=:P303_SESS_ID order by cnt desc;'))
+'    blocker_id,',
+'    min_ts,',
+'    max_ts',
+'from ASHA_CUBE_BLOCK x where sess_id=:P303_SESS_ID order by min_ts;'))
 ,p_display_when_condition=>':P303_STATUS in (''READY'',''MONITOR'') and instr(:P303_OPTIONS,''3'')>0'
 ,p_display_condition_type=>'PLSQL_EXPRESSION'
 ,p_ajax_enabled=>'Y'
@@ -27601,7 +27603,7 @@ wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(180882131156092367)
 ,p_query_column_id=>1
 ,p_column_alias=>'SESS_ID'
-,p_column_display_sequence=>1
+,p_column_display_sequence=>3
 ,p_hidden_column=>'Y'
 ,p_derived_column=>'N'
 );
@@ -27609,7 +27611,7 @@ wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(180882481222092381)
 ,p_query_column_id=>2
 ,p_column_alias=>'SESSION_ID'
-,p_column_display_sequence=>2
+,p_column_display_sequence=>4
 ,p_column_heading=>'BLOCKED SID'
 ,p_use_as_row_header=>'N'
 ,p_derived_column=>'N'
@@ -27619,7 +27621,7 @@ wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(180882831733092382)
 ,p_query_column_id=>3
 ,p_column_alias=>'SESSION_SERIAL#'
-,p_column_display_sequence=>3
+,p_column_display_sequence=>5
 ,p_column_heading=>'BLOCKED SERIAL#'
 ,p_use_as_row_header=>'N'
 ,p_derived_column=>'N'
@@ -27629,7 +27631,7 @@ wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(180883218074092383)
 ,p_query_column_id=>4
 ,p_column_alias=>'INST_ID'
-,p_column_display_sequence=>4
+,p_column_display_sequence=>6
 ,p_column_heading=>'BLOCKED INST_ID'
 ,p_use_as_row_header=>'N'
 ,p_derived_column=>'N'
@@ -27639,7 +27641,7 @@ wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(180883659861092384)
 ,p_query_column_id=>5
 ,p_column_alias=>'SQL_ID'
-,p_column_display_sequence=>5
+,p_column_display_sequence=>7
 ,p_column_heading=>'BLOCKED SQL_ID'
 ,p_use_as_row_header=>'N'
 ,p_column_link=>'f?p=&APP_ID.:131:&SESSION.::&DEBUG.:RP,131:P131_SQL_ID,P131_SOURCEDB,P131_SOURCE_PAGE:#SQL_ID#,&P303_DB_LINK.,303'
@@ -27651,7 +27653,7 @@ wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(180884010044092385)
 ,p_query_column_id=>6
 ,p_column_alias=>'MODULE'
-,p_column_display_sequence=>6
+,p_column_display_sequence=>8
 ,p_column_heading=>'BLOCKED MODULE'
 ,p_use_as_row_header=>'N'
 ,p_derived_column=>'N'
@@ -27661,7 +27663,7 @@ wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(180884481570092386)
 ,p_query_column_id=>7
 ,p_column_alias=>'ACTION'
-,p_column_display_sequence=>7
+,p_column_display_sequence=>9
 ,p_column_heading=>'BLOCKED ACTION'
 ,p_use_as_row_header=>'N'
 ,p_derived_column=>'N'
@@ -27671,7 +27673,7 @@ wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(180884797504092387)
 ,p_query_column_id=>8
 ,p_column_alias=>'BLOCKING_SESSION'
-,p_column_display_sequence=>8
+,p_column_display_sequence=>10
 ,p_column_heading=>'BLOCKING SESSION'
 ,p_use_as_row_header=>'N'
 ,p_column_link=>'f?p=&APP_ID.:303:&SESSION.::&DEBUG.:RP:P303_ACTION,P303_ON_CLICK,P303_FILTER_DATA:BLOCKING_SESSION,YES,#BLOCKING_SESSION#'
@@ -27683,7 +27685,7 @@ wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(180885255686092388)
 ,p_query_column_id=>9
 ,p_column_alias=>'CNT'
-,p_column_display_sequence=>9
+,p_column_display_sequence=>11
 ,p_column_heading=>'Time blocked, sec'
 ,p_use_as_row_header=>'N'
 ,p_derived_column=>'N'
@@ -27693,9 +27695,31 @@ wwv_flow_api.create_report_columns(
  p_id=>wwv_flow_api.id(181749411815161097)
 ,p_query_column_id=>10
 ,p_column_alias=>'BLOCKER_ID'
-,p_column_display_sequence=>10
+,p_column_display_sequence=>12
 ,p_column_heading=>'Blocker ID (PROG, MACH, MOD, ACT)'
 ,p_use_as_row_header=>'N'
+,p_derived_column=>'N'
+,p_include_in_export=>'Y'
+);
+wwv_flow_api.create_report_columns(
+ p_id=>wwv_flow_api.id(57539741744714127)
+,p_query_column_id=>11
+,p_column_alias=>'MIN_TS'
+,p_column_display_sequence=>1
+,p_column_heading=>'Min Ts'
+,p_use_as_row_header=>'N'
+,p_disable_sort_column=>'N'
+,p_derived_column=>'N'
+,p_include_in_export=>'Y'
+);
+wwv_flow_api.create_report_columns(
+ p_id=>wwv_flow_api.id(57539867751714128)
+,p_query_column_id=>12
+,p_column_alias=>'MAX_TS'
+,p_column_display_sequence=>2
+,p_column_heading=>'Max Ts'
+,p_use_as_row_header=>'N'
+,p_disable_sort_column=>'N'
 ,p_derived_column=>'N'
 ,p_include_in_export=>'Y'
 );
@@ -28401,6 +28425,9 @@ wwv_flow_api.create_jet_chart_series(
 ,p_items_label_rendered=>false
 ,p_items_label_display_as=>'PERCENT'
 );
+end;
+/
+begin
 wwv_flow_api.create_jet_chart_axis(
  p_id=>wwv_flow_api.id(181235436486043818)
 ,p_chart_id=>wwv_flow_api.id(181234915080043808)
@@ -28423,9 +28450,6 @@ wwv_flow_api.create_jet_chart_axis(
 ,p_zoom_order_quarters=>false
 ,p_zoom_order_years=>false
 );
-end;
-/
-begin
 wwv_flow_api.create_jet_chart_axis(
  p_id=>wwv_flow_api.id(181235933661043822)
 ,p_chart_id=>wwv_flow_api.id(181234915080043808)
@@ -28632,41 +28656,9 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'Top sessions'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select * from (',
-'select',
-'    session_id||'';''||session_serial#||'';''||inst_id sid,',
-'    substr(',
-'    case when module=''; '' then null else ''MOD: ''||module||''; '' end ||',
-'    case when action=''; '' then null else ''ACT: ''||action||''; '' end ||',
-'    case when program=''; '' then null else ''PRG: ''||program||''; '' end ||',
-'    case when client_id=''; '' then null else ''CLI: ''||client_id||''; '' end ||',
-'    case when machine is null then null else ''MACH: ''||machine||''; '' end ||',
-'    case when ecid=''; '' then null else ''ECID: ''||ecid||''; '' end ||',
-'    case when username is null then null else ''UID: ''||username||''; '' end,1,240) || '' '' || round(100*smpls/sum(smpls)over(),2) ||''%''',
-'    identity$,',
-'    smpls sec',
-'from (',
-'SELECT',
-'    sess_id,',
-'    session_id,',
-'    session_serial#,',
-'    inst_id,',
-'    case when min(module)=max(module) then max(module) else min(module)||''; ''||max(module) end module,',
-'    case when min(action)=max(action) then max(action) else min(action)||''; ''||max(action) end action,',
-'    case when min(program)=max(program) then max(program) else min(program)||''; ''||max(program) end program,',
-'    case when min(client_id)=max(client_id) then max(client_id) else min(client_id)||''; ''||max(client_id) end client_id,',
-'    max(machine) machine,',
-'    case when min(ecid)=max(ecid) then max(ecid) else min(ecid)||''; ''||max(ecid) end ecid,',
-'    max(username) username,',
-'    sum(smpls) smpls',
-'FROM',
-'    asha_cube_top_sess',
-'where sess_id=:P303_SESS_ID',
-'group by     sess_id,',
-'    session_id,',
-'    session_serial#,',
-'    inst_id)',
-'    order by smpls desc) where rownum <11;'))
+'select * from ',
+'(select * from asha_cube_top_sess_cmprs where sess_id=:P303_SESS_ID order by sec desc)',
+'where rownum <11;'))
 ,p_items_value_column_name=>'SEC'
 ,p_items_label_column_name=>'IDENTITY$'
 ,p_items_label_rendered=>true
@@ -29298,9 +29290,6 @@ wwv_flow_api.create_jet_chart(
 ,p_horizontal_grid=>'auto'
 ,p_vertical_grid=>'auto'
 );
-end;
-/
-begin
 wwv_flow_api.create_jet_chart_series(
  p_id=>wwv_flow_api.id(180780371769992691)
 ,p_chart_id=>wwv_flow_api.id(180778663447992687)
@@ -29329,6 +29318,9 @@ wwv_flow_api.create_jet_chart_series(
 'SELECT 1 FROM asha_cube',
 ' WHERE   wait_class = ''CPU'' and sess_id = :P303_SESS_ID and g1=0;'))
 );
+end;
+/
+begin
 wwv_flow_api.create_jet_chart_series(
  p_id=>wwv_flow_api.id(180780973999992693)
 ,p_chart_id=>wwv_flow_api.id(180778663447992687)
@@ -30089,9 +30081,6 @@ wwv_flow_api.create_page_button(
 ,p_grid_new_grid=>false
 ,p_security_scheme=>wwv_flow_api.id(162190857332639494)
 );
-end;
-/
-begin
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(56359893095727821)
 ,p_button_sequence=>130
@@ -30106,6 +30095,9 @@ wwv_flow_api.create_page_button(
 ,p_button_condition_type=>'PLSQL_EXPRESSION'
 ,p_security_scheme=>wwv_flow_api.id(162190857332639494)
 );
+end;
+/
+begin
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(56881036161029835)
 ,p_button_sequence=>140
@@ -31083,9 +31075,6 @@ wwv_flow_api.create_page_da_action(
 ,p_action=>'NATIVE_JAVASCRIPT_CODE'
 ,p_attribute_01=>'apex.region("metric_chart2").widget().ojChart({stack: ''on''});'
 );
-end;
-/
-begin
 wwv_flow_api.create_page_da_event(
  p_id=>wwv_flow_api.id(56069745777178532)
 ,p_name=>'Unstack2'
@@ -31104,6 +31093,9 @@ wwv_flow_api.create_page_da_action(
 ,p_action=>'NATIVE_JAVASCRIPT_CODE'
 ,p_attribute_01=>'apex.region("metric_chart2").widget().ojChart({stack: ''off''});'
 );
+end;
+/
+begin
 wwv_flow_api.create_page_da_event(
  p_id=>wwv_flow_api.id(56070154647178536)
 ,p_name=>'Stack3'

@@ -5,7 +5,7 @@ PACKAGE BODY ASHA_EXPIMP AS
                          COREMOD_EXPIMP.t_object_names('ASHA_CUBE','ASHA_CUBE_BLOCK','ASHA_CUBE_METRICS',
                                                        'ASHA_CUBE_REPORTS','ASHA_CUBE_SEG',
                                                        'ASHA_CUBE_SESS','ASHA_CUBE_SESS_PARS','ASHA_CUBE_SNAP_ASH',
-                                                       'ASHA_CUBE_TIMELINE','ASHA_CUBE_TOP_SESS','ASHA_CUBE_UNKNOWN',
+                                                       'ASHA_CUBE_TIMELINE','ASHA_CUBE_TOP_SESS_CMPRS','ASHA_CUBE_UNKNOWN',
                                                        'ASHA_CUBE_STAT_PARS','ASHA_CUBE_STATISTICS','ASHA_CUBE_WAITS');
   gProjList COREMOD_EXPIMP.t_object_names :=
                          COREMOD_EXPIMP.t_object_names('ASHA_CUBE_PROJECTS');
@@ -271,8 +271,8 @@ PACKAGE BODY ASHA_EXPIMP AS
           delta_interconnect_io_bytes,delta_read_mem_bytes,pga_allocated,temp_space_allocated,con_dbid,con_id,dbop_name,dbop_exec_id from ei$asha_cube_snap_ash s;
         INSERT INTO asha_cube_timeline (sess_id,sample_time)
              select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),sample_time from ei$asha_cube_timeline s;
-        INSERT INTO asha_cube_top_sess (sess_id,session_id,session_serial#,inst_id,module,action,program,client_id,machine,ecid,username,smpls)
-             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),session_id,session_serial#,inst_id,module,action,program,client_id,machine,ecid,username,smpls from ei$asha_cube_top_sess s;
+        INSERT INTO ASHA_CUBE_TOP_SESS_CMPRS (sess_id, sid, identity$, sec)
+             select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),sid, identity$, sec from EI$ASHA_CUBE_TOP_SESS_CMPRS s;
         INSERT INTO asha_cube_unknown (sess_id,unknown_type,session_type,program,client_id,machine,ecid,username,smpls)
              select (select new_id from ei$asha_cube_sess i where i.sess_id=s.sess_id),unknown_type,session_type,program,client_id,machine,ecid,username,smpls from ei$asha_cube_unknown s;
 

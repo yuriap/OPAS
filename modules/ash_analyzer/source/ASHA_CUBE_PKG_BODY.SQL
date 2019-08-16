@@ -662,18 +662,21 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
                                )
   is
     l_sql_block_template varchar2(32765):=
-   q'[insert into ASHA_CUBE_BLOCK (SESS_ID,SESSION_ID,SESSION_SERIAL#,INST_ID,SQL_ID,MODULE,ACTION,BLOCKING_SESSION,BLOCKING_SESSION_SERIAL#,BLOCKING_INST_ID,CNT,blocker_id)
+   q'[insert into ASHA_CUBE_BLOCK (SESS_ID,SESSION_ID,SESSION_SERIAL#,INST_ID,SQL_ID,MODULE,ACTION,BLOCKING_SESSION,BLOCKING_SESSION_SERIAL#,BLOCKING_INST_ID,CNT,blocker_id, min_ts, max_ts)
       select /*+ driving_site(x) */
             :P_SESS_ID, session_id, session_serial#, <INSTANCE_NUMBER>, sql_id, module, action, blocking_session, blocking_session_serial#, blocking_inst_id, cnt<MULT>,
 (select program||'; '||machine||'; '||module||'; '||action
   from <SOURCE_TABLE> b
  where <DBID> and b.session_id=x2.blocking_session and b.session_serial#=x2.blocking_session_serial# and b.<INSTANCE_NUMBER>=x2.blocking_inst_id
-   and <SNAP_FILTER_BLOCKER> and rownum=1) blocker_id
+   and <SNAP_FILTER_BLOCKER> and rownum=1) blocker_id,
+   min_ts,max_ts
             from(
       select  x1.*, sum(cnt)over() tot from (
          select
                  session_id, session_serial#, <INSTANCE_NUMBER>, sql_id, module, action, blocking_session, blocking_session_serial#, blocking_inst_id,
-                 count(1) cnt
+                 count(1) cnt,
+                 min(sample_time) min_ts,
+                 max(sample_time) max_ts
             from <SOURCE_TABLE> x
            where <DBID>
              AND <INSTANCE_NUMBER> in (<P_INST_ID>)
@@ -810,7 +813,7 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
                                )
   is
     l_sql_topsess_template varchar2(32765):=
-    q'[INSERT INTO asha_cube_top_sess (sess_id,session_id,session_serial#,inst_id,module,action,program,client_id,machine,ecid,username,smpls)
+    q'[INSERT INTO asha_cube$tmp_top_sess (sess_id,session_id,session_serial#,inst_id,module,action,program,client_id,machine,ecid,username,smpls)
       select /*+ driving_site(x) */
                 :P_SESS_ID, session_id, session_serial#, <INSTANCE_NUMBER>, module, action, program,client_id,machine,ecid,user_id, cnt<MULT> from(
           select
@@ -847,8 +850,49 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
       begin
         coremod_log.log('Start top sess loading','DEBUG');
         coremod_log.log(l_sql,'DEBUG');
+
         execute immediate l_sql using p_sess_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt;
-        coremod_log.log('End unknown loading','DEBUG');
+
+        insert into asha_cube_top_sess_cmprs (sess_id, sid, identity$, sec)
+        select * from (
+        select sess_id,
+            session_id||';'||session_serial#||';'||inst_id sid,
+            substr(
+            case when module='; ' then null else 'MOD: '||module||'; ' end ||
+            case when action='; ' then null else 'ACT: '||action||'; ' end ||
+            case when program='; ' then null else 'PRG: '||program||'; ' end ||
+            case when client_id='; ' then null else 'CLI: '||client_id||'; ' end ||
+            case when machine is null then null else 'MACH: '||machine||'; ' end ||
+            case when ecid='; ' then null else 'ECID: '||ecid||'; ' end ||
+            case when username is null then null else 'UID: '||username||'; ' end,1,240) || ' ' || round(100*smpls/sum(smpls)over(),2) ||'%'
+            identity$,
+            smpls sec
+        from (
+        SELECT
+            sess_id,
+            session_id,
+            session_serial#,
+            inst_id,
+            case when min(module)=max(module) then max(module) else min(module)||'; '||max(module) end module,
+            case when min(action)=max(action) then max(action) else min(action)||'; '||max(action) end action,
+            case when min(program)=max(program) then max(program) else min(program)||'; '||max(program) end program,
+            case when min(client_id)=max(client_id) then max(client_id) else min(client_id)||'; '||max(client_id) end client_id,
+            max(machine) machine,
+            case when min(ecid)=max(ecid) then max(ecid) else min(ecid)||'; '||max(ecid) end ecid,
+            max(username) username,
+            sum(smpls) smpls
+        FROM
+            asha_cube$tmp_top_sess
+        --where sess_id=p_sess_id
+        group by     sess_id,
+            session_id,
+            session_serial#,
+            inst_id)
+            order by smpls desc) where rownum <21;
+
+        --delete from asha_cube_top_sess where sess_id=p_sess_id;
+
+        coremod_log.log('End top sess loading','DEBUG');
       exception
         when others then
           coremod_log.log('Error SQL: '||chr(10)||l_sql);

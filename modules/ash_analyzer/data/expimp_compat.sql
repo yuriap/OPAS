@@ -1,5 +1,2 @@
 delete from opas_expimp_compat where modname='&MODNM.';
-INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '3.4.13',  '&MODVER.');
-INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '3.4.14',  '&MODVER.');
-INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '3.4.15',  '&MODVER.');
 INSERT INTO opas_expimp_compat ( modname, src_version, trg_version) VALUES ( '&MODNM.',  '&MODVER.',  '&MODVER.');
