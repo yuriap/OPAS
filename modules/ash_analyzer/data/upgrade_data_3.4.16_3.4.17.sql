@@ -1,0 +1,1 @@
+insert into ASHA_CUBE_SESS_TMPL_PARS (TMPL_ID,TMPL_PAR_NM,TMPL_PAR_EXPR) values ((select tmpl_id from asha_cube_sess_tmpl where tmpl_base='Y'),'SQL_TIMELINE','N');

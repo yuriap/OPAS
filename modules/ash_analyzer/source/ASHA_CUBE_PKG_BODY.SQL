@@ -26,7 +26,8 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     pa_PAUSEMONITOR         number,
     pa_ITERATIONSMONITOR    number,
     pa_SNAP_ASH_FREQ        number,
-    pa_STATSNWAITS          boolean
+    pa_STATSNWAITS          boolean,
+    pa_SQL_TIMELINE         boolean
     );
 
   g_params_t tt_params_t;
@@ -180,8 +181,8 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     g_allpars.pa_ITERATIONSMONITOR     := get_parameter(c_ITERATIONSMONITOR);
     g_allpars.pa_SNAP_ASH_FREQ         := get_parameter(c_SNAP_ASH_FREQ);
 
-    g_allpars.pa_STATSNWAITS := to_bool(get_parameter(c_STATSNWAITS));
-
+    g_allpars.pa_STATSNWAITS  := to_bool(get_parameter(c_STATSNWAITS));
+    g_allpars.pa_SQL_TIMELINE := to_bool(get_parameter(c_SQL_TIMELINE));
     --g_allpars.pa_snap_duration := get_parameter(c_SNAP_DURATION);
   end;
 
@@ -274,6 +275,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     if l_params_t.exists(c_SNAP_ASH_FREQ) then add_parameter(p_sess_id,c_SNAP_ASH_FREQ,l_params_t(c_SNAP_ASH_FREQ)); end if;
 
     if l_params_t.exists(c_STATSNWAITS) then add_parameter(p_sess_id,c_STATSNWAITS,l_params_t(c_STATSNWAITS)); end if;
+    if l_params_t.exists(c_SQL_TIMELINE) then add_parameter(p_sess_id,c_SQL_TIMELINE,l_params_t(c_SQL_TIMELINE)); end if;
 
     coremod_log.log('load_par_tmpl finished','DEBUG');
   end;
@@ -281,10 +283,13 @@ PACKAGE BODY ASHA_CUBE_PKG AS
   procedure init_session(p_proj_id          asha_cube_sess.sess_proj_id%type,
                          p_retention        asha_cube_sess.sess_retention_days%type,
                          p_sess_id   in out asha_cube_sess.sess_id%type,
-                         p_parent_sess      asha_cube_sess.parent_id%type default null)
+                         p_parent_sess      asha_cube_sess.parent_id%type default null,
+                         p_next_top10       boolean default false)
   is
     l_sess_id asha_cube_sess.sess_id%type := p_sess_id;
     l_curproj asha_cube_projects%rowtype;
+    l_sqls    varchar2(4000);
+    l_flt     varchar2(4000);
   begin
     l_curproj:=ASHA_PROJ_API.getproject(p_proj_id, false);
     ASHA_PROJ_LCC.project_exec_action(l_curproj,ASHA_PROJ_LCC.c_project_rwcontent);
@@ -295,7 +300,19 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     g_params_t(c_sess):=p_sess_id;
     if l_sess_id is not null then
       insert into asha_cube_sess_pars (sess_id, sess_par_nm, sess_par_val)
-      SELECT p_sess_id, sess_par_nm, sess_par_val FROM asha_cube_sess_pars where sess_id = l_sess_id;
+      SELECT p_sess_id, sess_par_nm, sess_par_val FROM asha_cube_sess_pars where sess_id = l_sess_id and sess_par_nm not in (c_TOP10_SQLS, c_NextTOP10);
+
+      if p_next_top10 then
+        l_sqls := get_parameter_db(l_sess_id,c_TOP10_SQLS);
+        l_flt  := get_parameter_db(p_sess_id,c_filter);
+        if l_flt is not null then
+          l_flt := '/*' || replace(replace(l_flt,'/*','\*'),'*/','*\') || '*/';
+        end if;
+        if l_sqls is not null then
+          add_parameter(p_sess_id, c_filter, replace(q'[nvl(sql_id,'<UNKNOWN SQL>') not in (<SQL_ID_LIST>)]','<SQL_ID_LIST>',l_sqls) || l_flt);
+          add_parameter(p_sess_id, c_NextTOP10, 'Y');
+        end if;
+      end if;
 
       COREMOD_INTEGRATION.clone_integration (  P_INT_KEY => 'AWRWH2ASH_DUMP2CUBE',
                                                p_modname => 'ASH_ANALYZER',
@@ -346,7 +363,8 @@ PACKAGE BODY ASHA_CUBE_PKG AS
                                p_min_snap number,
                                p_max_snap number,
                                p_monitor boolean,
-                               p_snap_ash boolean
+                               p_snap_ash boolean,
+                               p_sql_timeline boolean
                                )
   is
     l_sql_template varchar2(32765):=
@@ -373,8 +391,42 @@ PACKAGE BODY ASHA_CUBE_PKG AS
                             (sql_id, SQL_PLAN_HASH_VALUE),
                             (current_obj# )
                            )]';
-    l_sql varchar2(32765);
+
+    l_sql_timeln varchar2(32765):=
+   q'[INSERT INTO asha_cube
+                 (sess_id,    sample_time,   sql_id,                      smpls,   g1, g2,   g3, g4, g5, g6)
+   SELECT   /*+ driving_site(x) */
+                  :P_SESS_ID, <GROUPBY_COL>, nvl(sql_id,'<UNKNOWN SQL>'), COUNT(1),-1, -100, -1, -1, -1, -1
+     FROM   <SOURCE_TABLE> x
+    WHERE   <DBID>
+      AND   <INSTANCE_NUMBER> in (<P_INST_ID>)
+      AND   <SNAP_FILTER>
+      AND   SAMPLE_TIME BETWEEN :P_START_DT AND :P_END_DT
+      AND   <FILTER>
+      AND   nvl(sql_id,'<UNKNOWN SQL>') in (<SQL_ID_LIST>)
+    GROUP BY  <GROUPBY_COL>, nvl(sql_id,'<UNKNOWN SQL>')]';
+
+    l_sql_timeln_others varchar2(32765):=
+   q'[INSERT INTO asha_cube
+                 (sess_id,    sample_time,   sql_id,                      smpls,   g1, g2,   g3, g4, g5, g6)
+   SELECT   /*+ driving_site(x) */
+                  :P_SESS_ID, <GROUPBY_COL>, 'Other SQLs', COUNT(1),-1, -100, -1, -1, -1, -1
+     FROM   <SOURCE_TABLE> x
+    WHERE   <DBID>
+      AND   <INSTANCE_NUMBER> in (<P_INST_ID>)
+      AND   <SNAP_FILTER>
+      AND   SAMPLE_TIME BETWEEN :P_START_DT AND :P_END_DT
+      AND   <FILTER>
+      AND   nvl(sql_id,'<UNKNOWN SQL>') not in (<SQL_ID_LIST>)
+    GROUP BY  <GROUPBY_COL>]';
+
+    l_sql  varchar2(32765);
+    l_sql2 varchar2(32765);
+    l_sql3 varchar2(32765);
+
     l_crsr sys_refcursor;
+
+    l_sql_ids_list varchar2(32765);
   begin
     coremod_log.log('Start calc_main_cube','DEBUG');
 
@@ -392,15 +444,52 @@ PACKAGE BODY ASHA_CUBE_PKG AS
                                           '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
                                   '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
                           '<FILTER>',nvl(p_filter,'1=1')),'<P_INST_ID>',p_inst_list);
+
+    l_sql2 := replace(replace(replace(replace(replace(replace(l_sql_timeln,
+                                                          '<SOURCE_TABLE>',case
+                                                                             when p_snap_ash then '(select * from asha_cube_snap_ash where sess_id='||p_sess_id||')'
+                                                                             when p_source = 'V$VIEW' then case when p_dblink = '$LOCAL$' then 'gv$active_session_history'
+                                                                                                          else 'gv$active_session_history@'||p_dblink
+                                                                                                          end
+                                                                             when p_source = 'AWR' then case when p_dblink = '$LOCAL$' then 'dba_hist_active_sess_history'
+                                                                                                        else 'dba_hist_active_sess_history@'||p_dblink
+                                                                                                        end
+                                                                           end),
+                                                  '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
+                                          '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
+                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                          '<FILTER>',nvl(p_filter,'1=1')),'<P_INST_ID>',p_inst_list);
+    l_sql3 := replace(replace(replace(replace(replace(replace(l_sql_timeln_others,
+                                                          '<SOURCE_TABLE>',case
+                                                                             when p_snap_ash then '(select * from asha_cube_snap_ash where sess_id='||p_sess_id||')'
+                                                                             when p_source = 'V$VIEW' then case when p_dblink = '$LOCAL$' then 'gv$active_session_history'
+                                                                                                          else 'gv$active_session_history@'||p_dblink
+                                                                                                          end
+                                                                             when p_source = 'AWR' then case when p_dblink = '$LOCAL$' then 'dba_hist_active_sess_history'
+                                                                                                        else 'dba_hist_active_sess_history@'||p_dblink
+                                                                                                        end
+                                                                           end),
+                                                  '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
+                                          '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
+                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                          '<FILTER>',nvl(p_filter,'1=1')),'<P_INST_ID>',p_inst_list);
     case
       when p_cubeagg = 'no_agg'  then
         l_sql := replace(l_sql,'<GROUPBY_COL>',q'[cast(sample_time as date)]'); --somehow duplicates can be produced here and main diagram breaks, because several samples during a single second can appear.
+        l_sql2 := replace(l_sql2,'<GROUPBY_COL>',q'[cast(sample_time as date)]');
+        l_sql3 := replace(l_sql3,'<GROUPBY_COL>',q'[cast(sample_time as date)]');
       when p_cubeagg = 'by_mi'   then
         l_sql := replace(l_sql,'<GROUPBY_COL>',q'[trunc(sample_time,'mi')]');
+        l_sql2 := replace(l_sql2,'<GROUPBY_COL>',q'[trunc(sample_time,'mi')]');
+        l_sql3 := replace(l_sql3,'<GROUPBY_COL>',q'[trunc(sample_time,'mi')]');
       when p_cubeagg = 'by_hour' then
         l_sql := replace(l_sql,'<GROUPBY_COL>',q'[trunc(sample_time,'hh')]');
+        l_sql2 := replace(l_sql2,'<GROUPBY_COL>',q'[trunc(sample_time,'hh')]');
+        l_sql3 := replace(l_sql3,'<GROUPBY_COL>',q'[trunc(sample_time,'hh')]');
       when p_cubeagg = 'by_day'  then
         l_sql := replace(l_sql,'<GROUPBY_COL>',q'[trunc(sample_time,'dd')]');
+        l_sql2 := replace(l_sql2,'<GROUPBY_COL>',q'[trunc(sample_time,'dd')]');
+        l_sql3 := replace(l_sql3,'<GROUPBY_COL>',q'[trunc(sample_time,'dd')]');
       else
         null;
     end case;
@@ -448,9 +537,25 @@ PACKAGE BODY ASHA_CUBE_PKG AS
           values (la_sess_id(i), la_sample_time(i), la_wait_class(i), la_sql_id(i), la_event(i), la_event_id(i),
                   la_module(i), la_action(i), la_sql_id1(i),la_sql_plan_hash_value(i),
                   la_segment_id(i), la_smpls(i), la_g1(i), la_g2(i), la_g3(i), la_g4(i), la_g5(i), la_g6(i));
+      --
+      if p_sql_timeline then
+        for i in (select * from (select sql_id, smpls from asha_cube where sess_id=p_sess_id and g2=0 order by 2 desc) where rownum<11)
+        loop
+          l_sql_ids_list := l_sql_ids_list || q'[']' || i.sql_id || q'[',]';
+        end loop;
+        l_sql_ids_list := rtrim(l_sql_ids_list,',');
+        l_sql2 := replace(l_sql2,'<SQL_ID_LIST>',l_sql_ids_list);
+        l_sql3 := replace(l_sql3,'<SQL_ID_LIST>',l_sql_ids_list);
+
+        add_parameter(p_sess_id, c_TOP10_SQLS, l_sql_ids_list);
+
+        execute immediate l_sql2 using p_sess_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt;
+        execute immediate l_sql3 using p_sess_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt;
+      end if;
     exception
       when others then
         coremod_log.log('Error SQL: '||chr(10)||l_sql||chr(10)||sqlerrm);
+        coremod_log.log('Error SQL2: '||chr(10)||l_sql2||chr(10)||sqlerrm);
         raise_application_error(-20000,sqlerrm);
     end;
     if not p_monitor /*and not p_snap_ash*/ then
@@ -857,14 +962,14 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
         select * from (
         select sess_id,
             session_id||';'||session_serial#||';'||inst_id sid,
-            substr(
+            substr(session_id||';'||session_serial#||';'||inst_id || ' '||
             case when module='; ' then null else 'MOD: '||module||'; ' end ||
             case when action='; ' then null else 'ACT: '||action||'; ' end ||
             case when program='; ' then null else 'PRG: '||program||'; ' end ||
             case when client_id='; ' then null else 'CLI: '||client_id||'; ' end ||
             case when machine is null then null else 'MACH: '||machine||'; ' end ||
             case when ecid='; ' then null else 'ECID: '||ecid||'; ' end ||
-            case when username is null then null else 'UID: '||username||'; ' end,1,240) || ' ' || round(100*smpls/sum(smpls)over(),2) ||'%'
+            case when username is null then null else 'UID: '||username||'; ' end,1,225) || ' ' || round(100*smpls/sum(smpls)over(),2) ||'%'
             identity$,
             smpls sec
         from (
@@ -1041,7 +1146,8 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
                    p_min_snap => l_min_snap,
                    p_max_snap => l_max_snap,
                    p_monitor => g_allpars.pa_monitor,
-                   p_snap_ash => g_allpars.pa_snap_ash);
+                   p_snap_ash => g_allpars.pa_snap_ash,
+                   p_sql_timeline => g_allpars.pa_SQL_TIMELINE);
     --=====================================================================
     COREMOD_API.end_longops_section(1,l_lops_ind);
     COREMOD_API.start_longops_section ( l_module, 'Calcualting metrics cube');

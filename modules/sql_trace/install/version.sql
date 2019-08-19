@@ -1,2 +1,2 @@
-rem define MODVER="2.4.3"
-define MODVER="2.4.4"
+rem define MODVER="2.4.4"
+define MODVER="2.4.5"

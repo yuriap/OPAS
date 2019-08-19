@@ -32,6 +32,11 @@ PACKAGE ASHA_CUBE_PKG AS
   c_SNAP_ASH_FREQ       constant varchar2(100) := 'SNAP_ASH_FREQ';     --Frequency sec^-1 of snapping V$SESSION in Monitor mode (Standard Edition)
 
   c_STATSNWAITS         constant varchar2(100) := 'STATSNWAITS';        --Gather Statistics and Waits whan Monitor is ON
+  c_SQL_TIMELINE        constant varchar2(100) := 'SQL_TIMELINE';
+
+  -- Run time parameters
+  c_TOP10_SQLS         constant varchar2(100) := 'TOP10_SQLS';
+  c_NextTOP10          constant varchar2(100) := 'NEXTTOP10';
 
   stNEW                constant varchar2(100) := 'NEW';
   stINQUEUE            constant varchar2(100) := 'INQUEUE';
@@ -72,7 +77,8 @@ PACKAGE ASHA_CUBE_PKG AS
   procedure init_session(p_proj_id          asha_cube_sess.sess_proj_id%type,
                          p_retention        asha_cube_sess.sess_retention_days%type,
                          p_sess_id   in out asha_cube_sess.sess_id%type,
-                         p_parent_sess      asha_cube_sess.parent_id%type default null);
+                         p_parent_sess      asha_cube_sess.parent_id%type default null,
+                         p_next_top10       boolean default false);
 
   procedure load_par_tmpl(p_tmpl_id          asha_cube_sess_tmpl.tmpl_id%type,
                           p_sess_id          asha_cube_sess.sess_id%type);

@@ -305,3 +305,4 @@ on commit delete rows;
 @@upgrade_structure_2.4.2-2.4.3.sql
 
 @@upgrade_structure_2.4.3-2.4.4.sql
+@@upgrade_structure_2.4.4-2.4.5.sql

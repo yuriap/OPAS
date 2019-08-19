@@ -74,7 +74,7 @@ select sess_id,
     case when client_id='; ' then null else 'CLI: '||client_id||'; ' end ||
     case when machine is null then null else 'MACH: '||machine||'; ' end ||
     case when ecid='; ' then null else 'ECID: '||ecid||'; ' end ||
-    case when username is null then null else 'UID: '||username||'; ' end,1,240) || ' ' || round(100*smpls/sum(smpls)over(),2) ||'%'
+    case when username is null then null else 'UID: '||username||'; ' end,1,225) || ' ' || round(100*smpls/sum(smpls)over(),2) ||'%'
     identity$,
     smpls sec
 from (

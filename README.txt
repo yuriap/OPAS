@@ -1,4 +1,4 @@
-Oracle Performance Analytic Suite Version 5.0.8 PROD
+Oracle Performance Analytic Suite Version 5.1.0 PROD
 (former AWR Tools)
 
 Demo version is available at:
@@ -54,4 +54,9 @@ Version 5.0.8
 -------------
  - ASHA delayed cube calc start
  - ASHA Statistics and Waits snapper
+ 
+Version 5.1.0
+-------------
+ - ASHA SQL Timeline diagram
+
  
