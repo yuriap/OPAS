@@ -544,18 +544,21 @@ PACKAGE BODY ASHA_CUBE_PKG AS
           l_sql_ids_list := l_sql_ids_list || q'[']' || i.sql_id || q'[',]';
         end loop;
         l_sql_ids_list := rtrim(l_sql_ids_list,',');
-        l_sql2 := replace(l_sql2,'<SQL_ID_LIST>',l_sql_ids_list);
-        l_sql3 := replace(l_sql3,'<SQL_ID_LIST>',l_sql_ids_list);
+        if l_sql_ids_list is not null then
+          l_sql2 := replace(l_sql2,'<SQL_ID_LIST>',l_sql_ids_list);
+          l_sql3 := replace(l_sql3,'<SQL_ID_LIST>',l_sql_ids_list);
 
-        add_parameter(p_sess_id, c_TOP10_SQLS, l_sql_ids_list);
+          add_parameter(p_sess_id, c_TOP10_SQLS, l_sql_ids_list);
 
-        execute immediate l_sql2 using p_sess_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt;
-        execute immediate l_sql3 using p_sess_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt;
+          execute immediate l_sql2 using p_sess_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt;
+          execute immediate l_sql3 using p_sess_id, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt;
+        end if;
       end if;
     exception
       when others then
         coremod_log.log('Error SQL: '||chr(10)||l_sql||chr(10)||sqlerrm);
         coremod_log.log('Error SQL2: '||chr(10)||l_sql2||chr(10)||sqlerrm);
+        coremod_log.log('Error SQL3: '||chr(10)||l_sql3||chr(10)||sqlerrm);
         raise_application_error(-20000,sqlerrm);
     end;
     if not p_monitor /*and not p_snap_ash*/ then
