@@ -923,7 +923,7 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
     l_sql_topsess_template varchar2(32765):=
     q'[INSERT INTO asha_cube$tmp_top_sess (sess_id,session_id,session_serial#,inst_id,module,action,program,client_id,machine,ecid,username,smpls)
       select /*+ driving_site(x) */
-                :P_SESS_ID, session_id, session_serial#, <INSTANCE_NUMBER>, module, action, program,client_id,machine,ecid,user_id, cnt<MULT> from(
+                :P_SESS_ID, session_id, session_serial#, <INSTANCE_NUMBER>, module, action, program,client_id,machine,ecid,user_id, cnt from(
           select
                  session_id, session_serial#, <INSTANCE_NUMBER>, module, action,program,client_id,machine,ecid,user_id,
                  count(1) cnt
