@@ -1,2 +1,2 @@
-rem prev define MODVER="3.4.16"
-define MODVER="3.4.17"
+rem prev define MODVER="3.4.17"
+define MODVER="3.4.18"

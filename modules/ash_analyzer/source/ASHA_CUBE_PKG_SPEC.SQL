@@ -37,6 +37,7 @@ PACKAGE ASHA_CUBE_PKG AS
   -- Run time parameters
   c_TOP10_SQLS         constant varchar2(100) := 'TOP10_SQLS';
   c_NextTOP10          constant varchar2(100) := 'NEXTTOP10';
+  c_TOP10_Events       constant varchar2(100) := 'TOP10_EVENTS';
 
   stNEW                constant varchar2(100) := 'NEW';
   stINQUEUE            constant varchar2(100) := 'INQUEUE';
@@ -90,6 +91,12 @@ PACKAGE ASHA_CUBE_PKG AS
   function get_parameter_db(p_sess_id         asha_cube_sess.sess_id%type,
                             p_param_name      asha_cube_sess_pars.sess_par_nm%type) return asha_cube_sess_pars.sess_par_val%type result_cache;
   function get_sess_pars (p_sess_id asha_cube_sess.sess_id%type) return tt_params_t;
+
+  function get_string_lst_par(p_sess_id asha_cube_sess.sess_id%type,
+                              p_param_name      asha_cube_sess_pars.sess_par_nm%type) return tableofstrings;
+  function get_number_lst_par(p_sess_id asha_cube_sess.sess_id%type,
+                              p_param_name      asha_cube_sess_pars.sess_par_nm%type) return tableofnumbers;
+
 
   procedure add_metric_tab(p_sess_id        asha_cube_sess.sess_id%type,
                            p_metric_tab     tt_metric_tab);

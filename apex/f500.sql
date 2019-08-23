@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   17:23 Monday August 19, 2019
+--   Date and Time:   14:39 Friday August 23, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -37,10 +37,10 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 
 -- Application Statistics:
 --   Pages:                     86
---     Items:                  525
+--     Items:                  526
 --     Validations:              2
 --     Processes:              242
---     Regions:                305
+--     Regions:                306
 --     Buttons:                284
 --     Dynamic Actions:         40
 --   Shared Components:
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190819172023'
+,p_last_upd_yyyymmddhh24miss=>'20190823143942'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -26704,7 +26704,382 @@ wwv_flow_api.create_page(
 ,p_html_page_header=>'<meta http-equiv="refresh" content="&P303_PAGE_REFRESH_INTERVAL.">'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190819153541'
+,p_last_upd_yyyymmddhh24miss=>'20190823143942'
+);
+wwv_flow_api.create_page_plug(
+ p_id=>wwv_flow_api.id(57540224206714132)
+,p_plug_name=>'SQL Top Events'
+,p_region_template_options=>'#DEFAULT#:is-expanded:t-Region--scrollBody'
+,p_plug_template=>wwv_flow_api.id(163580428178453883)
+,p_plug_display_sequence=>120
+,p_plug_display_point=>'BODY'
+,p_plug_source_type=>'NATIVE_JET_CHART'
+,p_plug_query_num_rows=>15
+,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
+,p_plug_display_condition_type=>'EXISTS'
+,p_plug_display_when_condition=>'select 1 from asha_cube c where sess_id = :P303_SESS_ID and g2=-200 and :P303_STATUS in (''READY'',''MONITOR'')'
+);
+wwv_flow_api.create_jet_chart(
+ p_id=>wwv_flow_api.id(57540341866714133)
+,p_region_id=>wwv_flow_api.id(57540224206714132)
+,p_chart_type=>'area'
+,p_height=>'350'
+,p_animation_on_display=>'auto'
+,p_animation_on_data_change=>'auto'
+,p_orientation=>'vertical'
+,p_data_cursor=>'auto'
+,p_data_cursor_behavior=>'auto'
+,p_hide_and_show_behavior=>'withRescale'
+,p_hover_behavior=>'dim'
+,p_stack=>'on'
+,p_connect_nulls=>'Y'
+,p_sorting=>'label-asc'
+,p_fill_multi_series_gaps=>true
+,p_zoom_and_scroll=>'off'
+,p_tooltip_rendered=>'Y'
+,p_show_series_name=>true
+,p_show_group_name=>true
+,p_show_value=>true
+,p_show_label=>true
+,p_legend_rendered=>'on'
+,p_legend_position=>'top'
+,p_time_axis_type=>'disabled'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(57541336302714143)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_seq=>10
+,p_name=>'Event #1'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with a as (select /*+ RESULT_CACHE */ event_id, rownum rn, smpls||''; ''||round(100*smpls/sum(smpls)over(),2)||''%'' hint from (select event_id, sum(smpls) smpls from asha_cube where sess_id = :P303_SESS_ID and g2=-200 and sql_id=:P303_SQLS_TOP_EVENT gro'
+||'up by event_id order by 2 desc) where rownum < 11)',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(event) over() event, max(hint)over()hint, sum(nvl(sec,0))over() t',
+'  from (select sample_time, smpls sec, c.event, a.hint',
+'          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-200 and a.event_id=c.event_id and a.rn=1 and c.sql_id=:P303_SQLS_TOP_EVENT) h, ',
+'       asha_cube_timeline d ',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
+' ORDER BY sample_time;  ',
+''))
+,p_series_name_column_name=>'EVENT'
+,p_items_value_column_name=>'SEC'
+,p_group_name_column_name=>'HINT'
+,p_items_label_column_name=>'SAMPLE_TIME'
+,p_color=>'#309FDB'
+,p_line_type=>'auto'
+,p_marker_rendered=>'auto'
+,p_marker_shape=>'auto'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>false
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'P303_SQLS_TOP_EVENT'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(57541099399714140)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_seq=>20
+,p_name=>'Event #2'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with a as (select /*+ RESULT_CACHE */ event_id, rownum rn, smpls||''; ''||round(100*smpls/sum(smpls)over(),2)||''%'' hint from (select event_id, sum(smpls) smpls from asha_cube where sess_id = :P303_SESS_ID and g2=-200 and sql_id=:P303_SQLS_TOP_EVENT gro'
+||'up by event_id order by 2 desc) where rownum < 11)',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(event) over() event, max(hint)over()hint, sum(nvl(sec,0))over() t',
+'  from (select sample_time, smpls sec, c.event, a.hint',
+'          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-200 and a.event_id=c.event_id and a.rn=2 and c.sql_id=:P303_SQLS_TOP_EVENT) h, ',
+'       asha_cube_timeline d ',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID )where t>0',
+' ORDER BY sample_time;  '))
+,p_series_name_column_name=>'EVENT'
+,p_items_value_column_name=>'SEC'
+,p_group_name_column_name=>'HINT'
+,p_items_label_column_name=>'SAMPLE_TIME'
+,p_color=>'#3DAF85'
+,p_line_type=>'auto'
+,p_marker_rendered=>'auto'
+,p_marker_shape=>'auto'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>false
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'P303_SQLS_TOP_EVENT'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(57541165035714141)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_seq=>30
+,p_name=>'Event #3'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with a as (select /*+ RESULT_CACHE */ event_id, rownum rn, smpls||''; ''||round(100*smpls/sum(smpls)over(),2)||''%'' hint from (select event_id, sum(smpls) smpls from asha_cube where sess_id = :P303_SESS_ID and g2=-200 and sql_id=:P303_SQLS_TOP_EVENT gro'
+||'up by event_id order by 2 desc) where rownum < 11)',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(event) over() event, max(hint)over()hint, sum(nvl(sec,0))over() t',
+'  from (select sample_time, smpls sec, c.event, a.hint',
+'          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-200 and a.event_id=c.event_id and a.rn=3 and c.sql_id=:P303_SQLS_TOP_EVENT) h, ',
+'       asha_cube_timeline d ',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID )where t>0',
+' ORDER BY sample_time;  '))
+,p_series_name_column_name=>'EVENT'
+,p_items_value_column_name=>'SEC'
+,p_group_name_column_name=>'HINT'
+,p_items_label_column_name=>'SAMPLE_TIME'
+,p_color=>'#FBCF4A'
+,p_line_type=>'auto'
+,p_marker_rendered=>'auto'
+,p_marker_shape=>'auto'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>false
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'P303_SQLS_TOP_EVENT'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(57541208919714142)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_seq=>40
+,p_name=>'Event #4'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with a as (select /*+ RESULT_CACHE */ event_id, rownum rn, smpls||''; ''||round(100*smpls/sum(smpls)over(),2)||''%'' hint from (select event_id, sum(smpls) smpls from asha_cube where sess_id = :P303_SESS_ID and g2=-200 and sql_id=:P303_SQLS_TOP_EVENT gro'
+||'up by event_id order by 2 desc) where rownum < 11)',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(event) over() event, max(hint)over()hint, sum(nvl(sec,0))over() t',
+'  from (select sample_time, smpls sec, c.event, a.hint',
+'          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-200 and a.event_id=c.event_id and a.rn=4 and c.sql_id=:P303_SQLS_TOP_EVENT) h, ',
+'       asha_cube_timeline d ',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
+' ORDER BY sample_time;  '))
+,p_series_name_column_name=>'EVENT'
+,p_items_value_column_name=>'SEC'
+,p_group_name_column_name=>'HINT'
+,p_items_label_column_name=>'SAMPLE_TIME'
+,p_color=>'#EA5A53'
+,p_line_type=>'auto'
+,p_marker_rendered=>'auto'
+,p_marker_shape=>'auto'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>false
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'P303_SQLS_TOP_EVENT'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(57541444695714144)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_seq=>50
+,p_name=>'Event #5'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with a as (select /*+ RESULT_CACHE */ event_id, rownum rn, smpls||''; ''||round(100*smpls/sum(smpls)over(),2)||''%'' hint from (select event_id, sum(smpls) smpls from asha_cube where sess_id = :P303_SESS_ID and g2=-200 and sql_id=:P303_SQLS_TOP_EVENT gro'
+||'up by event_id order by 2 desc) where rownum < 11)',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(event) over() event, max(hint)over()hint, sum(nvl(sec,0))over() t',
+'  from (select sample_time, smpls sec, c.event, a.hint',
+'          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-200 and a.event_id=c.event_id and a.rn=5 and c.sql_id=:P303_SQLS_TOP_EVENT) h, ',
+'       asha_cube_timeline d ',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
+' ORDER BY sample_time;  '))
+,p_series_name_column_name=>'EVENT'
+,p_items_value_column_name=>'SEC'
+,p_group_name_column_name=>'HINT'
+,p_items_label_column_name=>'SAMPLE_TIME'
+,p_color=>'#844E9B'
+,p_line_type=>'auto'
+,p_marker_rendered=>'auto'
+,p_marker_shape=>'auto'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>false
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'P303_SQLS_TOP_EVENT'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(57540535784714135)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_seq=>70
+,p_name=>'Event #6'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with a as (select /*+ RESULT_CACHE */ event_id, rownum rn, smpls||''; ''||round(100*smpls/sum(smpls)over(),2)||''%'' hint from (select event_id, sum(smpls) smpls from asha_cube where sess_id = :P303_SESS_ID and g2=-200 and sql_id=:P303_SQLS_TOP_EVENT gro'
+||'up by event_id order by 2 desc) where rownum < 11)',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(event) over() event, max(hint)over()hint, sum(nvl(sec,0))over() t',
+'  from (select sample_time, smpls sec, c.event, a.hint',
+'          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-200 and a.event_id=c.event_id and a.rn=6 and c.sql_id=:P303_SQLS_TOP_EVENT) h, ',
+'       asha_cube_timeline d ',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
+' ORDER BY sample_time;  '))
+,p_series_name_column_name=>'EVENT'
+,p_items_value_column_name=>'SEC'
+,p_group_name_column_name=>'HINT'
+,p_items_label_column_name=>'SAMPLE_TIME'
+,p_color=>'#2EBEBC'
+,p_line_type=>'auto'
+,p_marker_rendered=>'auto'
+,p_marker_shape=>'auto'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>false
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'P303_SQLS_TOP_EVENT'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(57540680433714136)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_seq=>80
+,p_name=>'Event #7'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with a as (select /*+ RESULT_CACHE */ event_id, rownum rn, smpls||''; ''||round(100*smpls/sum(smpls)over(),2)||''%'' hint from (select event_id, sum(smpls) smpls from asha_cube where sess_id = :P303_SESS_ID and g2=-200 and sql_id=:P303_SQLS_TOP_EVENT gro'
+||'up by event_id order by 2 desc) where rownum < 11)',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(event) over() event, max(hint)over()hint, sum(nvl(sec,0))over() t',
+'  from (select sample_time, smpls sec, c.event, a.hint',
+'          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-200 and a.event_id=c.event_id and a.rn=7 and c.sql_id=:P303_SQLS_TOP_EVENT) h, ',
+'       asha_cube_timeline d ',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
+' ORDER BY sample_time;  '))
+,p_series_name_column_name=>'EVENT'
+,p_items_value_column_name=>'SEC'
+,p_group_name_column_name=>'HINT'
+,p_items_label_column_name=>'SAMPLE_TIME'
+,p_color=>'#ED813E'
+,p_line_type=>'auto'
+,p_marker_rendered=>'auto'
+,p_marker_shape=>'auto'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>false
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'P303_SQLS_TOP_EVENT'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(57540736537714137)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_seq=>90
+,p_name=>'Event #8'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with a as (select /*+ RESULT_CACHE */ event_id, rownum rn, smpls||''; ''||round(100*smpls/sum(smpls)over(),2)||''%'' hint from (select event_id, sum(smpls) smpls from asha_cube where sess_id = :P303_SESS_ID and g2=-200 and sql_id=:P303_SQLS_TOP_EVENT gro'
+||'up by event_id order by 2 desc) where rownum < 11)',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(event) over() event, max(hint)over()hint, sum(nvl(sec,0))over() t',
+'  from (select sample_time, smpls sec, c.event, a.hint',
+'          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-200 and a.event_id=c.event_id and a.rn=1 and c.sql_id=:P303_SQLS_TOP_EVENT) h, ',
+'       asha_cube_timeline d ',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
+' ORDER BY sample_time;  '))
+,p_series_name_column_name=>'EVENT'
+,p_items_value_column_name=>'SEC'
+,p_group_name_column_name=>'HINT'
+,p_items_label_column_name=>'SAMPLE_TIME'
+,p_color=>'#E75D89'
+,p_line_type=>'auto'
+,p_marker_rendered=>'auto'
+,p_marker_shape=>'auto'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>false
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'P303_SQLS_TOP_EVENT'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(57540836659714138)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_seq=>100
+,p_name=>'Event #9'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with a as (select /*+ RESULT_CACHE */ event_id, rownum rn, smpls||''; ''||round(100*smpls/sum(smpls)over(),2)||''%'' hint from (select event_id, sum(smpls) smpls from asha_cube where sess_id = :P303_SESS_ID and g2=-200 and sql_id=:P303_SQLS_TOP_EVENT gro'
+||'up by event_id order by 2 desc) where rownum < 11)',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(event) over() event, max(hint)over()hint, sum(nvl(sec,0))over() t',
+'  from (select sample_time, smpls sec, c.event, a.hint',
+'          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-200 and a.event_id=c.event_id and a.rn=9 and c.sql_id=:P303_SQLS_TOP_EVENT) h, ',
+'       asha_cube_timeline d ',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
+' ORDER BY sample_time;  '))
+,p_series_name_column_name=>'EVENT'
+,p_items_value_column_name=>'SEC'
+,p_group_name_column_name=>'HINT'
+,p_items_label_column_name=>'SAMPLE_TIME'
+,p_color=>'#13B9CF'
+,p_line_type=>'auto'
+,p_marker_rendered=>'auto'
+,p_marker_shape=>'auto'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>false
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'P303_SQLS_TOP_EVENT'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(57540999173714139)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_seq=>110
+,p_name=>'Event #10'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with a as (select /*+ RESULT_CACHE */ event_id, rownum rn, smpls||''; ''||round(100*smpls/sum(smpls)over(),2)||''%'' hint from (select event_id, sum(smpls) smpls from asha_cube where sess_id = :P303_SESS_ID and g2=-200 and sql_id=:P303_SQLS_TOP_EVENT gro'
+||'up by event_id order by 2 desc) where rownum < 11)',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(event) over() event, max(hint)over()hint, sum(nvl(sec,0))over() t',
+'  from (select sample_time, smpls sec, c.event, a.hint',
+'          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-200 and a.event_id=c.event_id and a.rn=10 and c.sql_id=:P303_SQLS_TOP_EVENT) h, ',
+'       asha_cube_timeline d ',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
+' ORDER BY sample_time;  '))
+,p_series_name_column_name=>'EVENT'
+,p_items_value_column_name=>'SEC'
+,p_group_name_column_name=>'HINT'
+,p_items_label_column_name=>'SAMPLE_TIME'
+,p_color=>'#81BB5F'
+,p_line_type=>'auto'
+,p_marker_rendered=>'auto'
+,p_marker_shape=>'auto'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>false
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'P303_SQLS_TOP_EVENT'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(57540464999714134)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_seq=>120
+,p_name=>'Other Events'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with a as (select /*+ RESULT_CACHE */ event_id, rownum rn from (select event_id, sum(smpls) from asha_cube where sess_id = :P303_SESS_ID and g2=-200 and sql_id=:P303_SQLS_TOP_EVENT group by event_id order by 2 desc) where rownum < 11)',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(event) over() event, max(hint)over()hint, sum(nvl(sec,0))over() t',
+'  from (select sample_time, smpls sec, c.event, sum(smpls)over() hint',
+'          from asha_cube c where sess_id = :P303_SESS_ID and g2=-200 and c.event_id not in (select event_id from a) and c.sql_id=:P303_SQLS_TOP_EVENT) h, ',
+'       asha_cube_timeline d ',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
+' ORDER BY sample_time;  '))
+,p_series_name_column_name=>'EVENT'
+,p_items_value_column_name=>'SEC'
+,p_group_name_column_name=>'HINT'
+,p_items_label_column_name=>'SAMPLE_TIME'
+,p_color=>'#CA589C'
+,p_line_type=>'auto'
+,p_marker_rendered=>'auto'
+,p_marker_shape=>'auto'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>false
+,p_display_when_cond_type=>'ITEM_IS_NOT_NULL'
+,p_display_when_condition=>'P303_SQLS_TOP_EVENT'
+);
+wwv_flow_api.create_jet_chart_axis(
+ p_id=>wwv_flow_api.id(57541618861714146)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_axis=>'x'
+,p_is_rendered=>'on'
+,p_format_scaling=>'auto'
+,p_scaling=>'linear'
+,p_baseline_scaling=>'zero'
+,p_major_tick_rendered=>'auto'
+,p_minor_tick_rendered=>'auto'
+,p_tick_label_rendered=>'on'
+,p_tick_label_rotation=>'auto'
+,p_tick_label_position=>'outside'
+);
+wwv_flow_api.create_jet_chart_axis(
+ p_id=>wwv_flow_api.id(57541528530714145)
+,p_chart_id=>wwv_flow_api.id(57540341866714133)
+,p_axis=>'y'
+,p_is_rendered=>'on'
+,p_title=>'Number of samples'
+,p_format_scaling=>'auto'
+,p_scaling=>'linear'
+,p_baseline_scaling=>'zero'
+,p_position=>'auto'
+,p_major_tick_rendered=>'auto'
+,p_minor_tick_rendered=>'auto'
+,p_tick_label_rendered=>'on'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(89458583189737531)
@@ -26725,9 +27100,9 @@ wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(114273279466690939)
 ,p_plug_name=>'Metric #2: &P303_METRIC_CAPT_1.'
 ,p_region_name=>'metric_chart2'
-,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_region_template_options=>'#DEFAULT#:is-expanded:t-Region--scrollBody'
 ,p_escape_on_http_output=>'Y'
-,p_plug_template=>wwv_flow_api.id(163591464529453905)
+,p_plug_template=>wwv_flow_api.id(163580428178453883)
 ,p_plug_display_sequence=>40
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
@@ -26755,7 +27130,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(114273824902690945)
 ,p_region_id=>wwv_flow_api.id(114273279466690939)
 ,p_chart_type=>'lineWithArea'
-,p_height=>'400'
+,p_height=>'300'
 ,p_animation_on_display=>'none'
 ,p_animation_on_data_change=>'none'
 ,p_orientation=>'vertical'
@@ -26794,7 +27169,6 @@ wwv_flow_api.create_jet_chart_series(
 '   and inst_id   = 1   ',
 ' order by end_time;'))
 ,p_items_value_column_name=>'VAL'
-,p_group_name_column_name=>'END_TIME'
 ,p_items_label_column_name=>'END_TIME'
 ,p_color=>'#007AFF'
 ,p_line_style=>'solid'
@@ -26830,7 +27204,6 @@ wwv_flow_api.create_jet_chart_series(
 '   and inst_id   = 2  ',
 ' order by end_time;'))
 ,p_items_value_column_name=>'VAL'
-,p_group_name_column_name=>'END_TIME'
 ,p_items_label_column_name=>'END_TIME'
 ,p_color=>'#00FF95'
 ,p_line_style=>'solid'
@@ -26866,7 +27239,6 @@ wwv_flow_api.create_jet_chart_series(
 '   and inst_id   = 3  ',
 ' order by end_time;'))
 ,p_items_value_column_name=>'VAL'
-,p_group_name_column_name=>'END_TIME'
 ,p_items_label_column_name=>'END_TIME'
 ,p_color=>'#8C00FF'
 ,p_line_style=>'solid'
@@ -26902,7 +27274,6 @@ wwv_flow_api.create_jet_chart_series(
 '   and inst_id   = 4',
 ' order by end_time;'))
 ,p_items_value_column_name=>'VAL'
-,p_group_name_column_name=>'END_TIME'
 ,p_items_label_column_name=>'END_TIME'
 ,p_color=>'#FF0000'
 ,p_line_style=>'solid'
@@ -26967,9 +27338,9 @@ wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(114274876640690955)
 ,p_plug_name=>'Metric #3: &P303_METRIC_CAPT_2.'
 ,p_region_name=>'metric_chart3'
-,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_region_template_options=>'#DEFAULT#:is-expanded:t-Region--scrollBody'
 ,p_escape_on_http_output=>'Y'
-,p_plug_template=>wwv_flow_api.id(163591464529453905)
+,p_plug_template=>wwv_flow_api.id(163580428178453883)
 ,p_plug_display_sequence=>50
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
@@ -26997,7 +27368,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(114275464076690961)
 ,p_region_id=>wwv_flow_api.id(114274876640690955)
 ,p_chart_type=>'lineWithArea'
-,p_height=>'400'
+,p_height=>'300'
 ,p_animation_on_display=>'none'
 ,p_animation_on_data_change=>'none'
 ,p_orientation=>'vertical'
@@ -27036,7 +27407,6 @@ wwv_flow_api.create_jet_chart_series(
 '   and inst_id   = 1 ',
 ' order by end_time;'))
 ,p_items_value_column_name=>'VAL'
-,p_group_name_column_name=>'END_TIME'
 ,p_items_label_column_name=>'END_TIME'
 ,p_color=>'#007AFF'
 ,p_line_style=>'solid'
@@ -27054,6 +27424,9 @@ wwv_flow_api.create_jet_chart_series(
 '   and aggfnc    = :P303_METRIC_AGG_2',
 '   and inst_id   = 1'))
 );
+end;
+/
+begin
 wwv_flow_api.create_jet_chart_series(
  p_id=>wwv_flow_api.id(56066606287178501)
 ,p_chart_id=>wwv_flow_api.id(114275464076690961)
@@ -27072,7 +27445,6 @@ wwv_flow_api.create_jet_chart_series(
 '   and inst_id   = 2',
 ' order by end_time;'))
 ,p_items_value_column_name=>'VAL'
-,p_group_name_column_name=>'END_TIME'
 ,p_items_label_column_name=>'END_TIME'
 ,p_color=>'#00FF95'
 ,p_line_style=>'solid'
@@ -27108,7 +27480,6 @@ wwv_flow_api.create_jet_chart_series(
 '   and inst_id   = 3',
 ' order by end_time;'))
 ,p_items_value_column_name=>'VAL'
-,p_group_name_column_name=>'END_TIME'
 ,p_items_label_column_name=>'END_TIME'
 ,p_color=>'#8C00FF'
 ,p_line_style=>'solid'
@@ -27144,7 +27515,6 @@ wwv_flow_api.create_jet_chart_series(
 '   and inst_id   = 4',
 ' order by end_time;'))
 ,p_items_value_column_name=>'VAL'
-,p_group_name_column_name=>'END_TIME'
 ,p_items_label_column_name=>'END_TIME'
 ,p_color=>'#FF0000'
 ,p_line_style=>'solid'
@@ -27220,9 +27590,9 @@ wwv_flow_api.create_page_plug(
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(175467649785963717)
 ,p_plug_name=>'SQL Timeline'
-,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
-,p_plug_template=>wwv_flow_api.id(163591464529453905)
-,p_plug_display_sequence=>95
+,p_region_template_options=>'#DEFAULT#:is-expanded:t-Region--scrollBody'
+,p_plug_template=>wwv_flow_api.id(163580428178453883)
+,p_plug_display_sequence=>110
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
 ,p_plug_query_num_rows=>15
@@ -27234,7 +27604,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(57826250701031107)
 ,p_region_id=>wwv_flow_api.id(175467649785963717)
 ,p_chart_type=>'area'
-,p_height=>'430'
+,p_height=>'350'
 ,p_animation_on_display=>'auto'
 ,p_animation_on_data_change=>'auto'
 ,p_orientation=>'vertical'
@@ -27254,10 +27624,7 @@ wwv_flow_api.create_jet_chart(
 ,p_show_label=>true
 ,p_legend_rendered=>'on'
 ,p_legend_position=>'top'
-,p_overview_rendered=>'off'
 ,p_time_axis_type=>'disabled'
-,p_horizontal_grid=>'auto'
-,p_vertical_grid=>'auto'
 );
 wwv_flow_api.create_jet_chart_series(
  p_id=>wwv_flow_api.id(57832725296031122)
@@ -27266,16 +27633,17 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'SQL #1'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'with a as (select /*+ RESULT_CACHE */ sql_id, rownum rn from (select sql_id, smpls from asha_cube where sess_id=:P303_SESS_ID and g2=0 order by 2 desc) where rownum<11)',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id',
-'  from (select sample_time, smpls sec, c.sql_id',
+'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
+||''')))',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=1) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'SQL_TEXT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#309FDB'
 ,p_line_type=>'auto'
@@ -27291,16 +27659,17 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'SQL #2'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'with a as (select /*+ RESULT_CACHE */ sql_id, rownum rn from (select sql_id, smpls from asha_cube where sess_id=:P303_SESS_ID and g2=0 order by 2 desc) where rownum<11)',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id',
-'  from (select sample_time, smpls sec, c.sql_id',
+'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
+||''')))',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=2) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'SQL_TEXT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#3DAF85'
 ,p_line_type=>'auto'
@@ -27316,16 +27685,17 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'SQL #3'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'with a as (select /*+ RESULT_CACHE */ sql_id, rownum rn from (select sql_id, smpls from asha_cube where sess_id=:P303_SESS_ID and g2=0 order by 2 desc) where rownum<11)',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id',
-'  from (select sample_time, smpls sec, c.sql_id',
+'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
+||''')))',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=3) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'SQL_TEXT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#FBCF4A'
 ,p_line_type=>'auto'
@@ -27341,16 +27711,17 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'SQL #4'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'with a as (select /*+ RESULT_CACHE */ sql_id, rownum rn from (select sql_id, smpls from asha_cube where sess_id=:P303_SESS_ID and g2=0 order by 2 desc) where rownum<11)',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id',
-'  from (select sample_time, smpls sec, c.sql_id',
+'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
+||''')))',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=4) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'SQL_TEXT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#EA5A53'
 ,p_line_type=>'auto'
@@ -27366,16 +27737,17 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'SQL #5'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'with a as (select /*+ RESULT_CACHE */ sql_id, rownum rn from (select sql_id, smpls from asha_cube where sess_id=:P303_SESS_ID and g2=0 order by 2 desc) where rownum<11)',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id',
-'  from (select sample_time, smpls sec, c.sql_id',
+'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
+||''')))',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=5) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'SQL_TEXT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#844E9B'
 ,p_line_type=>'auto'
@@ -27391,16 +27763,17 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'SQL #6'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'with a as (select /*+ RESULT_CACHE */ sql_id, rownum rn from (select sql_id, smpls from asha_cube where sess_id=:P303_SESS_ID and g2=0 order by 2 desc) where rownum<11)',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id',
-'  from (select sample_time, smpls sec, c.sql_id',
+'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
+||''')))',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=6) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'SQL_TEXT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#2EBEBC'
 ,p_line_type=>'auto'
@@ -27416,16 +27789,17 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'SQL #7'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'with a as (select /*+ RESULT_CACHE */ sql_id, rownum rn from (select sql_id, smpls from asha_cube where sess_id=:P303_SESS_ID and g2=0 order by 2 desc) where rownum<11)',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id',
-'  from (select sample_time, smpls sec, c.sql_id',
+'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
+||''')))',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=7) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'SQL_TEXT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#ED813E'
 ,p_line_type=>'auto'
@@ -27441,16 +27815,17 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'SQL #8'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'with a as (select /*+ RESULT_CACHE */ sql_id, rownum rn from (select sql_id, smpls from asha_cube where sess_id=:P303_SESS_ID and g2=0 order by 2 desc) where rownum<11)',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id',
-'  from (select sample_time, smpls sec, c.sql_id',
+'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
+||''')))',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=8) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'SQL_TEXT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#E75D89'
 ,p_line_type=>'auto'
@@ -27466,16 +27841,17 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'SQL #9'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'with a as (select /*+ RESULT_CACHE */ sql_id, rownum rn from (select sql_id, smpls from asha_cube where sess_id=:P303_SESS_ID and g2=0 order by 2 desc) where rownum<11)',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id',
-'  from (select sample_time, smpls sec, c.sql_id',
+'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
+||''')))',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=9) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'SQL_TEXT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#13B9CF'
 ,p_line_type=>'auto'
@@ -27484,9 +27860,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
 );
-end;
-/
-begin
 wwv_flow_api.create_jet_chart_series(
  p_id=>wwv_flow_api.id(57830350529031118)
 ,p_chart_id=>wwv_flow_api.id(57826250701031107)
@@ -27494,16 +27867,17 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'SQL #10'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'with a as (select /*+ RESULT_CACHE */ sql_id, rownum rn from (select sql_id, smpls from asha_cube where sess_id=:P303_SESS_ID and g2=0 order by 2 desc) where rownum<11)',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id',
-'  from (select sample_time, smpls sec, c.sql_id',
+'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
+||''')))',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=10) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'SQL_TEXT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#81BB5F'
 ,p_line_type=>'auto'
@@ -27527,7 +27901,6 @@ wwv_flow_api.create_jet_chart_series(
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#CA589C'
 ,p_line_type=>'auto'
@@ -27830,6 +28203,9 @@ wwv_flow_api.create_worksheet_column(
 ,p_column_label=>'Parameters'
 ,p_column_type=>'STRING'
 );
+end;
+/
+begin
 wwv_flow_api.create_worksheet_column(
  p_id=>wwv_flow_api.id(181374744738281562)
 ,p_db_column_name=>'OWNER'
@@ -27924,7 +28300,7 @@ wwv_flow_api.create_report_region(
  p_id=>wwv_flow_api.id(240699512024026181)
 ,p_name=>'Top blocked sessions'
 ,p_template=>wwv_flow_api.id(163591464529453905)
-,p_display_sequence=>170
+,p_display_sequence=>200
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#:t-Report--altRowsDefault:t-Report--rowHighlight'
 ,p_display_point=>'BODY'
@@ -28083,154 +28459,11 @@ wwv_flow_api.create_report_columns(
 ,p_derived_column=>'N'
 ,p_include_in_export=>'Y'
 );
-wwv_flow_api.create_page_plug(
- p_id=>wwv_flow_api.id(244829683713848829)
-,p_plug_name=>'Event class summary'
-,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
-,p_escape_on_http_output=>'Y'
-,p_plug_template=>wwv_flow_api.id(163591464529453905)
-,p_plug_display_sequence=>70
-,p_plug_display_point=>'BODY'
-,p_plug_source_type=>'NATIVE_JET_CHART'
-,p_plug_query_num_rows=>15
-,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
-,p_plug_display_condition_type=>'PLSQL_EXPRESSION'
-,p_plug_display_when_condition=>':P303_STATUS in (''READY'',''MONITOR'')'
-);
-wwv_flow_api.create_jet_chart(
- p_id=>wwv_flow_api.id(180818368031547475)
-,p_region_id=>wwv_flow_api.id(244829683713848829)
-,p_chart_type=>'bar'
-,p_height=>'30'
-,p_animation_on_display=>'none'
-,p_animation_on_data_change=>'none'
-,p_orientation=>'horizontal'
-,p_data_cursor=>'auto'
-,p_data_cursor_behavior=>'auto'
-,p_hover_behavior=>'none'
-,p_stack=>'on'
-,p_connect_nulls=>'Y'
-,p_sorting=>'label-asc'
-,p_fill_multi_series_gaps=>true
-,p_zoom_and_scroll=>'off'
-,p_tooltip_rendered=>'Y'
-,p_show_series_name=>true
-,p_show_group_name=>false
-,p_show_value=>true
-,p_show_label=>true
-,p_legend_rendered=>'off'
-,p_legend_position=>'auto'
-,p_overview_rendered=>'off'
-,p_horizontal_grid=>'auto'
-,p_vertical_grid=>'auto'
-);
-wwv_flow_api.create_jet_chart_series(
- p_id=>wwv_flow_api.id(180820661755547488)
-,p_chart_id=>wwv_flow_api.id(180818368031547475)
-,p_seq=>10
-,p_name=>'Event class summary'
-,p_data_source_type=>'SQL'
-,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select wait_class||'' ''||round(100*sec/sum(sec)over(),2)||''%'' wait_class, sec, wait_class wait_class1, ''Event class'' ser, ',
-'case',
-'  when wait_class=''CPU'' then ''#00FF00'' ',
-'  when wait_class=''User I/O'' then ''#0000FF'' ',
-'  when wait_class=''Administrative'' then ''#FFCC00'' ',
-'  when wait_class=''Application'' then ''#FF2EF8'' ',
-'  when wait_class=''Commit'' then ''#FF8400'' ',
-'  when wait_class=''Concurrency'' then ''#34AADC'' ',
-'  when wait_class=''Configuration'' then ''#5856D6'' ',
-'  when wait_class=''Idle'' then ''#C7C7CC'' ',
-'  when wait_class=''Network'' then ''#8E8E93'' ',
-'  when wait_class=''Other'' then ''#007AFF'' ',
-'  when wait_class=''Scheduler'' then ''#68B82E''',
-'  when wait_class=''System I/O'' then ''#FF0000''',
-'  when wait_class=''Cluster'' then ''#F7FF00''',
-'end colors ',
-'from',
-'(select wait_class, sum(smpls) sec ',
-'  from asha_cube where sess_id = :P303_SESS_ID and g1=0',
-'group by wait_class) x',
-'order by 2 desc;'))
-,p_series_name_column_name=>'WAIT_CLASS'
-,p_items_value_column_name=>'SEC'
-,p_items_label_column_name=>'SER'
-,p_color=>'&COLORS.'
-,p_assigned_to_y2=>'off'
-,p_items_label_rendered=>true
-,p_items_label_position=>'auto'
-,p_items_label_display_as=>'PERCENT'
-,p_link_target=>'f?p=&APP_ID.:303:&SESSION.::&DEBUG.:RP:P303_ACTION,P303_ON_CLICK,P303_FILTER_DATA:WAIT_CLASS,YES,wait_class = ''&WAIT_CLASS1.'''
-,p_link_target_type=>'REDIRECT_PAGE'
-);
-wwv_flow_api.create_jet_chart_axis(
- p_id=>wwv_flow_api.id(180818841531547476)
-,p_chart_id=>wwv_flow_api.id(180818368031547475)
-,p_axis=>'x'
-,p_is_rendered=>'on'
-,p_format_scaling=>'auto'
-,p_scaling=>'linear'
-,p_baseline_scaling=>'zero'
-,p_major_tick_rendered=>'auto'
-,p_minor_tick_rendered=>'off'
-,p_tick_label_rendered=>'off'
-,p_zoom_order_seconds=>false
-,p_zoom_order_minutes=>false
-,p_zoom_order_hours=>false
-,p_zoom_order_days=>false
-,p_zoom_order_weeks=>false
-,p_zoom_order_months=>false
-,p_zoom_order_quarters=>false
-,p_zoom_order_years=>false
-);
-wwv_flow_api.create_jet_chart_axis(
- p_id=>wwv_flow_api.id(180819422107547478)
-,p_chart_id=>wwv_flow_api.id(180818368031547475)
-,p_axis=>'y'
-,p_is_rendered=>'on'
-,p_format_scaling=>'auto'
-,p_scaling=>'linear'
-,p_baseline_scaling=>'zero'
-,p_position=>'auto'
-,p_major_tick_rendered=>'on'
-,p_minor_tick_rendered=>'on'
-,p_tick_label_rendered=>'off'
-,p_zoom_order_seconds=>false
-,p_zoom_order_minutes=>false
-,p_zoom_order_hours=>false
-,p_zoom_order_days=>false
-,p_zoom_order_weeks=>false
-,p_zoom_order_months=>false
-,p_zoom_order_quarters=>false
-,p_zoom_order_years=>false
-);
-wwv_flow_api.create_jet_chart_axis(
- p_id=>wwv_flow_api.id(180820011802547485)
-,p_chart_id=>wwv_flow_api.id(180818368031547475)
-,p_axis=>'y2'
-,p_is_rendered=>'off'
-,p_format_scaling=>'auto'
-,p_scaling=>'linear'
-,p_baseline_scaling=>'zero'
-,p_position=>'auto'
-,p_major_tick_rendered=>'on'
-,p_minor_tick_rendered=>'off'
-,p_tick_label_rendered=>'on'
-,p_split_dual_y=>'auto'
-,p_zoom_order_seconds=>false
-,p_zoom_order_minutes=>false
-,p_zoom_order_hours=>false
-,p_zoom_order_days=>false
-,p_zoom_order_weeks=>false
-,p_zoom_order_months=>false
-,p_zoom_order_quarters=>false
-,p_zoom_order_years=>false
-);
 wwv_flow_api.create_report_region(
  p_id=>wwv_flow_api.id(244842571675882693)
 ,p_name=>'Top Unknown Sessions'
 ,p_template=>wwv_flow_api.id(163591464529453905)
-,p_display_sequence=>160
+,p_display_sequence=>190
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#:t-Report--altRowsDefault:t-Report--rowHighlight'
 ,p_display_point=>'BODY'
@@ -28350,10 +28583,10 @@ wwv_flow_api.create_report_columns(
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(245247866424345150)
-,p_plug_name=>'Wait event classes by ASH (selected)'
-,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
-,p_plug_template=>wwv_flow_api.id(163591464529453905)
-,p_plug_display_sequence=>80
+,p_plug_name=>'Wait events by class (selected)'
+,p_region_template_options=>'#DEFAULT#:is-expanded:t-Region--scrollBody'
+,p_plug_template=>wwv_flow_api.id(163580428178453883)
+,p_plug_display_sequence=>90
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
 ,p_plug_query_num_rows=>15
@@ -28365,7 +28598,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(181234915080043808)
 ,p_region_id=>wwv_flow_api.id(245247866424345150)
 ,p_chart_type=>'area'
-,p_height=>'430'
+,p_height=>'350'
 ,p_animation_on_display=>'auto'
 ,p_animation_on_data_change=>'auto'
 ,p_orientation=>'vertical'
@@ -28385,10 +28618,7 @@ wwv_flow_api.create_jet_chart(
 ,p_show_label=>true
 ,p_legend_rendered=>'on'
 ,p_legend_position=>'top'
-,p_overview_rendered=>'off'
 ,p_time_axis_type=>'disabled'
-,p_horizontal_grid=>'auto'
-,p_vertical_grid=>'auto'
 );
 wwv_flow_api.create_jet_chart_series(
  p_id=>wwv_flow_api.id(181236545346043825)
@@ -28404,7 +28634,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time; '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#00FF00'
 ,p_line_type=>'auto'
@@ -28412,7 +28641,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -28432,7 +28660,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time;  '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#0000FF'
 ,p_line_type=>'auto'
@@ -28440,15 +28667,11 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
 ' WHERE   wait_class = ''User I/O'' and sess_id = :P303_SESS_ID_SELECTED and g1=0;'))
 );
-end;
-/
-begin
 wwv_flow_api.create_jet_chart_series(
  p_id=>wwv_flow_api.id(181237771622043832)
 ,p_chart_id=>wwv_flow_api.id(181234915080043808)
@@ -28463,7 +28686,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time;   '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#FFCC00'
 ,p_line_type=>'auto'
@@ -28471,7 +28693,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -28491,7 +28712,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time;   '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#FF2EF8'
 ,p_line_type=>'auto'
@@ -28499,7 +28719,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -28519,7 +28738,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time;   '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#FF8400'
 ,p_line_type=>'auto'
@@ -28527,7 +28745,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -28547,7 +28764,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time;   '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#34AADC'
 ,p_line_type=>'auto'
@@ -28555,7 +28771,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -28575,7 +28790,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time;   '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#5856D6'
 ,p_line_type=>'auto'
@@ -28583,7 +28797,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -28603,7 +28816,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time;'))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#C7C7CC'
 ,p_line_type=>'auto'
@@ -28611,7 +28823,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -28631,7 +28842,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time;'))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#8E8E93'
 ,p_line_type=>'auto'
@@ -28639,7 +28849,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -28659,7 +28868,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time;'))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#007AFF'
 ,p_line_type=>'auto'
@@ -28667,7 +28875,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -28687,7 +28894,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time;'))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#68B82E'
 ,p_line_type=>'auto'
@@ -28695,7 +28901,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -28715,7 +28920,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time;'))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#FF0000'
 ,p_line_type=>'auto'
@@ -28723,7 +28927,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -28743,7 +28946,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID_SELECTED',
 ' ORDER BY sample_time; '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#F7FF00'
 ,p_line_type=>'auto'
@@ -28751,7 +28953,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -28778,7 +28979,6 @@ wwv_flow_api.create_jet_chart_series(
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time; '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#8A8A8A'
 ,p_line_type=>'auto'
@@ -28786,7 +28986,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 );
 wwv_flow_api.create_jet_chart_axis(
  p_id=>wwv_flow_api.id(181235436486043818)
@@ -28835,10 +29034,11 @@ wwv_flow_api.create_jet_chart_axis(
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(247965716077447488)
 ,p_plug_name=>'Event class summary (selected)'
+,p_parent_plug_id=>wwv_flow_api.id(245247866424345150)
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
 ,p_escape_on_http_output=>'Y'
 ,p_plug_template=>wwv_flow_api.id(163591464529453905)
-,p_plug_display_sequence=>90
+,p_plug_display_sequence=>100
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
 ,p_plug_query_num_rows=>15
@@ -28850,7 +29050,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(181245192106047735)
 ,p_region_id=>wwv_flow_api.id(247965716077447488)
 ,p_chart_type=>'bar'
-,p_height=>'30'
+,p_height=>'20'
 ,p_animation_on_display=>'none'
 ,p_animation_on_data_change=>'none'
 ,p_orientation=>'horizontal'
@@ -28858,7 +29058,6 @@ wwv_flow_api.create_jet_chart(
 ,p_data_cursor_behavior=>'auto'
 ,p_hover_behavior=>'none'
 ,p_stack=>'on'
-,p_connect_nulls=>'Y'
 ,p_sorting=>'label-asc'
 ,p_fill_multi_series_gaps=>true
 ,p_zoom_and_scroll=>'off'
@@ -28868,10 +29067,6 @@ wwv_flow_api.create_jet_chart(
 ,p_show_value=>true
 ,p_show_label=>true
 ,p_legend_rendered=>'off'
-,p_legend_position=>'auto'
-,p_overview_rendered=>'off'
-,p_horizontal_grid=>'auto'
-,p_vertical_grid=>'auto'
 );
 wwv_flow_api.create_jet_chart_series(
  p_id=>wwv_flow_api.id(181246968116047741)
@@ -28924,6 +29119,9 @@ wwv_flow_api.create_jet_chart_series(
 ,p_link_target=>'f?p=&APP_ID.:303:&SESSION.::&DEBUG.:RP:P303_FILTER_REMASH,P303_FILTER_REMASHL:wait_class = ''&WAIT_CLASS1.'',wait_class = ''&WAIT_CLASS1.'''
 ,p_link_target_type=>'REDIRECT_PAGE'
 );
+end;
+/
+begin
 wwv_flow_api.create_jet_chart_axis(
  p_id=>wwv_flow_api.id(181245766675047737)
 ,p_chart_id=>wwv_flow_api.id(181245192106047735)
@@ -28971,7 +29169,7 @@ wwv_flow_api.create_page_plug(
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
 ,p_escape_on_http_output=>'Y'
 ,p_plug_template=>wwv_flow_api.id(163591464529453905)
-,p_plug_display_sequence=>150
+,p_plug_display_sequence=>180
 ,p_plug_new_grid_row=>false
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
@@ -29033,9 +29231,9 @@ wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(250105745278041750)
 ,p_plug_name=>'Metric #1: &P303_METRIC_CAPT.'
 ,p_region_name=>'metric_chart1'
-,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_region_template_options=>'#DEFAULT#:is-expanded:t-Region--scrollBody'
 ,p_escape_on_http_output=>'Y'
-,p_plug_template=>wwv_flow_api.id(163591464529453905)
+,p_plug_template=>wwv_flow_api.id(163580428178453883)
 ,p_plug_display_sequence=>30
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
@@ -29063,7 +29261,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(180811128266378693)
 ,p_region_id=>wwv_flow_api.id(250105745278041750)
 ,p_chart_type=>'lineWithArea'
-,p_height=>'400'
+,p_height=>'300'
 ,p_animation_on_display=>'none'
 ,p_animation_on_data_change=>'none'
 ,p_orientation=>'vertical'
@@ -29102,7 +29300,6 @@ wwv_flow_api.create_jet_chart_series(
 '   and inst_id   = 1',
 ' order by end_time;'))
 ,p_items_value_column_name=>'VAL'
-,p_group_name_column_name=>'END_TIME'
 ,p_items_label_column_name=>'END_TIME'
 ,p_color=>'#007AFF'
 ,p_line_style=>'solid'
@@ -29138,7 +29335,6 @@ wwv_flow_api.create_jet_chart_series(
 '   and inst_id   = 2',
 ' order by end_time;'))
 ,p_items_value_column_name=>'VAL'
-,p_group_name_column_name=>'END_TIME'
 ,p_items_label_column_name=>'END_TIME'
 ,p_color=>'#00FF95'
 ,p_line_style=>'solid'
@@ -29174,7 +29370,6 @@ wwv_flow_api.create_jet_chart_series(
 '   and inst_id   = 3',
 ' order by end_time;'))
 ,p_items_value_column_name=>'VAL'
-,p_group_name_column_name=>'END_TIME'
 ,p_items_label_column_name=>'END_TIME'
 ,p_color=>'#8C00FF'
 ,p_line_style=>'solid'
@@ -29210,7 +29405,6 @@ wwv_flow_api.create_jet_chart_series(
 '   and inst_id   = 4',
 ' order by end_time;'))
 ,p_items_value_column_name=>'VAL'
-,p_group_name_column_name=>'END_TIME'
 ,p_items_label_column_name=>'END_TIME'
 ,p_color=>'#FF0000'
 ,p_line_style=>'solid'
@@ -29277,7 +29471,7 @@ wwv_flow_api.create_page_plug(
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
 ,p_escape_on_http_output=>'Y'
 ,p_plug_template=>wwv_flow_api.id(163591464529453905)
-,p_plug_display_sequence=>140
+,p_plug_display_sequence=>170
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
 ,p_plug_query_num_rows=>15
@@ -29285,9 +29479,6 @@ wwv_flow_api.create_page_plug(
 ,p_plug_display_condition_type=>'PLSQL_EXPRESSION'
 ,p_plug_display_when_condition=>':P303_STATUS in (''READY'',''MONITOR'')'
 );
-end;
-/
-begin
 wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(180827777782578232)
 ,p_region_id=>wwv_flow_api.id(250730138928084505)
@@ -29348,7 +29539,7 @@ wwv_flow_api.create_page_plug(
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
 ,p_escape_on_http_output=>'Y'
 ,p_plug_template=>wwv_flow_api.id(163591464529453905)
-,p_plug_display_sequence=>130
+,p_plug_display_sequence=>160
 ,p_plug_new_grid_row=>false
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
@@ -29415,7 +29606,7 @@ wwv_flow_api.create_page_plug(
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
 ,p_escape_on_http_output=>'Y'
 ,p_plug_template=>wwv_flow_api.id(163591464529453905)
-,p_plug_display_sequence=>110
+,p_plug_display_sequence=>140
 ,p_plug_new_grid_row=>false
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
@@ -29485,7 +29676,7 @@ wwv_flow_api.create_page_plug(
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
 ,p_escape_on_http_output=>'Y'
 ,p_plug_template=>wwv_flow_api.id(163591464529453905)
-,p_plug_display_sequence=>120
+,p_plug_display_sequence=>150
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
 ,p_plug_query_num_rows=>15
@@ -29554,7 +29745,7 @@ wwv_flow_api.create_page_plug(
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
 ,p_escape_on_http_output=>'Y'
 ,p_plug_template=>wwv_flow_api.id(163591464529453905)
-,p_plug_display_sequence=>100
+,p_plug_display_sequence=>130
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
 ,p_plug_query_num_rows=>15
@@ -29619,9 +29810,9 @@ wwv_flow_api.create_jet_chart_series(
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(413424365030324720)
-,p_plug_name=>'Wait event classes by ASH'
-,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
-,p_plug_template=>wwv_flow_api.id(163591464529453905)
+,p_plug_name=>'Wait events by class'
+,p_region_template_options=>'#DEFAULT#:is-expanded:t-Region--scrollBody'
+,p_plug_template=>wwv_flow_api.id(163580428178453883)
 ,p_plug_display_sequence=>60
 ,p_plug_display_point=>'BODY'
 ,p_plug_source_type=>'NATIVE_JET_CHART'
@@ -29633,7 +29824,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(180778663447992687)
 ,p_region_id=>wwv_flow_api.id(413424365030324720)
 ,p_chart_type=>'area'
-,p_height=>'430'
+,p_height=>'350'
 ,p_animation_on_display=>'auto'
 ,p_animation_on_data_change=>'auto'
 ,p_orientation=>'vertical'
@@ -29653,10 +29844,7 @@ wwv_flow_api.create_jet_chart(
 ,p_show_label=>true
 ,p_legend_rendered=>'on'
 ,p_legend_position=>'top'
-,p_overview_rendered=>'off'
 ,p_time_axis_type=>'disabled'
-,p_horizontal_grid=>'auto'
-,p_vertical_grid=>'auto'
 );
 wwv_flow_api.create_jet_chart_series(
  p_id=>wwv_flow_api.id(180780371769992691)
@@ -29665,14 +29853,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'CPU'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''CPU'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time; '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#00FF00'
 ,p_line_type=>'auto'
@@ -29680,7 +29869,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -29693,14 +29881,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'User I/O'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''User I/O'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;  '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#0000FF'
 ,p_line_type=>'auto'
@@ -29708,7 +29897,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -29721,14 +29909,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'Administrative'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''Administrative'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;   '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#FFCC00'
 ,p_line_type=>'auto'
@@ -29736,7 +29925,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -29749,14 +29937,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'Application'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''Application'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;   '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#FF2EF8'
 ,p_line_type=>'auto'
@@ -29764,7 +29953,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -29777,14 +29965,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'Commit'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''Commit'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;   '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#FF8400'
 ,p_line_type=>'auto'
@@ -29792,12 +29981,14 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
 ' WHERE   wait_class = ''Commit'' and sess_id = :P303_SESS_ID and g1=0;'))
 );
+end;
+/
+begin
 wwv_flow_api.create_jet_chart_series(
  p_id=>wwv_flow_api.id(180783307731992701)
 ,p_chart_id=>wwv_flow_api.id(180778663447992687)
@@ -29805,14 +29996,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'Concurrency'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''Concurrency'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;   '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#34AADC'
 ,p_line_type=>'auto'
@@ -29820,7 +30012,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -29833,14 +30024,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'Configuration'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''Configuration'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;   '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#5856D6'
 ,p_line_type=>'auto'
@@ -29848,7 +30040,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -29861,14 +30052,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'Idle'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''Idle'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;'))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#C7C7CC'
 ,p_line_type=>'auto'
@@ -29876,7 +30068,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -29889,14 +30080,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'Network'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''Network'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;'))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#8E8E93'
 ,p_line_type=>'auto'
@@ -29904,7 +30096,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -29917,14 +30108,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'Other'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''Other'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;'))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#007AFF'
 ,p_line_type=>'auto'
@@ -29932,7 +30124,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -29945,14 +30136,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'Scheduler'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''Scheduler'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;'))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#68B82E'
 ,p_line_type=>'auto'
@@ -29960,7 +30152,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -29973,14 +30164,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'System I/O'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''System I/O'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time;'))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#FF0000'
 ,p_line_type=>'auto'
@@ -29988,7 +30180,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -30001,14 +30192,15 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'Cluster'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec ',
+'with a as (select /*+ RESULT_CACHE */ sum(smpls) sec from asha_cube where sess_id = :P303_SESS_ID and g1=0)',
+'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, sum(h.sec)over()||''; ''||round(100*sum(h.sec)over()/(select sec from a),2)||''%'' hint',
 '  from (select sample_time, smpls sec ',
 '          from asha_cube where wait_class = ''Cluster'' and sess_id = :P303_SESS_ID and g1=0) h, ',
 '       asha_cube_timeline d ',
 ' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
 ' ORDER BY sample_time; '))
 ,p_items_value_column_name=>'SEC'
-,p_group_name_column_name=>'SAMPLE_TIME'
+,p_group_name_column_name=>'HINT'
 ,p_items_label_column_name=>'SAMPLE_TIME'
 ,p_color=>'#F7FF00'
 ,p_line_type=>'auto'
@@ -30016,7 +30208,6 @@ wwv_flow_api.create_jet_chart_series(
 ,p_marker_shape=>'auto'
 ,p_assigned_to_y2=>'off'
 ,p_items_label_rendered=>false
-,p_items_label_display_as=>'PERCENT'
 ,p_display_when_cond_type=>'EXISTS'
 ,p_display_when_condition=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'SELECT 1 FROM asha_cube',
@@ -30053,6 +30244,145 @@ wwv_flow_api.create_jet_chart_axis(
 ,p_major_tick_rendered=>'auto'
 ,p_minor_tick_rendered=>'auto'
 ,p_tick_label_rendered=>'on'
+,p_zoom_order_seconds=>false
+,p_zoom_order_minutes=>false
+,p_zoom_order_hours=>false
+,p_zoom_order_days=>false
+,p_zoom_order_weeks=>false
+,p_zoom_order_months=>false
+,p_zoom_order_quarters=>false
+,p_zoom_order_years=>false
+);
+wwv_flow_api.create_page_plug(
+ p_id=>wwv_flow_api.id(244829683713848829)
+,p_plug_name=>'Event class summary'
+,p_parent_plug_id=>wwv_flow_api.id(413424365030324720)
+,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader:t-Region--scrollBody'
+,p_escape_on_http_output=>'Y'
+,p_plug_template=>wwv_flow_api.id(163591464529453905)
+,p_plug_display_sequence=>70
+,p_plug_display_point=>'BODY'
+,p_plug_source_type=>'NATIVE_JET_CHART'
+,p_plug_query_num_rows=>15
+,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
+,p_plug_display_condition_type=>'PLSQL_EXPRESSION'
+,p_plug_display_when_condition=>':P303_STATUS in (''READY'',''MONITOR'')'
+);
+wwv_flow_api.create_jet_chart(
+ p_id=>wwv_flow_api.id(180818368031547475)
+,p_region_id=>wwv_flow_api.id(244829683713848829)
+,p_chart_type=>'bar'
+,p_height=>'20'
+,p_animation_on_display=>'none'
+,p_animation_on_data_change=>'none'
+,p_orientation=>'horizontal'
+,p_data_cursor=>'auto'
+,p_data_cursor_behavior=>'auto'
+,p_hover_behavior=>'none'
+,p_stack=>'on'
+,p_sorting=>'label-asc'
+,p_fill_multi_series_gaps=>true
+,p_zoom_and_scroll=>'off'
+,p_tooltip_rendered=>'Y'
+,p_show_series_name=>true
+,p_show_group_name=>false
+,p_show_value=>true
+,p_show_label=>true
+,p_legend_rendered=>'off'
+);
+wwv_flow_api.create_jet_chart_series(
+ p_id=>wwv_flow_api.id(180820661755547488)
+,p_chart_id=>wwv_flow_api.id(180818368031547475)
+,p_seq=>10
+,p_name=>'Event class summary'
+,p_data_source_type=>'SQL'
+,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select wait_class||'' ''||round(100*sec/sum(sec)over(),2)||''%'' wait_class, sec, wait_class wait_class1, ''Event class'' ser, ',
+'case',
+'  when wait_class=''CPU'' then ''#00FF00'' ',
+'  when wait_class=''User I/O'' then ''#0000FF'' ',
+'  when wait_class=''Administrative'' then ''#FFCC00'' ',
+'  when wait_class=''Application'' then ''#FF2EF8'' ',
+'  when wait_class=''Commit'' then ''#FF8400'' ',
+'  when wait_class=''Concurrency'' then ''#34AADC'' ',
+'  when wait_class=''Configuration'' then ''#5856D6'' ',
+'  when wait_class=''Idle'' then ''#C7C7CC'' ',
+'  when wait_class=''Network'' then ''#8E8E93'' ',
+'  when wait_class=''Other'' then ''#007AFF'' ',
+'  when wait_class=''Scheduler'' then ''#68B82E''',
+'  when wait_class=''System I/O'' then ''#FF0000''',
+'  when wait_class=''Cluster'' then ''#F7FF00''',
+'end colors ',
+'from',
+'(select wait_class, sum(smpls) sec ',
+'  from asha_cube where sess_id = :P303_SESS_ID and g1=0',
+'group by wait_class) x',
+'order by 2 desc;'))
+,p_series_name_column_name=>'WAIT_CLASS'
+,p_items_value_column_name=>'SEC'
+,p_items_label_column_name=>'SER'
+,p_color=>'&COLORS.'
+,p_assigned_to_y2=>'off'
+,p_items_label_rendered=>true
+,p_items_label_position=>'auto'
+,p_items_label_display_as=>'PERCENT'
+,p_link_target=>'f?p=&APP_ID.:303:&SESSION.::&DEBUG.:RP:P303_ACTION,P303_ON_CLICK,P303_FILTER_DATA:WAIT_CLASS,YES,wait_class = ''&WAIT_CLASS1.'''
+,p_link_target_type=>'REDIRECT_PAGE'
+);
+wwv_flow_api.create_jet_chart_axis(
+ p_id=>wwv_flow_api.id(180818841531547476)
+,p_chart_id=>wwv_flow_api.id(180818368031547475)
+,p_axis=>'x'
+,p_is_rendered=>'on'
+,p_format_scaling=>'auto'
+,p_scaling=>'linear'
+,p_baseline_scaling=>'zero'
+,p_major_tick_rendered=>'auto'
+,p_minor_tick_rendered=>'off'
+,p_tick_label_rendered=>'off'
+,p_zoom_order_seconds=>false
+,p_zoom_order_minutes=>false
+,p_zoom_order_hours=>false
+,p_zoom_order_days=>false
+,p_zoom_order_weeks=>false
+,p_zoom_order_months=>false
+,p_zoom_order_quarters=>false
+,p_zoom_order_years=>false
+);
+wwv_flow_api.create_jet_chart_axis(
+ p_id=>wwv_flow_api.id(180819422107547478)
+,p_chart_id=>wwv_flow_api.id(180818368031547475)
+,p_axis=>'y'
+,p_is_rendered=>'on'
+,p_format_scaling=>'auto'
+,p_scaling=>'linear'
+,p_baseline_scaling=>'zero'
+,p_position=>'auto'
+,p_major_tick_rendered=>'on'
+,p_minor_tick_rendered=>'on'
+,p_tick_label_rendered=>'off'
+,p_zoom_order_seconds=>false
+,p_zoom_order_minutes=>false
+,p_zoom_order_hours=>false
+,p_zoom_order_days=>false
+,p_zoom_order_weeks=>false
+,p_zoom_order_months=>false
+,p_zoom_order_quarters=>false
+,p_zoom_order_years=>false
+);
+wwv_flow_api.create_jet_chart_axis(
+ p_id=>wwv_flow_api.id(180820011802547485)
+,p_chart_id=>wwv_flow_api.id(180818368031547475)
+,p_axis=>'y2'
+,p_is_rendered=>'off'
+,p_format_scaling=>'auto'
+,p_scaling=>'linear'
+,p_baseline_scaling=>'zero'
+,p_position=>'auto'
+,p_major_tick_rendered=>'on'
+,p_minor_tick_rendered=>'off'
+,p_tick_label_rendered=>'on'
+,p_split_dual_y=>'auto'
 ,p_zoom_order_seconds=>false
 ,p_zoom_order_minutes=>false
 ,p_zoom_order_hours=>false
@@ -30124,7 +30454,6 @@ wwv_flow_api.create_page_button(
 ,p_button_position=>'RIGHT_OF_TITLE'
 ,p_button_condition=>'P303_SYSM_OUTL'
 ,p_button_condition_type=>'ITEM_IS_NOT_ZERO'
-,p_grid_new_grid=>false
 );
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(114273813744690944)
@@ -30138,11 +30467,7 @@ wwv_flow_api.create_page_button(
 ,p_button_position=>'RIGHT_OF_TITLE'
 ,p_button_condition=>'P303_SYSM_OUTL_1'
 ,p_button_condition_type=>'ITEM_IS_NOT_ZERO'
-,p_grid_new_grid=>false
 );
-end;
-/
-begin
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(114275370447690960)
 ,p_button_sequence=>10
@@ -30155,7 +30480,6 @@ wwv_flow_api.create_page_button(
 ,p_button_position=>'RIGHT_OF_TITLE'
 ,p_button_condition=>'P303_SYSM_OUTL_2'
 ,p_button_condition_type=>'ITEM_IS_NOT_ZERO'
-,p_grid_new_grid=>false
 );
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(180640586277415579)
@@ -30439,6 +30763,9 @@ wwv_flow_api.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:301:&SESSION.::&DEBUG.:RP,301:P301_PROJ_ID:&P303_PROJ_ID.'
 ,p_security_scheme=>wwv_flow_api.id(162190547627639493)
 );
+end;
+/
+begin
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(111356887337935016)
 ,p_button_sequence=>120
@@ -30682,6 +31009,23 @@ wwv_flow_api.create_page_item(
 ,p_attribute_04=>'button'
 ,p_attribute_05=>'N'
 ,p_attribute_07=>'NONE'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(57541732340714147)
+,p_name=>'P303_SQLS_TOP_EVENT'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_api.id(57540224206714132)
+,p_prompt=>'SQL List'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'select column_value||(select '': ''||cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) d, column_value r from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS''))'
+,p_lov_display_null=>'YES'
+,p_lov_null_text=>'-- Select SQL_ID --'
+,p_cHeight=>1
+,p_field_template=>wwv_flow_api.id(163643109900454028)
+,p_item_template_options=>'#DEFAULT#'
+,p_lov_display_extra=>'NO'
+,p_attribute_01=>'SUBMIT'
+,p_attribute_03=>'Y'
 );
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(89181539561326368)
@@ -31025,9 +31369,6 @@ wwv_flow_api.create_page_item(
 ,p_attribute_04=>'TEXT'
 ,p_attribute_05=>'BOTH'
 );
-end;
-/
-begin
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(162289165937140560)
 ,p_name=>'P303_DB_LINK'
@@ -31399,6 +31740,9 @@ wwv_flow_api.create_page_da_event(
 ,p_bind_type=>'bind'
 ,p_bind_event_type=>'click'
 );
+end;
+/
+begin
 wwv_flow_api.create_page_da_action(
  p_id=>wwv_flow_api.id(56069066771178525)
 ,p_event_id=>wwv_flow_api.id(56068966685178524)
@@ -31831,9 +32175,6 @@ wwv_flow_api.create_page_process(
 'end;'))
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 );
-end;
-/
-begin
 wwv_flow_api.create_page_process(
  p_id=>wwv_flow_api.id(180639613563415570)
 ,p_process_sequence=>10
@@ -32044,6 +32385,9 @@ wwv_flow_api.create_page_process(
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_api.id(181194890528540603)
 );
+end;
+/
+begin
 wwv_flow_api.create_page_process(
  p_id=>wwv_flow_api.id(181313813595375798)
 ,p_process_sequence=>60
