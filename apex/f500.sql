@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   14:39 Friday August 23, 2019
+--   Date and Time:   19:17 Saturday August 24, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190823143942'
+,p_last_upd_yyyymmddhh24miss=>'20190824191713'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -26704,7 +26704,7 @@ wwv_flow_api.create_page(
 ,p_html_page_header=>'<meta http-equiv="refresh" content="&P303_PAGE_REFRESH_INTERVAL.">'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190823143942'
+,p_last_upd_yyyymmddhh24miss=>'20190824191713'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(57540224206714132)
@@ -26723,7 +26723,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(57540341866714133)
 ,p_region_id=>wwv_flow_api.id(57540224206714132)
 ,p_chart_type=>'area'
-,p_height=>'350'
+,p_height=>'430'
 ,p_animation_on_display=>'auto'
 ,p_animation_on_data_change=>'auto'
 ,p_orientation=>'vertical'
@@ -27130,7 +27130,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(114273824902690945)
 ,p_region_id=>wwv_flow_api.id(114273279466690939)
 ,p_chart_type=>'lineWithArea'
-,p_height=>'300'
+,p_height=>'430'
 ,p_animation_on_display=>'none'
 ,p_animation_on_data_change=>'none'
 ,p_orientation=>'vertical'
@@ -27368,7 +27368,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(114275464076690961)
 ,p_region_id=>wwv_flow_api.id(114274876640690955)
 ,p_chart_type=>'lineWithArea'
-,p_height=>'300'
+,p_height=>'430'
 ,p_animation_on_display=>'none'
 ,p_animation_on_data_change=>'none'
 ,p_orientation=>'vertical'
@@ -27604,7 +27604,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(57826250701031107)
 ,p_region_id=>wwv_flow_api.id(175467649785963717)
 ,p_chart_type=>'area'
-,p_height=>'350'
+,p_height=>'430'
 ,p_animation_on_display=>'auto'
 ,p_animation_on_data_change=>'auto'
 ,p_orientation=>'vertical'
@@ -27635,11 +27635,11 @@ wwv_flow_api.create_jet_chart_series(
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
 ||''')))',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text, sum(nvl(h.sec,0))over()t',
 '  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=1) h, ',
 '       asha_cube_timeline d ',
-' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
@@ -27661,11 +27661,11 @@ wwv_flow_api.create_jet_chart_series(
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
 ||''')))',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text, sum(nvl(h.sec,0))over()t',
 '  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=2) h, ',
 '       asha_cube_timeline d ',
-' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
@@ -27687,11 +27687,11 @@ wwv_flow_api.create_jet_chart_series(
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
 ||''')))',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text, sum(nvl(h.sec,0))over()t',
 '  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=3) h, ',
 '       asha_cube_timeline d ',
-' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
@@ -27713,11 +27713,11 @@ wwv_flow_api.create_jet_chart_series(
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
 ||''')))',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text, sum(nvl(h.sec,0))over()t',
 '  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=4) h, ',
 '       asha_cube_timeline d ',
-' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
@@ -27739,11 +27739,11 @@ wwv_flow_api.create_jet_chart_series(
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
 ||''')))',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text, sum(nvl(h.sec,0))over()t',
 '  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=5) h, ',
 '       asha_cube_timeline d ',
-' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
@@ -27765,11 +27765,11 @@ wwv_flow_api.create_jet_chart_series(
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
 ||''')))',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text, sum(nvl(h.sec,0))over()t',
 '  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=6) h, ',
 '       asha_cube_timeline d ',
-' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
@@ -27791,11 +27791,11 @@ wwv_flow_api.create_jet_chart_series(
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
 ||''')))',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text, sum(nvl(h.sec,0))over()t',
 '  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=7) h, ',
 '       asha_cube_timeline d ',
-' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
@@ -27817,11 +27817,11 @@ wwv_flow_api.create_jet_chart_series(
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
 ||''')))',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text, sum(nvl(h.sec,0))over()t',
 '  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=8) h, ',
 '       asha_cube_timeline d ',
-' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
@@ -27843,11 +27843,11 @@ wwv_flow_api.create_jet_chart_series(
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
 ||''')))',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text, sum(nvl(h.sec,0))over()t',
 '  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=9) h, ',
 '       asha_cube_timeline d ',
-' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
@@ -27869,11 +27869,11 @@ wwv_flow_api.create_jet_chart_series(
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'with a as (select /*+ RESULT_CACHE */ column_value sql_id, rownum rn, (select cast(substr(SQL_TEXT,1,200) as varchar2(200)) from opas_qry_cache where sql_id=column_value) sql_text from table(ASHA_CUBE_PKG.get_string_lst_par(:P303_SESS_ID, ''TOP10_SQLS'
 ||''')))',
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, max(sql_text) over() sql_text, sum(nvl(h.sec,0))over()t',
 '  from (select sample_time, smpls sec, c.sql_id, a.sql_text',
 '          from asha_cube c, a where sess_id = :P303_SESS_ID and g2=-100 and a.sql_id=c.sql_id and a.rn=10) h, ',
 '       asha_cube_timeline d ',
-' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
@@ -27893,11 +27893,11 @@ wwv_flow_api.create_jet_chart_series(
 ,p_name=>'Other SQLs'
 ,p_data_source_type=>'SQL'
 ,p_data_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id',
+'select * from (select TO_CHAR(d.sample_time,''YYYY/MM/DD HH24:MI:SS'') sample_time, nvl(h.sec,0) sec, max(sql_id) over() sql_id, sum(nvl(h.sec,0))over()t',
 '  from (select sample_time, smpls sec, c.sql_id',
 '          from asha_cube c where sess_id = :P303_SESS_ID and g2=-100 and c.sql_id = ''Other SQLs'') h, ',
 '       asha_cube_timeline d ',
-' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID',
+' where d.sample_time=h.sample_time(+) and sess_id = :P303_SESS_ID)where t>0',
 ' ORDER BY sample_time;  '))
 ,p_series_name_column_name=>'SQL_ID'
 ,p_items_value_column_name=>'SEC'
@@ -28187,6 +28187,9 @@ wwv_flow_api.create_worksheet_column(
 ,p_column_label=>'File Name'
 ,p_column_type=>'STRING'
 );
+end;
+/
+begin
 wwv_flow_api.create_worksheet_column(
  p_id=>wwv_flow_api.id(181375957276281568)
 ,p_db_column_name=>'PARENT_ID'
@@ -28203,9 +28206,6 @@ wwv_flow_api.create_worksheet_column(
 ,p_column_label=>'Parameters'
 ,p_column_type=>'STRING'
 );
-end;
-/
-begin
 wwv_flow_api.create_worksheet_column(
  p_id=>wwv_flow_api.id(181374744738281562)
 ,p_db_column_name=>'OWNER'
@@ -28598,7 +28598,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(181234915080043808)
 ,p_region_id=>wwv_flow_api.id(245247866424345150)
 ,p_chart_type=>'area'
-,p_height=>'350'
+,p_height=>'430'
 ,p_animation_on_display=>'auto'
 ,p_animation_on_data_change=>'auto'
 ,p_orientation=>'vertical'
@@ -29261,7 +29261,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(180811128266378693)
 ,p_region_id=>wwv_flow_api.id(250105745278041750)
 ,p_chart_type=>'lineWithArea'
-,p_height=>'300'
+,p_height=>'430'
 ,p_animation_on_display=>'none'
 ,p_animation_on_data_change=>'none'
 ,p_orientation=>'vertical'
@@ -29824,7 +29824,7 @@ wwv_flow_api.create_jet_chart(
  p_id=>wwv_flow_api.id(180778663447992687)
 ,p_region_id=>wwv_flow_api.id(413424365030324720)
 ,p_chart_type=>'area'
-,p_height=>'350'
+,p_height=>'430'
 ,p_animation_on_display=>'auto'
 ,p_animation_on_data_change=>'auto'
 ,p_orientation=>'vertical'
