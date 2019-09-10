@@ -926,6 +926,41 @@ end;]';
     p(HTF.TABLECLOSE);
   end;
 
+  procedure print_clob_as_text(p_text clob, p_output out t_output_lines) is
+    l_line varchar2(32765);  l_eof number;  l_iter number; l_length number;
+    l_text clob;
+
+    l_indx   number := 1;
+    procedure p(p_line varchar2) is
+    begin
+      p_output(l_indx):=p_line;
+      l_indx := l_indx + 1;
+    end;
+  begin
+
+    if instr(p_text,chr(10))=0 then
+      l_iter := 1;
+      l_length:=dbms_lob.getlength(p_text);
+      loop
+        l_text := l_text||substr(p_text,l_iter,200)||chr(10);
+        l_iter:=l_iter+200;
+        exit when l_iter>=l_length;
+      end loop;
+    else
+      l_text := p_text||chr(10);
+    end if;
+
+    l_iter := 1;
+    loop
+      l_eof:=instr(l_text,chr(10));
+      l_line:=substr(l_text,1,l_eof);
+      p(l_line);
+      l_text:=substr(l_text,l_eof+1);  l_iter:=l_iter+1;
+      exit when l_iter>100000 or dbms_lob.getlength(l_text)=0;
+    end loop;
+
+  end;
+
   procedure save_report_for_download(p_file opas_files.file_id%type)
   is
     --PRAGMA AUTONOMOUS_TRANSACTION;

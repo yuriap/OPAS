@@ -912,7 +912,7 @@ PACKAGE BODY TRC_PROCESSFILE AS
                    AND st.uid#<> 0
                    AND c.plh<>0
                  GROUP BY c.plh
-                HAVING COUNT(UNIQUE st.sqlid) > to_number(coremod_api.getconf('SIMILARNUM',TRC_FILE_API.gMODNAME)))
+                HAVING COUNT(UNIQUE st.sqlid) >= to_number(coremod_api.getconf('SIMILARNUM',TRC_FILE_API.gMODNAME)))
       loop
         -- fill up the list of simial qieries for a given plan hash value
         for x1 in (SELECT st.stmt_id||':'||c.plh||':'||st.sqlid idx, st.stmt_id, c.plh, st.sqlid, st.sql_text
@@ -970,6 +970,13 @@ PACKAGE BODY TRC_PROCESSFILE AS
         l_sim_sqls.delete;
       end loop;
     end;
+
+    delete from trc_similar_stmt where trc_file_id = p_trc_file_id
+      and stmt_id_base in (select stmt_id_base
+                             from trc_similar_stmt
+                            where trc_file_id = p_trc_file_id
+                            group by stmt_id_base
+                           having count(1)<to_number(coremod_api.getconf('SIMILARNUM',TRC_FILE_API.gMODNAME))) ;
 
     COREMOD_LOG.log('Finished "Searching for similar queries"');
     COREMOD_API.end_longops_section(p_sofar => 1, p_lops_ind => l_lops_idx_global);

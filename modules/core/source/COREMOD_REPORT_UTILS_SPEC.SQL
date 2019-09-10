@@ -120,6 +120,7 @@ PACKAGE COREMOD_REPORT_UTILS AS
                              p_output in out t_output_lines);
 
   procedure print_text_as_table(p_text clob, p_t_header varchar2, p_width number, p_search varchar2 default null, p_replacement varchar2 default null, p_comparison boolean default false, p_output out t_output_lines);
+  procedure print_clob_as_text(p_text clob, p_output out t_output_lines);
 
   procedure print_text_as_table_new(p_text clob,
                                     p_t_header varchar2,

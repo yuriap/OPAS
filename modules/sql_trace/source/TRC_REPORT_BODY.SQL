@@ -731,6 +731,7 @@ order siblings by pos]';
       --end if;
       end loop;
 
+      p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#sqlstmts',ctext=>'Back to SQL statements',cattributes=>'class="awr"')));
       p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
       p(HTF.BR);
       p(HTF.BR);
@@ -768,7 +769,9 @@ order by row_num)]';
                                             --p_header number default 0,
                                             --p_break_col varchar2 default null,
                                             p_output => p_report);
+      p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
       p(HTF.BR);
+
     end if;
 --  =============================================================================================================================================
 --  =============================================================================================================================================
@@ -778,13 +781,22 @@ order by row_num)]';
     p(HTF.header (3,cheader=>HTF.ANCHOR (curl=>'',ctext=>'Similar SQL statements',cname=>'simsqlstmts',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
     p(HTF.BR);
 
-    for i in (select /*+ qb_name(TRC_REP1) */ x.stmt_id_base, x.cnt, st.hv, substr(st.sql_text,1,100) sql_short
-               from (select stmt_id_base, count(1) cnt from trc_similar_stmt where trc_file_id = p_trc_file_id group by stmt_id_base) x,
+    for i in (select /*+ qb_name(TRC_REP1) */
+                     x.stmt_id_base,
+                     x.cnt,
+                     (select plh from trc_call i where i.trc_file_id = p_trc_file_id and stmt_id=st.stmt_id and rownum=1) plhv,
+                     substr(st.sql_text,1,100) sql_short
+               from (select stmt_id_base, count(distinct st1.sqlid) cnt
+                       from trc_similar_stmt ss, trc_statement st1
+                      where ss.trc_file_id = p_trc_file_id
+                        and ss.trc_file_id=st1.trc_file_id
+                        and ss.stmt_id_sim=st1.stmt_id
+                      group by stmt_id_base) x,
                     trc_statement st
                 where st.stmt_id=x.stmt_id_base
                order by 1)
     loop
-      p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#stmt_id_base'||i.stmt_id_base,ctext=>i.cnt||' Similars SQLs, PLAN_HASH='||i.hv||' "'||i.sql_short||'..."',cattributes=>'class="awr"')));
+      p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#stmt_id_base'||i.stmt_id_base,ctext=>i.cnt||' Similars SQLs, PLAN_HASH='||i.plhv||' "'||i.sql_short||'..."',cattributes=>'class="awr"')));
     end loop;
 
     for i in (select /*+ qb_name(TRC_REP1) */ stmt_id_base, count(1) cnt from trc_similar_stmt where trc_file_id = p_trc_file_id group by stmt_id_base order by 1)
@@ -981,6 +993,7 @@ order siblings by pos]';
       --end if;
       end loop;
 
+      p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#simsqlstmts',ctext=>'Back to Similar SQL statements',cattributes=>'class="awr"')));
       p(HTF.LISTITEM(cattributes=>'class="awr"',ctext=>HTF.ANCHOR (curl=>'#tblofcont',ctext=>'Back to top',cattributes=>'class="awr"')));
       p(HTF.BR);
       p(HTF.BR);
