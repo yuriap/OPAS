@@ -796,8 +796,9 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
 
       l_sql1 := replace(replace(replace(replace(replace(replace(replace(l_sql_template_metrics,
                                                             '<SOURCE_TABLE>',case
-                                                                               when p_source = 'V$VIEW' then case when p_dblink = '$LOCAL$' then 'gv$sysmetric_history'
-                                                                                                            else 'gv$sysmetric_history@'||p_dblink
+                                                                               when p_source = 'V$VIEW' then case when p_dblink = '$LOCAL$' then '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history union all select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history)'
+                                                                                                            --else 'gv$sysmetric_history@'||p_dblink
+                                                                                                            else '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history@'||p_dblink||' union all select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history@'||p_dblink||')'
                                                                                                             end
                                                                                when p_source = 'AWR' then case when p_dblink = '$LOCAL$' then 'dba_hist_sysmetric_history'
                                                                                                           else 'dba_hist_sysmetric_history@'||p_dblink
