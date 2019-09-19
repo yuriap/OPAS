@@ -1309,7 +1309,13 @@ end;]';
     end if;
   end;
 
-  function get_sql_search_query(p_srcdb varchar2, p_sql_search_expr varchar2, p_use_cache varchar2 default 'N', p_result_limit number default 0) return varchar2
+  function get_sql_search_query(p_srcdb varchar2,
+                                p_sql_search_expr varchar2,
+                                p_use_cache varchar2 default 'N',
+                                p_result_limit number default 0,
+                                p_local_awr_search varchar2 default 'Y',
+                                p_trg_awr_search varchar2 default 'Y',
+                                p_trg_vsql_search varchar2 default 'Y') return varchar2
   is
     l_dblink varchar2(512);
     l_sql    varchar2(32765);
@@ -1323,10 +1329,10 @@ end;]';
                  where 'Y'=']'||p_use_cache||q'['
                 union all
                 select 2 nn#, 'Local AWR repository' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,2000) as varchar2(2000)) sql_text from dba_hist_sqltext
-                 where sql_text not like '%qb_name(OPAS_SEARCH)%'
+                 where sql_text not like '%qb_name(OPAS_SEARCH)%']' || case when p_trg_awr_search<>'Y' then ' and 1=2 ' end || q'[
                 union all
                 select 3 nn#, 'Local V$SQL' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(SQL_FULLTEXT,1,2000) as varchar2(2000)) sql_text from gv$sql
-                  where sql_fulltext not like '%qb_name(OPAS_SEARCH)%'
+                  where sql_fulltext not like '%qb_name(OPAS_SEARCH)%']' || case when p_trg_vsql_search<>'Y' then ' and 1=2 ' end || q'[
                 ) where ]'||p_sql_search_expr||q'[ ) ]' || case when p_result_limit = 0 then null else ' where rownum <= '||p_result_limit end || q'[ order by nn#]';
     else
       l_dblink := COREMOD_API.get_ora_dblink(p_srcdb);
@@ -1335,13 +1341,15 @@ end;]';
                  where 'Y'=']'||p_use_cache||q'['
                 union all
                 select 2 nn#, 'Local AWR repository' source_tab, '$LOCAL$' source_db, sql_id, cast(substr(sql_text,1,2000) as varchar2(2000)) sql_text from dba_hist_sqltext
-                 where sql_text not like '%Local AWR repository%'
+                 where sql_text not like '%Local AWR repository%' ]' || case when p_local_awr_search<>'Y' then ' and 1=2 ' end || q'[
                 union all
                 select 3 nn#, 'Remote AWR repository' source_tab, ']'||p_srcdb||q'[' source_db, sql_id, cast(substr(sql_text,1,2000) as varchar2(2000)) sql_text from dba_hist_sqltext@]'||p_srcdb||q'[ a
                  where sql_text not like '%Remote AWR repository%' and sql_text not like '%Remote V$SQL%' and sql_text not like '%l_rc:=UTL_COMPRESS.LZ_COMPRESS%'
+                 ]' || case when p_trg_awr_search<>'Y' then ' and 1=2 ' end || q'[
                 union all
                 select 4 nn#, 'Remote V$SQL' source_tab, ']'||p_srcdb||q'[' source_db, sql_id, cast(substr(SQL_FULLTEXT,1,2000) as varchar2(2000)) sql_text from gv$sql@]'||p_srcdb||q'[ b
                  where SQL_FULLTEXT not like '%Remote AWR repository%' and SQL_FULLTEXT not like '%Remote V$SQL%' and SQL_FULLTEXT not like '%l_rc:=UTL_COMPRESS.LZ_COMPRESS%'
+                 ]' || case when p_trg_vsql_search<>'Y' then ' and 1=2 ' end || q'[
                 ) where ]'||p_sql_search_expr||q'[ )]' || case when p_result_limit = 0 then null else ' where rownum <= '||p_result_limit end || q'[ order by nn#]';
     end if;
     coremod_log.log(l_sql,'DEBUG');

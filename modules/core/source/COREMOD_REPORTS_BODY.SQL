@@ -1304,6 +1304,7 @@ end;]';
       into l_ora_ver;
 
     p(HTF.header (1,'AWR SQL Report for SQL_ID='||p_sql_id,cattributes=>'class="awr"'));
+    p('START SNAP_ID='||l_start_snap||'; END SNAP_ID='||l_end_snap);
     p(HTF.BR);
     p(HTF.BR);
     p(HTF.header (2,cheader=>HTF.ANCHOR (curl=>'',ctext=>'Table of contents',cname=>'tblofcont',cattributes=>'class="awr"'),cattributes=>'class="awr"'));
@@ -1692,7 +1693,10 @@ end;]';
       for i in 1..l_dbid.count
       loop
         p('DBID: '||l_dbid(i));
-        l_script:=q'[select * from dba_procedures where (object_id,subprogram_id) in (select unique plsql_entry_object_id,plsql_entry_subprogram_id from dba_hist_active_sess_history where instance_number between 1 and 255 and snap_id between ]'||l_start_snap||q'[ and ]'||l_end_snap||q'[ and sql_id = ']'||p_sql_id||q'[' and dbid= ]'||l_dbid(i)||q'[)]'||chr(10);
+        l_script:=q'[select * from dba_procedures where (object_id,subprogram_id) in
+                    (select unique plsql_entry_object_id,plsql_entry_subprogram_id from dba_hist_active_sess_history
+                      where instance_number between 1 and 255 and snap_id between ]'||l_start_snap||q'[ and ]'||l_end_snap||q'[ and sql_id = ']'||p_sql_id||q'[' and dbid= ]'||l_dbid(i)||q'[
+                      and plsql_entry_object_id is not null and rownum < 10)]'||chr(10);
         l_output.delete;
         if p_dblink is null then
           coremod_report_utils.print_table_html(p_query=>l_script,
@@ -1702,6 +1706,7 @@ end;]';
                                                 p_style2 =>'awrnc1',
                                                 p_output=> l_output);
         else
+/*
           coremod_report_utils.execute_plsql_remotelly(p_sql =>
 q'[begin
 $if dbms_db_version.ver_le_11 $then
@@ -1712,6 +1717,7 @@ $end
 end;]',
                                                         p_dblink => p_dblink, p_output => l_out, p_is_output => true);
           if rtrim(rtrim(l_out,chr(10)),chr(13))='0' then --in multitenant it runs forever
+*/
             coremod_report_utils.print_table_html_remotelly(p_query=>l_script,
                                                             p_width=>l_wide_sect_width,
                                                             p_summary=>'ASH PL/SQL',
@@ -1719,9 +1725,11 @@ end;]',
                                                             p_style2 =>'awrnc1',
                                                             p_dblink => p_dblink,
                                                             p_output=> l_output);
+/*
           else
             p('No PL/SQL source data for multitenant DB.');
           end if;
+*/
         end if;
         p1(l_output);
 

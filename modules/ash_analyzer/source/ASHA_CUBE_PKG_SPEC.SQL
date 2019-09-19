@@ -35,8 +35,9 @@ PACKAGE ASHA_CUBE_PKG AS
   c_SQL_TIMELINE        constant varchar2(100) := 'SQL_TIMELINE';
 
   -- Run time parameters
-  c_TOP10_SQLS         constant varchar2(100) := 'TOP10_SQLS';
-  c_NextTOP10          constant varchar2(100) := 'NEXTTOP10';
+  c_TOP10_SQLS         constant varchar2(100) := 'TOP10_SQLS';          --Top 10 SQL_IDs
+  --c_TOP10_SQLS_NEXT    constant varchar2(100) := 'TOP10_SQLSNEXT';      --Next Top 10 SQL_IDs
+  c_NextTOP10          constant varchar2(100) := 'NEXTTOP10';           --Flag to build Nect Top 10 Cube
   c_TOP10_Events       constant varchar2(100) := 'TOP10_EVENTS';
 
   stNEW                constant varchar2(100) := 'NEW';

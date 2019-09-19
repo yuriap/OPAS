@@ -1,5 +1,4 @@
-Oracle Performance Analytic Suite Version 5.3 PROD
-(former AWR Tools)
+Oracle Performance Analytic Suite Version 5.4 PROD
 
 Demo version is available at:
 https://apex.oracle.com/pls/apex/f?p=1841
@@ -11,6 +10,11 @@ ftp://78.159.49.194/VirtualBox_Images/OracleXE18c_OPAS_530/
 Release notes:
 ==============
 
+Version 5.4
+-------------
+ - ASHA Cube enhancement
+ - Reporting enhancement
+ 
 Version 5.3
 -------------
  - Miscellaneous

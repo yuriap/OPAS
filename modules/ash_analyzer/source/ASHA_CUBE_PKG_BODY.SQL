@@ -140,14 +140,16 @@ PACKAGE BODY ASHA_CUBE_PKG AS
   begin
     l_par := get_parameter_db(p_sess_id, p_param_name);
     l_par := replace(l_par,'''')||',';
-    DBMS_OUTPUT.PUT_LINE(l_par);
-    DBMS_OUTPUT.PUT_LINE(regexp_count(l_par,','));
-    for i in 1..regexp_count(l_par,',') loop
-      l_res.extend;
-      l_res(l_res.count) := substr(l_par,1,instr(l_par,',')-1);
-      l_par := substr(l_par,  instr(l_par,',')+1);
-    end loop;
+    if l_par is not null then
+      for i in 1..regexp_count(l_par,',') loop
+        l_res.extend;
+        l_res(l_res.count) := substr(l_par,1,instr(l_par,',')-1);
+        l_par := substr(l_par,  instr(l_par,',')+1);
+      end loop;
+    end if;
     return l_res;
+  exception
+    when no_data_found then return tableofstrings();
   end;
 
   function get_number_lst_par(p_sess_id asha_cube_sess.sess_id%type,
@@ -617,7 +619,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
       if p_sql_timeline then
         coremod_log.log('Start building SQL timeline','DEBUG');
 
-        for i in (select * from (select sql_id, smpls from asha_cube where sess_id=p_sess_id and g2=0 order by 2 desc) where rownum<11)
+        for i in (select * from (select sql_id, smpls, row_number()over(order by smpls desc) rn from asha_cube where sess_id=p_sess_id and g2=0) where rn<11)
         loop
           l_sql_ids_list := l_sql_ids_list || q'[']' || i.sql_id || q'[',]';
         end loop;
@@ -654,43 +656,21 @@ PACKAGE BODY ASHA_CUBE_PKG AS
               coremod_log.log('Error SQL: '||chr(10)||l_sql4||chr(10)||sqlerrm||chr(10)||DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
               raise_application_error(-20000,sqlerrm);
           end;
-          /*
-          select event_id bulk collect into l_event_list
-            from (select event_id
-                    from asha_cube
-                   where sess_id=p_sess_id
-                     and g2=-200
-                   group by event_id
-                   order by count(1) desc)
-           where rownum<11;
-
-          INSERT INTO asha_cube
-                 (sess_id,   sample_time, sql_id, smpls,   g1, g2,   g3, g4, g5, g6, event,           event_id)
-          select  p_sess_id, sample_time, sql_id, count(1),-1, -200, -1, -1, -1, -1, 'Others events', -2
-            from asha_cube
-           where sess_id=p_sess_id
-             and g2=-200
-             and event_id not in (select column_value from table(l_event_list))
-           group by sample_time, sql_id;
-
-          l_event_list.extend;
-          l_event_list(l_event_list.count):=-2;
-
-          delete from asha_cube
-           where sess_id=p_sess_id
-             and g2=-200
-             and event_id not in (select column_value from table(l_event_list));
-
-          l_sql_ids_list := null;
-          for i in (select column_value from table(l_event_list))
-          loop
-            l_sql_ids_list := l_sql_ids_list || i.column_value || ',';
-          end loop;
-
-          l_sql_ids_list := rtrim(l_sql_ids_list,',');
-          add_parameter(p_sess_id, c_TOP10_Events, l_sql_ids_list);
-          */
         end if;
+
+        /*
+        l_sql_ids_list := null;
+        for i in (select * from (select sql_id, smpls, row_number()over(order by smpls desc) rn from asha_cube where sess_id=p_sess_id and g2=0) where rn between 11 and 20)
+        loop
+          l_sql_ids_list := l_sql_ids_list || q'[']' || i.sql_id || q'[',]';
+        end loop;
+
+        l_sql_ids_list := rtrim(l_sql_ids_list,',');
+
+        if l_sql_ids_list is not null then
+          add_parameter(p_sess_id, c_TOP10_SQLS_NEXT, l_sql_ids_list);
+        end if;
+        */
       end if;
     end;
     if not p_monitor /*and not p_snap_ash*/ then
