@@ -162,7 +162,11 @@ PACKAGE BODY TRC_FILE_API AS
     coremod_log.log('TRC_FILE_API.remove_parsed_data_i: '||p_trc_file_id,'DEBUG');
     l_trc_file:=get_file(p_trc_file_id,true);
     if p_set_status then
-      TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_archive);
+      if l_trc_file.status=TRC_FILE_LCC.c_trcfilestate_parsed then
+        TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_reparse);
+      else
+        TRC_FILE_LCC.trcfile_exec_action(l_trc_file,TRC_FILE_LCC.c_trcfile_archive);
+      end if;
     end if;
     remove_parsed_data_ii(p_trc_file_id);
   end;

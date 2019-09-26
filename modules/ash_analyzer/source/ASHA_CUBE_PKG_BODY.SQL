@@ -246,6 +246,8 @@ PACKAGE BODY ASHA_CUBE_PKG AS
     end if;
 
     if get_parameter(c_date_interval) is not null then
+      l_dt1:=to_date(get_parameter(c_start_dt),c_datetime_fmt);
+      l_dt2:=to_date(get_parameter(c_end_dt),c_datetime_fmt);
       if get_parameter(c_date_interval) = '-1' then
         if to_bool(get_parameter(c_SNAP_ASH)) then
           coremod_log.log('select max(st1), max(st2) from (select min(sample_time) st1, max(sample_time)st2 from asha_cube_snap_ash where sess_id=:p_sess_id group by inst_id)','DEBUG');
@@ -254,9 +256,13 @@ PACKAGE BODY ASHA_CUBE_PKG AS
           coremod_log.log('select max(st1), max(st2) from (select min(sample_time) st1, max(sample_time)st2 from gv$active_session_history'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end||' group by inst_id)','DEBUG');
           execute immediate 'select max(st1), max(st2) from (select min(sample_time) st1, max(sample_time)st2 from gv$active_session_history'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end||' group by inst_id)' into l_dt1,l_dt2;
         end if;
-      elsif TO_NUMBER(get_parameter(c_date_interval) DEFAULT -1 ON CONVERSION ERROR)<>-1 then
+      elsif TO_NUMBER(get_parameter(c_date_interval) DEFAULT -1 ON CONVERSION ERROR) > 0 then
         coremod_log.log('select systimestamp - '||get_parameter(c_date_interval)||'/60/24, systimestamp from dual'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end,'DEBUG');
         execute immediate 'select systimestamp - '||get_parameter(c_date_interval)||'/60/24, systimestamp from dual'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end into l_dt1,l_dt2;
+      end if;
+      if get_parameter(c_date_interval) = '0' then
+        coremod_log.log('select systimestamp from dual'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end,'DEBUG');
+        execute immediate 'select systimestamp from dual'||case when get_parameter(c_dblink)<>'$LOCAL$' then '@'||get_parameter(c_dblink) else null end into l_dt2;
       end if;
 
       add_parameter(p_sess_id,c_start_dt,to_char(l_dt1,c_datetime_fmt));
@@ -493,9 +499,9 @@ PACKAGE BODY ASHA_CUBE_PKG AS
                                                                                                         else 'dba_hist_active_sess_history@'||p_dblink
                                                                                                         end
                                                                            end),
-                                                  '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
+                                                  '<DBID>',case when p_source = 'V$VIEW' then 'nvl(:P_DBID,0)>=0' else 'DBID = :P_DBID' end),
                                           '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
-                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else 'nvl(:P_MIN_SNAP,0)>=0 and nvl(:P_MAX_SNAP,0)>=0' end),
                           '<FILTER>',nvl(p_filter,'1=1')),'<P_INST_ID>',p_inst_list);
 
     l_sql2 := replace(replace(replace(replace(replace(replace(l_sql_timeln,
@@ -508,9 +514,9 @@ PACKAGE BODY ASHA_CUBE_PKG AS
                                                                                                         else 'dba_hist_active_sess_history@'||p_dblink
                                                                                                         end
                                                                            end),
-                                                  '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
+                                                  '<DBID>',case when p_source = 'V$VIEW' then 'nvl(:P_DBID,0)>=0' else 'DBID = :P_DBID' end),
                                           '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
-                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else 'nvl(:P_MIN_SNAP,0)>=0 and nvl(:P_MAX_SNAP,0)>=0' end),
                           '<FILTER>',nvl(p_filter,'1=1')),'<P_INST_ID>',p_inst_list);
 
     l_sql3 := replace(replace(replace(replace(replace(replace(l_sql_timeln_others,
@@ -523,9 +529,9 @@ PACKAGE BODY ASHA_CUBE_PKG AS
                                                                                                         else 'dba_hist_active_sess_history@'||p_dblink
                                                                                                         end
                                                                            end),
-                                                  '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
+                                                  '<DBID>',case when p_source = 'V$VIEW' then 'nvl(:P_DBID,0)>=0' else 'DBID = :P_DBID' end),
                                           '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
-                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else 'nvl(:P_MIN_SNAP,0)>=0 and nvl(:P_MAX_SNAP,0)>=0' end),
                           '<FILTER>',nvl(p_filter,'1=1')),'<P_INST_ID>',p_inst_list);
     l_sql4 := replace(replace(replace(replace(replace(replace(l_sql_timeln_event,
                                                           '<SOURCE_TABLE>',case
@@ -537,9 +543,9 @@ PACKAGE BODY ASHA_CUBE_PKG AS
                                                                                                         else 'dba_hist_active_sess_history@'||p_dblink
                                                                                                         end
                                                                            end),
-                                                  '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
+                                                  '<DBID>',case when p_source = 'V$VIEW' then 'nvl(:P_DBID,0)>=0' else 'DBID = :P_DBID' end),
                                           '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
-                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else 'nvl(:P_MIN_SNAP,0)>=0 and nvl(:P_MAX_SNAP,0)>=0' end),
                           '<FILTER>',nvl(p_filter,'1=1')),'<P_INST_ID>',p_inst_list);
     case
       when p_cubeagg = 'no_agg'  then
@@ -776,17 +782,26 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
 
       l_sql1 := replace(replace(replace(replace(replace(replace(replace(l_sql_template_metrics,
                                                             '<SOURCE_TABLE>',case
-                                                                               when p_source = 'V$VIEW' then case when p_dblink = '$LOCAL$' then '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history union all select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history)'
-                                                                                                            --else 'gv$sysmetric_history@'||p_dblink
-                                                                                                            else '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history@'||p_dblink||' union all select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history@'||p_dblink||')'
-                                                                                                            end
-                                                                               when p_source = 'AWR' then case when p_dblink = '$LOCAL$' then 'dba_hist_sysmetric_history'
-                                                                                                          else 'dba_hist_sysmetric_history@'||p_dblink
-                                                                                                          end
+                                                                               when p_source = 'V$VIEW' then
+                                                                                 case when p_dblink = '$LOCAL$'
+                                                                                   --then 'gv$sysmetric_history'
+                                           then '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history union all '||
+                                                 'select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history '||
+                                                 'where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||p_min_snap||' )'
+                                                                                   --else 'gv$sysmetric_history@'||p_dblink
+                                           else '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history@'||p_dblink||' union all '||
+                                                 'select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history@'||p_dblink||
+                                                 ' where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||p_min_snap||' )'
+                                                                                 end
+                                                                               when p_source = 'AWR' then
+                                                                                 case when p_dblink = '$LOCAL$'
+                                                                                   then 'dba_hist_sysmetric_history'
+                                                                                   else 'dba_hist_sysmetric_history@'||p_dblink
+                                                                                 end
                                                                              end),
-                                                    '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
+                                                    '<DBID>',case when p_source = 'V$VIEW' then 'nvl(:P_DBID,0)>=0' else 'DBID = :P_DBID' end),
                                             '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
-                                    '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                                    '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else 'nvl(:P_MIN_SNAP,0)>=0 and nvl(:P_MAX_SNAP,0)>=0' end),
                             '<AGGFNC>',case when p_metricagg in ('AVG', 'COUNT', 'SUM', 'MIN', 'MAX') then p_metricagg||'(value)'
                                             when instr(p_metricagg,'PCT')>0 then 'PERCENTILE_CONT('||to_number(ltrim(p_metricagg,'PCT'))/100||') WITHIN GROUP (ORDER BY value ASC)'
                                             end),
@@ -795,16 +810,26 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
 
       l_sql2 := replace(replace(replace(replace(replace(l_sql_template_metrics_summ,
                                                             '<SOURCE_TABLE>',case
-                                                                               when p_source = 'V$VIEW' then case when p_dblink = '$LOCAL$' then 'gv$sysmetric_history'
-                                                                                                            else 'gv$sysmetric_history@'||p_dblink
-                                                                                                            end
-                                                                               when p_source = 'AWR' then case when p_dblink = '$LOCAL$' then 'dba_hist_sysmetric_history'
-                                                                                                          else 'dba_hist_sysmetric_history@'||p_dblink
-                                                                                                          end
+                                                                               when p_source = 'V$VIEW' then
+                                                                                 case when p_dblink = '$LOCAL$'
+                                                                                   --then 'gv$sysmetric_history'
+                                           then '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history union all '||
+                                                 'select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history '||
+                                                 'where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||p_min_snap||' )'
+                                                                                   --else 'gv$sysmetric_history@'||p_dblink
+                                           else '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history@'||p_dblink||' union all '||
+                                                 'select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history@'||p_dblink||
+                                                 ' where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||p_min_snap||' )'
+                                                                                 end
+                                                                               when p_source = 'AWR' then
+                                                                                 case when p_dblink = '$LOCAL$'
+                                                                                   then 'dba_hist_sysmetric_history'
+                                                                                   else 'dba_hist_sysmetric_history@'||p_dblink
+                                                                                 end
                                                                              end),
-                                                    '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
+                                                    '<DBID>',case when p_source = 'V$VIEW' then 'nvl(:P_DBID,0)>=0' else 'DBID = :P_DBID' end),
                                             '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
-                                    '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                                    '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else 'nvl(:P_MIN_SNAP,0)>=0 and nvl(:P_MAX_SNAP,0)>=0' end),
                             '<P_INST_ID>',p_inst_list);
 
       select interval_size into l_int_size from V$METRICGROUP where group_id = p_metricgroup_id;
@@ -922,10 +947,10 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
                                                                                                         else 'dba_hist_active_sess_history@'||p_dblink
                                                                                                         end
                                                                            end),
-                                                  '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
+                                                  '<DBID>',case when p_source = 'V$VIEW' then 'nvl(:P_DBID,0)>=0' else 'DBID = :P_DBID' end),
                                           '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
                                   '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
-                                  '<SNAP_FILTER_BLOCKER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP - 10 AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                                  '<SNAP_FILTER_BLOCKER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP - 10 AND :P_MAX_SNAP' else 'nvl(:P_MIN_SNAP,0)>=0 and nvl(:P_MAX_SNAP,0)>=0' end),
                           '<FILTER>',nvl(p_filter,'1=1')),
                           '<MULT>',case when p_source = 'AWR' then '*10' else null end),'<P_INST_ID>',p_inst_list);
       begin
@@ -996,9 +1021,9 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
                                                                                                         else 'dba_hist_active_sess_history@'||p_dblink
                                                                                                         end
                                                                            end),
-                                                  '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
+                                                  '<DBID>',case when p_source = 'V$VIEW' then 'nvl(:P_DBID,0)>=0' else 'DBID = :P_DBID' end),
                                           '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
-                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else 'nvl(:P_MIN_SNAP,0)>=0 and nvl(:P_MAX_SNAP,0)>=0' end),
                           '<FILTER>',nvl(p_filter,'1=1')),
                           '<MULT>',case when p_source = 'AWR' then '*10' else null end),'<P_INST_ID>',p_inst_list),
                           '<DBA_USERS>',case when p_dblink = '$LOCAL$' then 'dba_users' else 'dba_users@'||p_dblink end);
@@ -1062,9 +1087,9 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
                                                                                                         else 'dba_hist_active_sess_history@'||p_dblink
                                                                                                         end
                                                                            end),
-                                                  '<DBID>',case when p_source = 'V$VIEW' then ':P_DBID is null' else 'DBID = :P_DBID' end),
+                                                  '<DBID>',case when p_source = 'V$VIEW' then 'nvl(:P_DBID,0)>=0' else 'DBID = :P_DBID' end),
                                           '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
-                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else 'nvl(:P_MIN_SNAP,0)>=0 and nvl(:P_MAX_SNAP,0)>=0' end),
                           '<FILTER>',nvl(p_filter,'1=1')),
                           '<MULT>',case when p_source = 'AWR' then '*10' else null end),'<P_INST_ID>',p_inst_list),
                           '<DBA_USERS>',case when p_dblink = '$LOCAL$' then 'dba_users' else 'dba_users@'||p_dblink end);
@@ -1175,29 +1200,6 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
       else
         l_inst_list:=replace(replace(g_allpars.pa_inst_id,':',','),';',',');
       end if;
-      if g_allpars.pa_source = 'AWR' then
-        execute immediate 'select dbid from v$database@'||g_allpars.pa_dblink into l_dbid;
-        execute immediate replace('select min(snap_id)
-            from dba_hist_snapshot@'||g_allpars.pa_dblink||'
-           where end_interval_time>=:P_START_DT
-             and dbid=:P_DBID
-             and instance_number in (<P_INST_ID>)','<P_INST_ID>',l_inst_list) into l_min_snap using l_start_dt, l_dbid;
-        execute immediate replace('select min(snap_id)
-            from dba_hist_snapshot@'||g_allpars.pa_dblink||'
-           where end_interval_time>=:P_END_DT
-             and dbid=:P_DBID
-             and instance_number in (<P_INST_ID>)','<P_INST_ID>',l_inst_list) into l_max_snap using l_end_dt, l_dbid;
-        if l_max_snap is null then
-          execute immediate replace('select max(snap_id)
-              from dba_hist_snapshot@'||g_allpars.pa_dblink||'
-             where dbid=:P_DBID
-               and instance_number in (<P_INST_ID>)','<P_INST_ID>',l_inst_list) into l_max_snap using l_dbid;
-        end if;
-
-        add_parameter(p_sess_id,c_DBID,l_dbid);
-        add_parameter(p_sess_id,c_START_SNAP,l_min_snap);
-        add_parameter(p_sess_id,c_END_SNAP,l_max_snap);
-      end if;
     else
       if g_allpars.pa_source = 'AWR' then
         l_dbid     := g_allpars.pa_DBID;
@@ -1235,6 +1237,38 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
         end if;
       end if;
     end if;
+
+    --if g_allpars.pa_source = 'AWR' then
+
+    if l_dbid is null then
+      execute immediate 'select dbid from v$database@'||g_allpars.pa_dblink into l_dbid;
+      add_parameter(p_sess_id,c_DBID,l_dbid);
+    end if;
+    if l_min_snap is null then
+      execute immediate replace('select min(snap_id)
+            from dba_hist_snapshot@'||g_allpars.pa_dblink||'
+           where end_interval_time>=:P_START_DT
+             and dbid=:P_DBID
+             and instance_number in (<P_INST_ID>)','<P_INST_ID>',l_inst_list) into l_min_snap using l_start_dt, l_dbid;
+      add_parameter(p_sess_id,c_START_SNAP,l_min_snap);
+    end if;
+    if l_max_snap is null then
+      execute immediate replace('select min(snap_id)
+            from dba_hist_snapshot@'||g_allpars.pa_dblink||'
+           where end_interval_time>=:P_END_DT
+             and dbid=:P_DBID
+             and instance_number in (<P_INST_ID>)','<P_INST_ID>',l_inst_list) into l_max_snap using l_end_dt, l_dbid;
+      if l_max_snap is null then
+         execute immediate replace('select max(snap_id)
+              from dba_hist_snapshot@'||g_allpars.pa_dblink||'
+             where dbid=:P_DBID
+               and instance_number in (<P_INST_ID>)','<P_INST_ID>',l_inst_list) into l_max_snap using l_dbid;
+      end if;
+      add_parameter(p_sess_id,c_END_SNAP,l_max_snap);
+    end if;
+
+      --end if;
+
     ----------------------------------------------------
     coremod_log.log('l_dbid:     '||l_dbid,'DEBUG');
     coremod_log.log('l_min_snap: '||l_min_snap,'DEBUG');

@@ -14,6 +14,7 @@ package TRC_FILE_LCC as
   c_trcfile_compress      constant varchar2(20) :='COMPRESS';
   c_trcfile_archive       constant varchar2(20) :='ARCHIVE';
   c_trcfile_discover      constant varchar2(20) :='DISCOVER';
+  c_trcfile_reparse       constant varchar2(20) :='REPARSE';
 
 
   --Trace file states

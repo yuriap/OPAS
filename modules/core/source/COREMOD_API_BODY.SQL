@@ -50,6 +50,7 @@ package body COREMOD_API as
   is
   begin
     DBMS_APPLICATION_INFO.SET_MODULE ( module_name => p_module_name, action_name => p_action_name);
+    coremod_tasks.log(rtrim(p_module_name||'/'||p_action_name,'/'));
   end;
 
   procedure end_longops_section(p_sofar number default 1, p_lops_ind pls_integer)

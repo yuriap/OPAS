@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   15:12 Thursday September 19, 2019
+--   Date and Time:   13:47 Thursday September 26, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190919150102'
+,p_last_upd_yyyymmddhh24miss=>'20190926134612'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -13562,7 +13562,7 @@ wwv_flow_api.create_page(
 ,p_required_role=>wwv_flow_api.id(163102367747190623)
 ,p_dialog_width=>'1200'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190912105729'
+,p_last_upd_yyyymmddhh24miss=>'20190926121842'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(163192123243851344)
@@ -13681,7 +13681,9 @@ wwv_flow_api.create_worksheet_column(
 ,p_db_column_name=>'A_EDIT'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
-,p_column_label=>'A Edit'
+,p_column_label=>'Edit'
+,p_column_link=>'f?p=&APP_ID.:116:&SESSION.::&DEBUG.:RP,116:P116_DB_LINK_NAME,P116_ACTION:#DB_LINK_NAME#,MODIFY'
+,p_column_linktext=>'#A_EDIT#'
 ,p_column_type=>'STRING'
 );
 wwv_flow_api.create_worksheet_rpt(
@@ -13704,8 +13706,7 @@ wwv_flow_api.create_page_button(
 ,p_button_image_alt=>'New DB Link'
 ,p_button_position=>'BELOW_BOX'
 ,p_button_alignment=>'LEFT'
-,p_button_redirect_url=>'f?p=&APP_ID.:116:&SESSION.::&DEBUG.:RP:P116_ACTION,P116_DB_LINK_NAME:NEW,'
-,p_grid_new_grid=>false
+,p_button_redirect_url=>'f?p=&APP_ID.:116:&SESSION.::&DEBUG.:RP:P116_ACTION:NEW'
 ,p_security_scheme=>wwv_flow_api.id(163102614820191938)
 );
 wwv_flow_api.create_page_button(
@@ -18268,7 +18269,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_height=>'600'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190918175611'
+,p_last_upd_yyyymmddhh24miss=>'20190926134431'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(271613578917641007)
@@ -18683,6 +18684,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'Starting snapshot must be specified'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181882695361093087)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -18693,6 +18695,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'Ending snapshot must be specified'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181882695361093087)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -18703,6 +18706,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'SQL_ID must be specified'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181882695361093087)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -18713,6 +18717,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'PLSQL_EXPRESSION'
 ,p_error_message=>'Ending snapshot must be bigger than starting one'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181882695361093087)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_da_event(
@@ -19127,7 +19132,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_height=>'600'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190919115331'
+,p_last_upd_yyyymmddhh24miss=>'20190926134415'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(211514645327797934)
@@ -19417,6 +19422,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'Starting snapshot must be specified'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181665839835106045)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -19427,6 +19433,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'Ending snapshot must be specified'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181665839835106045)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -19437,6 +19444,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'PLSQL_EXPRESSION'
 ,p_error_message=>'Ending snapshot must be bigger than starting one'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181665839835106045)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_da_event(
@@ -19599,7 +19607,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_height=>'600'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190919121435'
+,p_last_upd_yyyymmddhh24miss=>'20190926134503'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(241508077541462290)
@@ -19953,6 +19961,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'Starting snapshot must be specified'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181770130429578880)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -19963,6 +19972,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'Ending snapshot must be specified'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181770130429578880)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -19973,6 +19983,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'SQL_ID must be specified'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181770130429578880)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -19983,6 +19994,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'PLSQL_EXPRESSION'
 ,p_error_message=>'Ending snapshot must be bigger than starting one'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181770130429578880)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_da_event(
@@ -20149,7 +20161,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_height=>'800'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190919125038'
+,p_last_upd_yyyymmddhh24miss=>'20190926134550'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(241553499267877602)
@@ -20630,6 +20642,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'Starting snapshot 1 must be specified'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181815589148994104)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -20640,6 +20653,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'Ending snapshot 1 must be specified'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181815589148994104)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -20650,6 +20664,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'PLSQL_EXPRESSION'
 ,p_error_message=>'Ending snapshot 1 must be bigger than starting one'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181815589148994104)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -20660,6 +20675,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'Starting snapshot 2 must be specified'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181815589148994104)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -20670,6 +20686,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'Ending snapshot 2 must be specified'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181815589148994104)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -20680,6 +20697,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation_type=>'PLSQL_EXPRESSION'
 ,p_error_message=>'Ending snapshot 2 must be bigger than starting one'
 ,p_always_execute=>'Y'
+,p_when_button_pressed=>wwv_flow_api.id(181815589148994104)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_da_event(
@@ -20876,7 +20894,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_dialog_height=>'600'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190919143741'
+,p_last_upd_yyyymmddhh24miss=>'20190926134612'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(241592503400645923)
@@ -21161,6 +21179,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation=>'P156_BDATE'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'Begin date must be specified'
+,p_when_button_pressed=>wwv_flow_api.id(181854620053762370)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -21170,6 +21189,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation=>'P156_EDATE'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'End date must be specified'
+,p_when_button_pressed=>wwv_flow_api.id(181854620053762370)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_validation(
@@ -21179,6 +21199,7 @@ wwv_flow_api.create_page_validation(
 ,p_validation=>'to_date(:P156_EDATE,''YYYY-MM-DD HH24-MI'')>to_date(:P156_BDATE,''YYYY-MM-DD HH24-MI'')'
 ,p_validation_type=>'PLSQL_EXPRESSION'
 ,p_error_message=>'End date must be greater'
+,p_when_button_pressed=>wwv_flow_api.id(181854620053762370)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_api.create_page_da_event(
@@ -28287,7 +28308,7 @@ wwv_flow_api.create_page(
 ,p_html_page_header=>'<meta http-equiv="refresh" content="&P303_PAGE_REFRESH_INTERVAL.">'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190919112951'
+,p_last_upd_yyyymmddhh24miss=>'20190923163326'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(57540224206714132)
@@ -33226,7 +33247,7 @@ wwv_flow_api.create_page_item(
 ,p_name=>'P303_DATE_INTERVAL'
 ,p_item_sequence=>60
 ,p_item_plug_id=>wwv_flow_api.id(180639907230415573)
-,p_prompt=>'Minutes back'
+,p_prompt=>'Minutes back (-1 - all available; 0 - till now)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
 ,p_begin_on_new_line=>'N'
