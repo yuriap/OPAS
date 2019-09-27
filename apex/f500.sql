@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   16:00 Thursday September 26, 2019
+--   Date and Time:   14:32 Friday September 27, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190926155719'
+,p_last_upd_yyyymmddhh24miss=>'20190927143149'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -40659,7 +40659,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(181420099136448447)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190919113149'
+,p_last_upd_yyyymmddhh24miss=>'20190927143148'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(197568758316933499)
@@ -41631,7 +41631,7 @@ wwv_flow_api.create_page_item(
 ,p_name=>'P401_DUMP_SHOW_OPTIONS'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_api.id(111046037805388158)
-,p_prompt=>'Reports Show Options'
+,p_prompt=>'Dump Files Show Options'
 ,p_display_as=>'NATIVE_RADIOGROUP'
 ,p_lov=>'STATIC:1. Recent;R,2. Historical;H,3. Expiring;E,4. All;A'
 ,p_field_template=>wwv_flow_api.id(163643109900454028)
