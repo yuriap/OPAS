@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   14:32 Friday September 27, 2019
+--   Date and Time:   14:05 Wednesday October 9, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -37,7 +37,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 
 -- Application Statistics:
 --   Pages:                     91
---     Items:                  559
+--     Items:                  560
 --     Validations:             22
 --     Processes:              244
 --     Regions:                318
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190927143149'
+,p_last_upd_yyyymmddhh24miss=>'20191009140253'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -48364,7 +48364,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(56657728100893359)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190903155013'
+,p_last_upd_yyyymmddhh24miss=>'20191009135850'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(254248211799234768)
@@ -48456,11 +48456,25 @@ wwv_flow_api.create_jet_chart_series(
 'with tbls as',
 ' (select table_name',
 '    from db_growth_tables x',
-'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))),',
+'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
 'iottbls as',
 ' (select table_name, iot_name',
 '    from db_growth_tables x',
-'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))),',
+'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
 'segs as (select * from db_growth_segs where size_b>=nvl(:P501_SIZE_LIMIT,0))   ',
 ' select last_updated, sum(bytes) bytes',
 '          from',
@@ -48600,11 +48614,25 @@ wwv_flow_api.create_page_plug(
 'with tbls as',
 ' (select table_name',
 '    from db_growth_tables x',
-'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))),',
+'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
 'iottbls as',
 ' (select table_name, iot_name',
 '    from db_growth_tables x',
-'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))),',
+'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
 'dts as (select to_date(:P501_START_DT,''YYYY-MM-DD HH24:MI'') dts, to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'') dte from dual),',
 'segs as (select * from db_growth_segs where size_b>=nvl(:P501_SIZE_LIMIT,0))',
 'select table_name,',
@@ -48911,11 +48939,25 @@ wwv_flow_api.create_jet_chart_series(
 'with tbls as',
 ' (select table_name',
 '    from db_growth_tables x',
-'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))),',
+'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
 'iottbls as',
 ' (select table_name, iot_name',
 '    from db_growth_tables x',
-'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))),',
+'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
 'segs as (select * from db_growth_segs where size_b>=nvl(:P501_SIZE_LIMIT,0))   ',
 'select last_updated, bytes - lag(bytes)over(order by last_updated) bytes from (',
 ' select last_updated, sum(bytes) bytes',
@@ -50150,6 +50192,22 @@ wwv_flow_api.create_page_item(
 ,p_field_template=>wwv_flow_api.id(163643109900454028)
 ,p_item_template_options=>'#DEFAULT#'
 ,p_attribute_03=>'left'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(58654249835400239)
+,p_name=>'P501_NOT'
+,p_item_sequence=>5
+,p_item_plug_id=>wwv_flow_api.id(56769278709874046)
+,p_item_default=>'N'
+,p_display_as=>'NATIVE_YES_NO'
+,p_grid_column=>7
+,p_field_template=>wwv_flow_api.id(163642989047454028)
+,p_item_template_options=>'#DEFAULT#'
+,p_attribute_01=>'CUSTOM'
+,p_attribute_02=>'N'
+,p_attribute_03=>'REGEXP_LIKE'
+,p_attribute_04=>'Y'
+,p_attribute_05=>'Not REGEXP_LIKE'
 );
 wwv_flow_api.create_page_process(
  p_id=>wwv_flow_api.id(56713256951301459)
@@ -51580,7 +51638,7 @@ wwv_flow_api.create_page(
 ,p_group_id=>wwv_flow_api.id(56657113204862805)
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20190903185203'
+,p_last_upd_yyyymmddhh24miss=>'20191009140253'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(115169936806489996)
@@ -51632,11 +51690,25 @@ wwv_flow_api.create_jet_chart_series(
 'with tbls as',
 ' (select table_name',
 '    from db_growth_tables x',
-'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))),',
+'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
 'iottbls as',
 ' (select table_name, iot_name',
 '    from db_growth_tables x',
-'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))),',
+'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
 'segs as (select * from db_growth_segs where size_b>=nvl(:P501_SIZE_LIMIT,0)),',
 'data_points as (select /* inline result_cache */ * from (',
 '               select ''1.1'' a,',
@@ -51755,11 +51827,25 @@ wwv_flow_api.create_jet_chart_series(
 'with tbls as',
 ' (select table_name',
 '    from db_growth_tables x',
-'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))),',
+'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
 'iottbls as',
 ' (select table_name, iot_name',
 '    from db_growth_tables x',
-'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))),',
+'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
 'segs as (select * from db_growth_segs where size_b>=nvl(:P501_SIZE_LIMIT,0)),',
 'data_points as (select /* inline result_cache */ * from (',
 '               select ''1.1'' a,',
@@ -51878,11 +51964,25 @@ wwv_flow_api.create_jet_chart_series(
 'with tbls as',
 ' (select table_name',
 '    from db_growth_tables x',
-'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))),',
+'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
 'iottbls as',
 ' (select table_name, iot_name',
 '    from db_growth_tables x',
-'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))),',
+'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
 'segs as (select * from db_growth_segs where size_b>=nvl(:P501_SIZE_LIMIT,0)),',
 'data_points as (select /* inline result_cache */ * from (',
 '               select ''1.1'' a,',

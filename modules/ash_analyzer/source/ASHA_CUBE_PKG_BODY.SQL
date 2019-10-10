@@ -787,11 +787,11 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
                                                                                    --then 'gv$sysmetric_history'
                                            then '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history union all '||
                                                  'select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history '||
-                                                 'where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||p_min_snap||' )'
+                                                 'where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||nvl(p_min_snap,0)||' )'
                                                                                    --else 'gv$sysmetric_history@'||p_dblink
                                            else '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history@'||p_dblink||' union all '||
                                                  'select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history@'||p_dblink||
-                                                 ' where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||p_min_snap||' )'
+                                                 ' where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||nvl(p_min_snap,0)||' )'
                                                                                  end
                                                                                when p_source = 'AWR' then
                                                                                  case when p_dblink = '$LOCAL$'
@@ -815,11 +815,11 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
                                                                                    --then 'gv$sysmetric_history'
                                            then '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history union all '||
                                                  'select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history '||
-                                                 'where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||p_min_snap||' )'
+                                                 'where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||nvl(p_min_snap,0)||' )'
                                                                                    --else 'gv$sysmetric_history@'||p_dblink
                                            else '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history@'||p_dblink||' union all '||
                                                  'select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history@'||p_dblink||
-                                                 ' where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||p_min_snap||' )'
+                                                 ' where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||nvl(p_min_snap,0)||' )'
                                                                                  end
                                                                                when p_source = 'AWR' then
                                                                                  case when p_dblink = '$LOCAL$'
