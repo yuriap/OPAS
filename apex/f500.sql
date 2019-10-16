@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   14:05 Wednesday October 9, 2019
+--   Date and Time:   10:27 Wednesday October 16, 2019
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20191009140253'
+,p_last_upd_yyyymmddhh24miss=>'20191016102450'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -48364,7 +48364,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(56657728100893359)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20191009135850'
+,p_last_upd_yyyymmddhh24miss=>'20191016102450'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(254248211799234768)
@@ -48958,9 +48958,34 @@ wwv_flow_api.create_jet_chart_series(
 '                                                          )',
 '                                                         )',
 ' ),',
-'segs as (select * from db_growth_segs where size_b>=nvl(:P501_SIZE_LIMIT,0))   ',
-'select last_updated, bytes - lag(bytes)over(order by last_updated) bytes from (',
-' select last_updated, sum(bytes) bytes',
+'segs as (select * from db_growth_segs ',
+'          where size_b>=nvl(:P501_SIZE_LIMIT,0) ',
+'            and trunc(last_updated,''dd'') between trunc(to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI''),''dd'') and trunc(to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI''),''dd'')),',
+'dates as (select case when y.lvl < d then dt_spare else dt end last_updated',
+'            from (select dt, dt-lag(dt)over(order by dt) d ',
+'                    from (select unique trunc(last_updated,''dd'') dt from segs)',
+'                 ) x,',
+'                 lateral(select dt - level dt_spare, level lvl from dual connect by level <= d) y)',
+'select',
+'  dates.last_updated,',
+'  case ',
+'    when dp.last_updated is null',
+'      then lead(avg_m_bytes ignore nulls)over(order by dates.last_updated)',
+'    when lag(dp.last_updated respect nulls)over(order by dates.last_updated) is null',
+'      then avg_m_bytes',
+'      else bytes',
+'  end bytes',
+'from (',
+'select last_updated, ',
+'       bytes - lag(bytes)over(order by last_updated) bytes,',
+'       round(',
+'       case when round(last_updated - lag(last_updated)over(order by last_updated))>1 then',
+'	     (bytes - lag(bytes)over(order by last_updated))/(round(last_updated - lag(last_updated)over(order by last_updated)))',
+'	   else',
+'	     null',
+'	   end) avg_m_bytes',
+'  from (',
+' select trunc(last_updated,''dd'') last_updated, sum(bytes) bytes',
 '          from',
 '               (',
 '               select ''1.1'' a,',
@@ -48974,7 +48999,8 @@ wwv_flow_api.create_jet_chart_series(
 '                               size_b bytes',
 '                          from segs s, tbls',
 '                         where proj_id=:P501_PROJ_ID and segment_name = tbls.table_name',
-'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                           --and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')',
+'                       ) q1',
 '                union all',
 '                select ''1.2'' a,',
 '                       last_updated,',
@@ -48987,7 +49013,8 @@ wwv_flow_api.create_jet_chart_series(
 '                               size_b bytes',
 '                          from segs s, iottbls',
 '                         where proj_id=:P501_PROJ_ID and segment_name = iottbls.iot_name',
-'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                           --and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')',
+'                       ) q1',
 '                union all',
 '                select ''2.1'' a,',
 '                       last_updated,',
@@ -49001,7 +49028,8 @@ wwv_flow_api.create_jet_chart_series(
 '                          from segs s, tbls, db_growth_indexes i',
 '                         where s.proj_id=:P501_PROJ_ID and s.proj_id=i.proj_id and segment_name = i.index_name',
 '                           and i.table_name = tbls.table_name',
-'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                           --and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')',
+'                       ) q1',
 '                union all',
 '                select ''2.2'' a,',
 '                       last_updated,',
@@ -49015,7 +49043,8 @@ wwv_flow_api.create_jet_chart_series(
 '                          from segs s, iottbls, db_growth_indexes i',
 '                         where s.proj_id=:P501_PROJ_ID and s.proj_id=i.proj_id and segment_name = i.index_name',
 '                           and i.table_name = iottbls.iot_name',
-'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                           --and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')',
+'                       ) q1',
 '                union all',
 '                select ''3.1'' a,',
 '                       last_updated,',
@@ -49029,7 +49058,8 @@ wwv_flow_api.create_jet_chart_series(
 '                          from segs s, tbls, db_growth_lobs l',
 '                         where s.proj_id=:P501_PROJ_ID and s.proj_id=l.proj_id and s.segment_name = l.segment_name',
 '                           and l.table_name = tbls.table_name',
-'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                           --and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')',
+'                       ) q1',
 '                union all',
 '                select ''3.2'' a,',
 '                       last_updated,',
@@ -49043,11 +49073,13 @@ wwv_flow_api.create_jet_chart_series(
 '                          from segs s, iottbls, db_growth_lobs l',
 '                         where s.proj_id=:P501_PROJ_ID and s.proj_id=l.proj_id and s.segment_name = l.segment_name',
 '                           and l.table_name = iottbls.iot_name',
-'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                           --and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')',
+'                       ) q1',
 ') x ',
-'group by last_updated)',
+'group by last_updated)) dp, dates',
+'where dp.last_updated(+) = dates.last_updated',
 'order by 1',
-''))
+';'))
 ,p_items_value_column_name=>'BYTES'
 ,p_items_label_column_name=>'LAST_UPDATED'
 ,p_line_style=>'solid'
