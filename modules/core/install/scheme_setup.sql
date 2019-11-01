@@ -59,3 +59,5 @@ grant read, write on directory &OPASEXPIMP_DIR. to &localscheme.;
 grant create table to &localscheme.;
 
 grant MANAGE SCHEDULER to &localscheme.;
+
+grant execute on ctx_ddl to &localscheme.;

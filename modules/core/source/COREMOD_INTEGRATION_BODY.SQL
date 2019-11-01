@@ -147,6 +147,8 @@ PACKAGE BODY COREMOD_INTEGRATION AS
 
    return l_url;
   exception
+    when no_data_found then
+      return null;
     when others then
       coremod_log.log('COREMOD_INTEGRATION.get_trg_url'||chr(10)||sqlerrm||chr(10)||DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
       raise_application_error(-20000,'COREMOD_INTEGRATION.get_trg_url'||chr(10)||sqlerrm);

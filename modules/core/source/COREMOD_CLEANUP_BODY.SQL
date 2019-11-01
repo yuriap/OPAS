@@ -35,6 +35,9 @@ package body coremod_cleanup as
           coremod_log.log(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
       end;
     end loop;
+
+    ctx_ddl.sync_index('idx_txt_opas_files', '2M');
+
   end;
 
 end;

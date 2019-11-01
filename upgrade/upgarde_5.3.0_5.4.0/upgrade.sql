@@ -26,6 +26,8 @@ set define off
 @../../modules/core/source/create_stored.sql
 set define on
 
+create index idx_txt_opas_files on opas_files(file_contentc) indextype is ctxsys.context
+  parameters('filter ctxsys.null_filter section group ctxsys.html_section_group');
 
 exec COREMOD.register(p_modname => '&MODNM.', p_modver => '&MODVER.', p_installed => sysdate);
 commit;
