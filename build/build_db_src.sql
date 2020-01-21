@@ -1,4 +1,4 @@
-@opas
+@opas40
 set timing off
 define COREMODPATH="..\modules\core\source\"
 

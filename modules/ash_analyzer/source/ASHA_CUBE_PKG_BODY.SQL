@@ -1241,12 +1241,12 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
     --if g_allpars.pa_source = 'AWR' then
 
     if l_dbid is null then
-      execute immediate 'select dbid from v$database@'||g_allpars.pa_dblink into l_dbid;
+      execute immediate 'select dbid from v$database'||case when g_allpars.pa_dblink='$LOCAL$' then null else '@'||g_allpars.pa_dblink end into l_dbid;
       add_parameter(p_sess_id,c_DBID,l_dbid);
     end if;
     if l_min_snap is null then
       execute immediate replace('select min(snap_id)
-            from dba_hist_snapshot@'||g_allpars.pa_dblink||'
+            from dba_hist_snapshot'||case when g_allpars.pa_dblink='$LOCAL$' then null else '@'||g_allpars.pa_dblink end||'
            where end_interval_time>=:P_START_DT
              and dbid=:P_DBID
              and instance_number in (<P_INST_ID>)','<P_INST_ID>',l_inst_list) into l_min_snap using l_start_dt, l_dbid;
@@ -1254,19 +1254,18 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
     end if;
     if l_max_snap is null then
       execute immediate replace('select min(snap_id)
-            from dba_hist_snapshot@'||g_allpars.pa_dblink||'
+            from dba_hist_snapshot'||case when g_allpars.pa_dblink='$LOCAL$' then null else '@'||g_allpars.pa_dblink end||'
            where end_interval_time>=:P_END_DT
              and dbid=:P_DBID
              and instance_number in (<P_INST_ID>)','<P_INST_ID>',l_inst_list) into l_max_snap using l_end_dt, l_dbid;
       if l_max_snap is null then
          execute immediate replace('select max(snap_id)
-              from dba_hist_snapshot@'||g_allpars.pa_dblink||'
+              from dba_hist_snapshot'||case when g_allpars.pa_dblink='$LOCAL$' then null else '@'||g_allpars.pa_dblink end||'
              where dbid=:P_DBID
                and instance_number in (<P_INST_ID>)','<P_INST_ID>',l_inst_list) into l_max_snap using l_dbid;
       end if;
       add_parameter(p_sess_id,c_END_SNAP,l_max_snap);
     end if;
-
       --end if;
 
     ----------------------------------------------------
