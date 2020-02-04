@@ -23,6 +23,14 @@ exec coremod_tasks.create_task_job;
 exec coremod_cleanup.create_cleanup_job;
 
 
+create or replace function to_human_readable_n (p_number number) return varchar2
+is
+begin
+  return case when p_number>=0 then dbms_xplan.format_size(p_number) else '-'||dbms_xplan.format_size(abs(p_number)) end;
+end;
+/
+
+
 begin
   coremod_cleanup.register_cleanup_tasks (  P_TASKNAME => 'CLEANUPLOGS',
                                             P_MODNAME => '&MODNM.',

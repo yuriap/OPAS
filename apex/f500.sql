@@ -27,7 +27,7 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 -- Application Export:
 --   Application:     500
 --   Name:            Oracle Performance Analytic Suite
---   Date and Time:   13:44 Wednesday October 23, 2019
+--   Date and Time:   15:37 Tuesday February 4, 2020
 --   Exported By:     OPAS40ADM
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -37,10 +37,10 @@ prompt APPLICATION 500 - Oracle Performance Analytic Suite
 
 -- Application Statistics:
 --   Pages:                     91
---     Items:                  563
+--     Items:                  564
 --     Validations:             22
 --     Processes:              244
---     Regions:                318
+--     Regions:                319
 --     Buttons:                308
 --     Dynamic Actions:         40
 --   Shared Components:
@@ -127,7 +127,7 @@ wwv_flow_api.create_flow(
 ,p_substitution_string_02=>'NLS_DATETIME_SHORT'
 ,p_substitution_value_02=>'YYYY-MON-DD HH24:MI'
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20191023134401'
+,p_last_upd_yyyymmddhh24miss=>'20200204153231'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>16
 ,p_ui_type_name => null
@@ -48518,7 +48518,7 @@ wwv_flow_api.create_page(
 ,p_page_template_options=>'#DEFAULT#'
 ,p_required_role=>wwv_flow_api.id(56657728100893359)
 ,p_last_updated_by=>'OPAS40ADM'
-,p_last_upd_yyyymmddhh24miss=>'20191016102450'
+,p_last_upd_yyyymmddhh24miss=>'20200204153230'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(254248211799234768)
@@ -48761,7 +48761,7 @@ wwv_flow_api.create_page_plug(
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
 ,p_plug_template=>wwv_flow_api.id(163590439868453902)
-,p_plug_display_sequence=>30
+,p_plug_display_sequence=>40
 ,p_plug_display_point=>'BODY'
 ,p_query_type=>'SQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
@@ -49274,6 +49274,346 @@ wwv_flow_api.create_jet_chart_axis(
 ,p_tick_label_rendered=>'on'
 );
 wwv_flow_api.create_page_plug(
+ p_id=>wwv_flow_api.id(66155289021162744)
+,p_plug_name=>'Top Growers'
+,p_parent_plug_id=>wwv_flow_api.id(56769278709874046)
+,p_region_template_options=>'#DEFAULT#'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>wwv_flow_api.id(163590439868453902)
+,p_plug_display_sequence=>30
+,p_plug_display_point=>'BODY'
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'with ',
+'tbls as',
+' (select table_name',
+'    from db_growth_tables x',
+'   where proj_id=:P501_PROJ_ID and iot_name is null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
+'iottbls as',
+' (select table_name, iot_name',
+'    from db_growth_tables x',
+'   where proj_id=:P501_PROJ_ID and iot_name is not null and (:P501_TABLE_NAME_LIKE is null or ',
+'                                                          (',
+'                                                           (:P501_NOT = ''N'' and regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i'')) ',
+'                                                            or',
+'                                                           (:P501_NOT = ''Y'' and not regexp_like (table_name, :P501_TABLE_NAME_LIKE, ''i''))',
+'                                                          )',
+'                                                         )',
+' ),',
+'segs as (select * from db_growth_segs where size_b>=nvl(:P501_SIZE_LIMIT,0)),',
+'data_points as (select /* inline result_cache */ * from (',
+'               select ''1.1'' a,',
+'                       last_updated,',
+'                       q1.table_name,',
+'                       q1.sub_object,',
+'                       q1.bytes',
+'                  from (select trunc(s.last_updated,''mi'') last_updated,',
+'                               tbls.table_name, ',
+'                               segment_type || case when partition_name is not null then '': '' || partition_name else null end sub_object,',
+'                               size_b bytes',
+'                          from segs s, tbls',
+'                         where proj_id=:P501_PROJ_ID and segment_name = tbls.table_name',
+'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                union all',
+'                select ''1.2'' a,',
+'                       last_updated,',
+'                       q1.table_name,',
+'                       q1.sub_object,',
+'                       q1.bytes',
+'                  from (select trunc(s.last_updated,''mi'') last_updated,',
+'                               iottbls.iot_name table_name, ',
+'                               segment_type || case when partition_name is not null then '': '' || partition_name else null end sub_object,',
+'                               size_b bytes',
+'                          from segs s, iottbls',
+'                         where proj_id=:P501_PROJ_ID and segment_name = iottbls.iot_name',
+'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                union all',
+'                select ''2.1'' a,',
+'                       last_updated,',
+'                       q1.table_name,',
+'                       q1.sub_object,',
+'                       q1.bytes ',
+'                  from (select trunc(s.last_updated,''mi'') last_updated,',
+'                               tbls.table_name, ',
+'                               segment_type || '':'' || segment_name ||'':''||index_type|| case when partition_name is not null then '': '' || partition_name else null end sub_object, ',
+'                               size_b bytes',
+'                          from segs s, tbls, db_growth_indexes i',
+'                         where s.proj_id=:P501_PROJ_ID and s.proj_id=i.proj_id and segment_name = i.index_name',
+'                           and i.table_name = tbls.table_name',
+'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                union all',
+'                select ''2.2'' a,',
+'                       last_updated,',
+'                       q1.table_name,',
+'                       q1.sub_object,',
+'                       q1.bytes ',
+'                  from (select trunc(s.last_updated,''mi'') last_updated,',
+'                               iottbls.iot_name table_name, ',
+'                               segment_type || '':'' || segment_name ||'':''||index_type|| case when partition_name is not null then '': '' || partition_name else null end sub_object, ',
+'                               size_b bytes',
+'                          from segs s, iottbls, db_growth_indexes i',
+'                         where s.proj_id=:P501_PROJ_ID and s.proj_id=i.proj_id and segment_name = i.index_name',
+'                           and i.table_name = iottbls.iot_name',
+'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                union all',
+'                select ''3.1'' a,',
+'                       last_updated,',
+'                       q1.table_name,',
+'                       q1.sub_object,',
+'                       q1.bytes ',
+'                  from (select trunc(s.last_updated,''mi'') last_updated,',
+'                               tbls.table_name, ',
+'                               segment_type || '':'' || s.segment_name || case when partition_name is not null then '': '' || partition_name else null end sub_object,',
+'                               size_b bytes',
+'                          from segs s, tbls, db_growth_lobs l',
+'                         where s.proj_id=:P501_PROJ_ID and s.proj_id=l.proj_id and s.segment_name = l.segment_name',
+'                           and l.table_name = tbls.table_name',
+'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+'                union all',
+'                select ''3.2'' a,',
+'                       last_updated,',
+'                       q1.table_name,',
+'                       q1.sub_object,',
+'                       q1.bytes ',
+'                  from (select trunc(s.last_updated,''mi'') last_updated,',
+'                               iottbls.iot_name table_name, ',
+'                               segment_type || '':'' || s.segment_name || case when partition_name is not null then '': '' || partition_name else null end sub_object,',
+'                               size_b bytes',
+'                          from segs s, iottbls, db_growth_lobs l',
+'                         where s.proj_id=:P501_PROJ_ID and s.proj_id=l.proj_id and s.segment_name = l.segment_name',
+'                           and l.table_name = iottbls.iot_name',
+'                           and trunc(s.last_updated,''mi'') between to_date(nvl(:P501_START_DT,''2019-01-01 00:00''),''YYYY-MM-DD HH24:MI'') and to_date(:P501_END_DT,''YYYY-MM-DD HH24:MI'')) q1',
+')),',
+'tbl_size          as (select last_updated, table_name, sum(bytes) sz from data_points',
+'                       group by last_updated, table_name),',
+'tbl_sz_delta      as (select last_updated, table_name, sz tbl_size, sz - lag(sz, 1, 0)over(partition by table_name order by last_updated) tbl_delta,',
+'                             sum(sz)over(partition by last_updated) filtered_sz',
+'                        from tbl_size o),',
+'tbl_sz_delta_top  as (select last_updated, table_name, tbl_size, tbl_delta, row_number() over (partition by last_updated order by tbl_delta desc) tab_rn,',
+'                             sum(tbl_delta)over(partition by last_updated) filtered_delta,',
+'                             filtered_sz',
+'                        from tbl_sz_delta',
+'                       where nvl(tbl_delta,0)>0),',
+'chngd_data_points as (select dpi.*, row_number() over (partition by last_updated, table_name order by dpi.seg_delta desc) seg_rn',
+'                        from (select dp.*, bytes - lag(bytes, 1, 0) over (partition by table_name, sub_object order by last_updated) seg_delta from data_points dp) dpi ',
+'                       where nvl(dpi.seg_delta,0)>0)',
+'select to_char(p.last_updated,''YYYY-MM-DD HH24:MI'') || ',
+'         ''; Schema delta: '' || to_human_readable_n(s.DELTA)  || '' / Filtered delta: '' || to_human_readable_n(t.filtered_delta)  || '' ('' || round(100*(t.filtered_delta/s.DELTA),2)  || ''%)'' ||',
+'         ''; Total size: ''   || to_human_readable_n(s.SIZE_B) || '' / Filtered size: ''  || to_human_readable_n(t.filtered_sz)     || '' ('' || round(100*(t.filtered_sz/s.SIZE_B),2)|| ''%)'' last_updated, ',
+'       lpad(t.tab_rn,2,''0'')||''.''||lpad(p.seg_rn,2,''0'')||''.''||p.table_name table_name, ',
+'       p.sub_object,',
+'       to_human_readable_n(p.bytes)                  "Seg size",',
+'         round(100*(p.bytes/s.SIZE_B),2)             "Seg % tot",',
+'       to_human_readable_n(p.seg_delta)              "Seg delta", ',
+'         --round(100*(p.seg_delta/t.tbl_delta),2)    "Segment delta % of table", ',
+'         round(100*(p.seg_delta/t.filtered_delta),2) "Seg delta % flt delta",',
+'         round(100*(p.seg_delta/s.DELTA),2)          "Seg delta % tot delta",',
+'       to_human_readable_n(t.tbl_size)               "Whole tab", ',
+'         to_human_readable_n(t.tbl_delta)            "Whole tab delta", ',
+'         round(100*(t.tbl_delta/t.filtered_delta),2) "Tab delta % flt delta",',
+'         round(100*(t.tbl_delta/s.DELTA),2)          "Tab delta % tot delta",',
+'         round(100*(t.tbl_size/t.filtered_sz),2)     "Tab % flt",',
+'         round(100*(t.tbl_size/s.SIZE_B),2)          "Tab % tot"',
+'from chngd_data_points p, tbl_sz_delta_top t, DB_GROWTH_SIZES s',
+'where p.last_updated=t.last_updated and p.table_name=t.table_name',
+'  and t.tab_rn <= :P501_TOP_N',
+'  and s.proj_id=:P501_PROJ_ID and s.last_updated=t.last_updated',
+'  and p.last_updated > to_date(:P501_START_DT,''YYYY-MM-DD HH24:MI'')',
+'order by p.last_updated, tbl_delta desc, p.seg_delta desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
+,p_plug_display_condition_type=>'PLSQL_EXPRESSION'
+,p_plug_display_when_condition=>':P501_TOP_N is not null and :P501_TOP_N between 1 and 100 and :P501_START_DT is not null'
+,p_prn_content_disposition=>'ATTACHMENT'
+,p_prn_document_header=>'APEX'
+,p_prn_units=>'INCHES'
+,p_prn_paper_size=>'LETTER'
+,p_prn_width=>8.5
+,p_prn_height=>11
+,p_prn_orientation=>'HORIZONTAL'
+,p_prn_page_header_font_color=>'#000000'
+,p_prn_page_header_font_family=>'Helvetica'
+,p_prn_page_header_font_weight=>'normal'
+,p_prn_page_header_font_size=>'12'
+,p_prn_page_footer_font_color=>'#000000'
+,p_prn_page_footer_font_family=>'Helvetica'
+,p_prn_page_footer_font_weight=>'normal'
+,p_prn_page_footer_font_size=>'12'
+,p_prn_header_bg_color=>'#9bafde'
+,p_prn_header_font_color=>'#000000'
+,p_prn_header_font_family=>'Helvetica'
+,p_prn_header_font_weight=>'normal'
+,p_prn_header_font_size=>'10'
+,p_prn_body_bg_color=>'#efefef'
+,p_prn_body_font_color=>'#000000'
+,p_prn_body_font_family=>'Helvetica'
+,p_prn_body_font_weight=>'normal'
+,p_prn_body_font_size=>'10'
+,p_prn_border_width=>.5
+,p_prn_page_header_alignment=>'CENTER'
+,p_prn_page_footer_alignment=>'CENTER'
+);
+wwv_flow_api.create_worksheet(
+ p_id=>wwv_flow_api.id(66155364274162745)
+,p_max_row_count=>'1000000'
+,p_show_nulls_as=>'-'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_show_detail_link=>'N'
+,p_show_notify=>'Y'
+,p_download_formats=>'CSV:HTML:EMAIL:XLS:PDF:RTF'
+,p_owner=>'OPAS40ADM'
+,p_internal_uid=>66155364274162745
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66231422592323212)
+,p_db_column_name=>'LAST_UPDATED'
+,p_display_order=>10
+,p_column_identifier=>'C'
+,p_column_label=>'Last Updated'
+,p_column_type=>'STRING'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66155566465162747)
+,p_db_column_name=>'TABLE_NAME'
+,p_display_order=>20
+,p_column_identifier=>'A'
+,p_column_label=>'Table Name'
+,p_column_type=>'STRING'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66155610850162748)
+,p_db_column_name=>'SUB_OBJECT'
+,p_display_order=>30
+,p_column_identifier=>'B'
+,p_column_label=>'Sub Object'
+,p_column_type=>'STRING'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66231543142323213)
+,p_db_column_name=>'Seg size'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'Seg Size'
+,p_column_type=>'STRING'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66231690651323214)
+,p_db_column_name=>'Seg % tot'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'Seg % Tot'
+,p_column_type=>'NUMBER'
+,p_column_alignment=>'RIGHT'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66231754820323215)
+,p_db_column_name=>'Seg delta'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'Seg Delta'
+,p_column_type=>'STRING'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66231850667323216)
+,p_db_column_name=>'Seg delta % flt delta'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'Seg Delta % Flt Delta'
+,p_column_type=>'NUMBER'
+,p_column_alignment=>'RIGHT'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66231908427323217)
+,p_db_column_name=>'Seg delta % tot delta'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'Seg Delta % Tot Delta'
+,p_column_type=>'NUMBER'
+,p_column_alignment=>'RIGHT'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66232068924323218)
+,p_db_column_name=>'Whole tab'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'Whole Tab'
+,p_column_type=>'STRING'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66232170470323219)
+,p_db_column_name=>'Whole tab delta'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'Whole Tab Delta'
+,p_column_type=>'STRING'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66232230732323220)
+,p_db_column_name=>'Tab delta % flt delta'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'Tab Delta % Flt Delta'
+,p_column_type=>'NUMBER'
+,p_column_alignment=>'RIGHT'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66232372289323221)
+,p_db_column_name=>'Tab delta % tot delta'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'Tab Delta % Tot Delta'
+,p_column_type=>'NUMBER'
+,p_column_alignment=>'RIGHT'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66232481838323222)
+,p_db_column_name=>'Tab % flt'
+,p_display_order=>130
+,p_column_identifier=>'M'
+,p_column_label=>'Tab % Flt'
+,p_column_type=>'NUMBER'
+,p_column_alignment=>'RIGHT'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(66232524828323223)
+,p_db_column_name=>'Tab % tot'
+,p_display_order=>140
+,p_column_identifier=>'N'
+,p_column_label=>'Tab % Tot'
+,p_column_type=>'NUMBER'
+,p_column_alignment=>'RIGHT'
+);
+wwv_flow_api.create_worksheet_rpt(
+ p_id=>wwv_flow_api.id(66245205363333433)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'662453'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'LAST_UPDATED:TABLE_NAME:SUB_OBJECT:Seg size:Seg % tot:Seg delta:Seg delta % flt delta:Seg delta % tot delta:Whole tab:Whole tab delta:Tab delta % flt delta:Tab delta % tot delta:Tab % flt:Tab % tot'
+);
+wwv_flow_api.create_worksheet_rpt(
+ p_id=>wwv_flow_api.id(66245919052340898)
+,p_application_user=>'OPAS40ADM'
+,p_name=>'Top Tables'
+,p_description=>'Top tables with dependent segments by data point'
+,p_report_seq=>10
+,p_report_columns=>'LAST_UPDATED:TABLE_NAME:SUB_OBJECT:Seg size:Seg % tot:Seg delta:Seg delta % flt delta:Seg delta % tot delta:Whole tab:Whole tab delta:Tab delta % flt delta:Tab delta % tot delta:Tab % flt:Tab % tot'
+,p_sort_column_1=>'TABLE_NAME'
+,p_sort_direction_1=>'ASC'
+,p_break_on=>'LAST_UPDATED:0:0:0:0:0'
+,p_break_enabled_on=>'LAST_UPDATED:0:0:0:0:0'
+);
+wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(56878545666029810)
 ,p_plug_name=>'Alerts'
 ,p_parent_plug_id=>wwv_flow_api.id(261511362311978819)
@@ -49721,6 +50061,9 @@ wwv_flow_api.create_jet_chart_axis(
 ,p_tick_label_rotation=>'auto'
 ,p_tick_label_position=>'outside'
 );
+end;
+/
+begin
 wwv_flow_api.create_jet_chart_axis(
  p_id=>wwv_flow_api.id(56768681874874040)
 ,p_chart_id=>wwv_flow_api.id(56768325582874037)
@@ -50208,9 +50551,6 @@ wwv_flow_api.create_page_item(
 ,p_item_template_options=>'#DEFAULT#'
 ,p_attribute_01=>'APPLICATION'
 );
-end;
-/
-begin
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(56710161959301439)
 ,p_name=>'P501_TOTAL_SZ'
@@ -50394,6 +50734,21 @@ wwv_flow_api.create_page_item(
 ,p_attribute_03=>'REGEXP_LIKE'
 ,p_attribute_04=>'Y'
 ,p_attribute_05=>'Not REGEXP_LIKE'
+);
+wwv_flow_api.create_page_item(
+ p_id=>wwv_flow_api.id(66153155538162723)
+,p_name=>'P501_TOP_N'
+,p_item_sequence=>7
+,p_item_plug_id=>wwv_flow_api.id(56769278709874046)
+,p_prompt=>'Top N'
+,p_display_as=>'NATIVE_NUMBER_FIELD'
+,p_cSize=>30
+,p_begin_on_new_line=>'N'
+,p_field_template=>wwv_flow_api.id(163643109900454028)
+,p_item_template_options=>'#DEFAULT#'
+,p_attribute_01=>'1'
+,p_attribute_02=>'100'
+,p_attribute_03=>'left'
 );
 wwv_flow_api.create_page_process(
  p_id=>wwv_flow_api.id(56713256951301459)
