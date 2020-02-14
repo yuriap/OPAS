@@ -175,3 +175,17 @@ create index idx_DB_GROWTH_SIZES_proj on DB_GROWTH_SIZES(proj_id);
 
 @@upgrade_struct_1.0.0_1.0.1.sql
 @@upgrade_struct_1.0.1_1.0.2.sql
+
+
+  CREATE TABLE DB_GROWTH_TS_SIZES 
+   (	PROJ_ID NUMBER, 
+	LAST_UPDATED TIMESTAMP (6) WITH TIME ZONE, 
+	TS_NAME VARCHAR2(30 BYTE), 
+	FREE_BYTES NUMBER, 
+	FREE_IN_FILES NUMBER, 
+	FREE_TO_EXTEND NUMBER, 
+	USED_BYTES NUMBER
+   ) 
+   ;
+   
+create index idx_DB_GROWTH_TS_SIZES_proj  on DB_GROWTH_TS_SIZES(proj_id);

@@ -132,13 +132,13 @@ PACKAGE BODY DB_GROWTH_API AS
     l_params  db_growth_parameters%rowtype;
     l_users     DBMS_UTILITY.uncl_array;
     l_tbln      BINARY_INTEGER;
-    l_ts        timestamp := systimestamp;
+    l_ts        timestamp(6) := systimestamp;
     l_ts_c      varchar2(100) := to_char(l_ts,'YYYYMMDDHH24MISSff9');
     l_size      number;
     l_size_tot  number := 0;
 
     l_sql_tab_dict varchar2(4000) := q'[merge into db_growth_tables t using (select * from dba_tables@<DBLINK> where owner='<OWNER>' and table_name not like 'BIN%') s
-      on (t.owner=s.owner and t.table_name=s.table_name)
+      on (t.owner=s.owner and t.table_name=s.table_name and t.proj_id=<PROJ_ID>)
     when not matched then insert (
       t.proj_id, t.last_updated, t.owner, t.table_name, t.tablespace_name, t.cluster_name, t.iot_name, t.status, t.partitioned,
       t.iot_type, t.temporary, t.secondary, t.nested, t.cluster_owner, t.compression, t.compress_for, t.segment_created)
@@ -147,7 +147,7 @@ PACKAGE BODY DB_GROWTH_API AS
       s.iot_type, s.temporary, s.secondary, s.nested, s.cluster_owner, s.compression, s.compress_for, s.segment_created)]';
 
     l_sql_idx_dict varchar2(4000) := q'[merge into db_growth_indexes t using (select * from dba_indexes@<DBLINK> where owner='<OWNER>' and table_name not like 'BIN%' and index_name not like 'BIN%') s
-      on (t.owner=s.owner and t.INDEX_NAME=s.INDEX_NAME)
+      on (t.owner=s.owner and t.INDEX_NAME=s.INDEX_NAME and t.proj_id=<PROJ_ID>)
     when not matched then insert (
       t.proj_id, t.last_updated, t.owner, t.INDEX_NAME, t.INDEX_TYPE, t.TABLE_OWNER, t.TABLE_NAME, t.TABLE_TYPE, t.COMPRESSION, t.PREFIX_LENGTH, t.TABLESPACE_NAME,
       t.INCLUDE_COLUMN, t.STATUS, t.PARTITIONED, t.TEMPORARY, t.SECONDARY, t.FUNCIDX_STATUS, t.JOIN_INDEX, t.DROPPED, t.SEGMENT_CREATED)
@@ -156,7 +156,7 @@ PACKAGE BODY DB_GROWTH_API AS
       s.INCLUDE_COLUMN, s.STATUS, s.PARTITIONED, s.TEMPORARY, s.SECONDARY, s.FUNCIDX_STATUS, s.JOIN_INDEX, s.DROPPED, s.SEGMENT_CREATED)]';
 
     l_sql_lob_dict varchar2(4000) := q'[merge into db_growth_lobs t using (select * from dba_lobs@<DBLINK> where owner='<OWNER>' and table_name not like 'BIN%') s
-      on (t.owner=s.owner and t.table_name=s.table_name and t.column_name=s.column_name and t.segment_name=s.segment_name)
+      on (t.owner=s.owner and t.table_name=s.table_name and t.column_name=s.column_name and t.segment_name=s.segment_name and t.proj_id=<PROJ_ID>)
     when not matched then insert (
       t.proj_id, t.last_updated, t.owner, t.table_name, t.COLUMN_NAME, t.SEGMENT_NAME, t.TABLESPACE_NAME, t.INDEX_NAME, t.CHUNK, t.COMPRESSION,
 	  t.DEDUPLICATION, t.IN_ROW, t.PARTITIONED, t.SECUREFILE, t.SEGMENT_CREATED)
@@ -169,6 +169,26 @@ PACKAGE BODY DB_GROWTH_API AS
       where owner='<OWNER>' and bytes >= <MINSZ> and segment_name not like 'BIN%']';
 
     l_sql_summary varchar2(4000) := q'[select sum(bytes) from dba_segments@<DBLINK> where owner='<OWNER>' and segment_name not like 'BIN%']';
+
+    l_tblsp varchar2(4000) := q'[
+INSERT INTO db_growth_ts_sizes ( proj_id, last_updated, ts_name, free_bytes, free_in_files, free_to_extend, USED_BYTES)
+       select <PROJ_ID>, to_timestamp('<TS>','YYYYMMDDHH24MISSff9'),
+       nvl(free_sp.tablespace_name, free_au.tablespace_name) ts_name,
+       nvl(free_sp.free_bytes, 0) + nvl(free_au.free_bytes, 0) free_bytes,
+       free_sp.free_bytes free_in_files,
+       free_au.free_bytes free_to_extend,
+       (select sum(bytes) from dba_segments@<DBLINK> where TABLESPACE_NAME = nvl(free_sp.tablespace_name, free_au.tablespace_name))
+  from (select tablespace_name, sum(bytes) free_bytes
+          from dba_free_space@<DBLINK>
+         where tablespace_name in (<TSLIST>)
+         group by tablespace_name) free_sp
+  full outer join (select sum(case when autoextensible = 'YES' then maxbytes - bytes else 0 end) free_bytes, tablespace_name
+                     from dba_data_files@<DBLINK> x
+                    where tablespace_name in (<TSLIST>)
+                    group by tablespace_name) free_au
+    on (free_sp.tablespace_name = free_au.tablespace_name)]';
+
+    l_ts_list varchar2(512);
 
     procedure get_data(p_sql_tmpl varchar2, p_dblink varchar2, p_owner varchar2, p_proj_id number, p_ts varchar2, p_minsz number default null)
     is
@@ -198,6 +218,23 @@ PACKAGE BODY DB_GROWTH_API AS
       execute immediate replace(replace(l_sql_summary,'<DBLINK>',COREMOD_API.get_ora_dblink ( l_params.src_dblink)),'<OWNER>',l_users(i)) into l_size;
       l_size_tot := l_size_tot + l_size;
     end loop;
+
+    begin
+      l_tblsp:=replace(replace(replace(l_tblsp,'<DBLINK>',COREMOD_API.get_ora_dblink ( l_params.src_dblink)),'<PROJ_ID>',p_proj_id),'<TS>',l_ts_c);
+
+      select listagg(''''||tablespace_name||'''',',')within group (order by tablespace_name) into l_ts_list
+        from (select unique tablespace_name from db_growth_segs
+               where proj_id=p_proj_id and trunc(last_updated,'mi') = trunc(l_ts,'mi'));
+
+      l_tblsp := replace(l_tblsp, '<TSLIST>', l_ts_list);
+      execute immediate l_tblsp;
+
+      --update DB_GROWTH_TS_SIZES
+      --   set USED_BYTES=(select sum(SIZE_B) from db_growth_segs where TABLESPACE_NAME = TS_NAME and proj_id=p_proj_id and trunc(last_updated,'mi') = trunc(l_ts,'mi'))
+      -- where PROJ_ID = p_proj_id and trunc(last_updated,'mi') = trunc(l_ts,'mi');
+    exception
+      when others then COREMOD_LOG.log(sqlerrm); COREMOD_LOG.log(l_tblsp);
+    end;
 
     update db_growth_parameters
        set last_updated = l_ts,
