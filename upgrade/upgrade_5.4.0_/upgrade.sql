@@ -1,0 +1,2 @@
+grant execute on COREOBJ_SQL_SEARCH to <OPAS50>;
+create synonym COREOBJ_SQL_SEARCH for <OPAS60>.COREOBJ_SQL_SEARCH;
