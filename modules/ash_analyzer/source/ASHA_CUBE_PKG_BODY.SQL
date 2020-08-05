@@ -352,7 +352,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
           l_flt := '/*' || replace(replace(l_flt,'/*','\*'),'*/','*\') || '*/';
         end if;
         if l_sqls is not null then
-          add_parameter(p_sess_id, c_filter, replace(q'[nvl(sql_id,'<UNKNOWN SQL>') not in (<SQL_ID_LIST>)]','<SQL_ID_LIST>',l_sqls) || l_flt);
+          add_parameter(p_sess_id, c_filter, replace(q'[nvl(sql_id,'<UNKNOWN SQL>') not in (<SQL_ID_LIST>)]','<SQL_ID_LIST>',l_sqls) || l_flt);--'
           add_parameter(p_sess_id, c_NextTOP10, 'Y');
         end if;
       end if;
@@ -433,7 +433,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
                             (module,ACTION),
                             (sql_id, SQL_PLAN_HASH_VALUE),
                             (current_obj# )
-                           )]';
+                           )]';--'
 
     l_sql_timeln_event varchar2(32765):=
    q'[INSERT INTO asha_cube
@@ -447,7 +447,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
       AND   SAMPLE_TIME BETWEEN :P_START_DT AND :P_END_DT
       AND   <FILTER>
       AND   nvl(sql_id,'<UNKNOWN SQL>') in (<SQL_ID_LIST>)
-    GROUP BY  <GROUPBY_COL>, nvl(sql_id,'<UNKNOWN SQL>'), nvl(event, 'CPU'), nvl(EVENT_ID,-1)]';
+    GROUP BY  <GROUPBY_COL>, nvl(sql_id,'<UNKNOWN SQL>'), nvl(event, 'CPU'), nvl(EVENT_ID,-1)]';--'
 
     l_sql_timeln varchar2(32765):=
    q'[INSERT INTO asha_cube
@@ -461,7 +461,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
       AND   SAMPLE_TIME BETWEEN :P_START_DT AND :P_END_DT
       AND   <FILTER>
       AND   nvl(sql_id,'<UNKNOWN SQL>') in (<SQL_ID_LIST>)
-    GROUP BY  <GROUPBY_COL>, nvl(sql_id,'<UNKNOWN SQL>')]';
+    GROUP BY  <GROUPBY_COL>, nvl(sql_id,'<UNKNOWN SQL>')]'; --'
 
     l_sql_timeln_others varchar2(32765):=
    q'[INSERT INTO asha_cube
@@ -475,7 +475,7 @@ PACKAGE BODY ASHA_CUBE_PKG AS
       AND   SAMPLE_TIME BETWEEN :P_START_DT AND :P_END_DT
       AND   <FILTER>
       AND   nvl(sql_id,'<UNKNOWN SQL>') not in (<SQL_ID_LIST>)
-    GROUP BY  <GROUPBY_COL>]';
+    GROUP BY  <GROUPBY_COL>]'; --'
 
     l_sql  varchar2(32765);
     l_sql2 varchar2(32765);
@@ -769,7 +769,7 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
     group by <INSTANCE_NUMBER>)
     select sess_id, metric_id, avg_val value, inst_id, group_id, 'SUMMAVG' aggfnc from summ
     union all
-    select sess_id, metric_id, pct95_val value, inst_id, group_id, 'SUMM95PCT' aggfnc from summ]';
+    select sess_id, metric_id, pct95_val value, inst_id, group_id, 'SUMM95PCT' aggfnc from summ]'; --'
 
     l_sql1 varchar2(32765);
     l_sql2 varchar2(32765);
@@ -787,11 +787,11 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
                                                                                    --then 'gv$sysmetric_history'
                                            then '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history union all '||
                                                  'select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history '||
-                                                 'where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||nvl(p_min_snap,0)||' )'
+                                                 'where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||p_min_snap||' )'
                                                                                    --else 'gv$sysmetric_history@'||p_dblink
                                            else '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history@'||p_dblink||' union all '||
                                                  'select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history@'||p_dblink||
-                                                 ' where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||nvl(p_min_snap,0)||' )'
+                                                 ' where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||p_min_snap||' )'
                                                                                  end
                                                                                when p_source = 'AWR' then
                                                                                  case when p_dblink = '$LOCAL$'
@@ -815,11 +815,11 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
                                                                                    --then 'gv$sysmetric_history'
                                            then '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history union all '||
                                                  'select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history '||
-                                                 'where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||nvl(p_min_snap,0)||' )'
+                                                 'where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||p_min_snap||' )'
                                                                                    --else 'gv$sysmetric_history@'||p_dblink
                                            else '(select value, metric_id, group_id, end_time, inst_id from gv$sysmetric_history@'||p_dblink||' union all '||
                                                  'select value, metric_id, group_id, end_time, instance_number from dba_hist_sysmetric_history@'||p_dblink||
-                                                 ' where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||nvl(p_min_snap,0)||' )'
+                                                 ' where instance_number in ('||p_inst_list||') and dbid='||p_dbid||' and snap_id >= '||p_min_snap||' )'
                                                                                  end
                                                                                when p_source = 'AWR' then
                                                                                  case when p_dblink = '$LOCAL$'
@@ -908,18 +908,32 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
                                )
   is
     l_sql_block_template varchar2(32765):=
-   q'[insert into ASHA_CUBE_BLOCK (SESS_ID,SESSION_ID,SESSION_SERIAL#,INST_ID,SQL_ID,MODULE,ACTION,BLOCKING_SESSION,BLOCKING_SESSION_SERIAL#,BLOCKING_INST_ID,CNT,blocker_id, min_ts, max_ts)
+   q'[insert into ASHA_CUBE_BLOCK (SESS_ID,SESSION_ID,SESSION_SERIAL#,INST_ID,event,SQL_ID,MODULE,ACTION,BLOCKING_SESSION,BLOCKING_SESSION_SERIAL#,BLOCKING_INST_ID,CNT,blocker_id, min_ts, max_ts)
       select /*+ driving_site(x) */
-            :P_SESS_ID, session_id, session_serial#, <INSTANCE_NUMBER>, sql_id, module, action, blocking_session, blocking_session_serial#, blocking_inst_id, cnt<MULT>,
-(select program||'; '||machine||'; '||module||'; '||action
+            :P_SESS_ID, session_id, session_serial#, <INSTANCE_NUMBER>,
+            event||
+                   case when CURRENT_OBJ#>0 then
+                     ' ' || dbms_rowid.rowid_create(
+                                             rowid_type => 1,
+                                             object_number => CURRENT_OBJ#,
+                                             relative_fno => CURRENT_FILE#,
+                                             block_number => CURRENT_BLOCK#,
+                                             row_number => CURRENT_ROW#)
+                     || ' ' || (select object_name from dba_objects<dblink> where data_object_id=CURRENT_OBJ#) else null end event,
+            sql_id, module, action, blocking_session, blocking_session_serial#, blocking_inst_id, cnt<MULT>,
+(select listagg(fv,' - ')within group(order by fv) from
+(select rownum||'. '||program||'; '||machine||'; '||module||'; '||action||' at: '||to_char(sample_time,'yyyy/mm/dd hh24:mi:ss.ff6') fv
   from <SOURCE_TABLE> b
  where <DBID> and b.session_id=x2.blocking_session and b.session_serial#=x2.blocking_session_serial# and b.<INSTANCE_NUMBER>=x2.blocking_inst_id
-   and <SNAP_FILTER_BLOCKER> and rownum=1) blocker_id,
-   min_ts,max_ts
+   and <SNAP_FILTER_BLOCKER>
+   and sample_time <= min_ts
+   order by sample_time desc) where rownum<=2) blocker_id,
+                min_ts,max_ts
             from(
       select  x1.*, sum(cnt)over() tot from (
          select
                  session_id, session_serial#, <INSTANCE_NUMBER>, sql_id, module, action, blocking_session, blocking_session_serial#, blocking_inst_id,
+                 event,CURRENT_OBJ#,CURRENT_FILE#,CURRENT_BLOCK#,CURRENT_ROW#,
                  count(1) cnt,
                  min(sample_time) min_ts,
                  max(sample_time) max_ts
@@ -930,8 +944,9 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
              AND SAMPLE_TIME BETWEEN :P_START_DT AND :P_END_DT
              AND <FILTER>
              and wait_class = 'Application'
-           group by session_id, session_serial#, <INSTANCE_NUMBER>, sql_id, module, action, blocking_session, blocking_session_serial#, blocking_inst_id) x1)x2
-           where cnt/tot>0.001]';
+           group by session_id, session_serial#, <INSTANCE_NUMBER>, sql_id, module, action, blocking_session, blocking_session_serial#, blocking_inst_id,
+                    event,CURRENT_OBJ#,CURRENT_FILE#,CURRENT_BLOCK#,CURRENT_ROW#) x1)x2
+           where cnt/tot>0.001]'; --'
     l_sql varchar2(32765);
     l_crsr sys_refcursor;
   begin
@@ -949,17 +964,26 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
                                                                            end),
                                                   '<DBID>',case when p_source = 'V$VIEW' then 'nvl(:P_DBID,0)>=0' else 'DBID = :P_DBID' end),
                                           '<INSTANCE_NUMBER>',case when p_source = 'V$VIEW' then 'INST_ID' else 'INSTANCE_NUMBER' end),
-                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else ':P_MIN_SNAP is null and :P_MAX_SNAP is null' end),
+                                  '<SNAP_FILTER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP AND :P_MAX_SNAP' else 'nvl(:P_MIN_SNAP,0)>=0 and nvl(:P_MAX_SNAP,0)>=0' end),
                                   '<SNAP_FILTER_BLOCKER>',case when p_source = 'AWR' then 'SNAP_ID BETWEEN :P_MIN_SNAP - 10 AND :P_MAX_SNAP' else 'nvl(:P_MIN_SNAP,0)>=0 and nvl(:P_MAX_SNAP,0)>=0' end),
                           '<FILTER>',nvl(p_filter,'1=1')),
                           '<MULT>',case when p_source = 'AWR' then '*10' else null end),'<P_INST_ID>',p_inst_list);
+        l_sql := replace(l_sql,'<dblink>',case when p_dblink = '$LOCAL$' then null
+                                               else '@'||p_dblink
+                                          end);
       begin
         coremod_log.log('Start block loading','DEBUG');
         coremod_log.log(l_sql,'DEBUG');
+        coremod_log.log('p_sess_id: '||p_sess_id,'DEBUG');
+        coremod_log.log('p_sess_id: '||p_sess_id,'DEBUG');
+        coremod_log.log('p_min_snap: '||p_min_snap,'DEBUG');
+        coremod_log.log('p_max_snap: '||p_max_snap,'DEBUG');
+        coremod_log.log('p_start_dt: '||to_char(p_start_dt,'yyyy/mm/dd hh24:mi:ss'),'DEBUG');
+        coremod_log.log('p_end_dt: '||to_char(p_end_dt,'yyyy/mm/dd hh24:mi:ss'),'DEBUG');
 
         execute immediate l_sql using p_sess_id, p_dbid, p_min_snap, p_max_snap, p_dbid, p_min_snap, p_max_snap, p_start_dt, p_end_dt;
 
-        coremod_log.log('End block loading','DEBUG');
+        coremod_log.log('End block loading: '||sql%rowcount,'DEBUG');
       exception
         when others then
           coremod_log.log('Error SQL: '||chr(10)||l_sql||chr(10)||sqlerrm);
@@ -1266,6 +1290,7 @@ q'[insert into asha_cube_metrics (sess_id, metric_id, value, inst_id, group_id, 
       end if;
       add_parameter(p_sess_id,c_END_SNAP,l_max_snap);
     end if;
+
       --end if;
 
     ----------------------------------------------------
@@ -1697,7 +1722,7 @@ select :sample_id, null, ev.inst_id, ev.EVENT_ID, ev.TOTAL_WAITS, ev.TIME_WAITED
       COREMOD_TASKS.queue_task ( p_tq_id => p_tq_id, p_start_time => p_start_time ) ;
       begin
         select sess_id into l_parent_sess from asha_cube_sess where parent_id=p_sess_id;
-        queue_load_cube(l_parent_sess,l_tq_id);
+        queue_load_cube(l_parent_sess,l_tq_id,p_start_time);
       exception
         when no_data_found then null;
       end;

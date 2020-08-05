@@ -191,6 +191,7 @@ CREATE TABLE ASHA_CUBE_BLOCK (
    );
 
 create index IDX_ASHA_CUBE_BLOCK on ASHA_CUBE_BLOCK(sess_id);
+alter table ASHA_CUBE_BLOCK add event varchar2(100);
 
 create table asha_cube_top_sess (
 sess_id          number references asha_cube_sess(sess_id) on delete cascade,

@@ -935,11 +935,11 @@ PACKAGE BODY TRC_PROCESSFILE AS
           exit when l_sim_sqls.count=0;
           -- compare the firts sql from the list with others
           l_curr_idx := l_sim_sqls.first;
-          l_sql := l_sim_sqls(l_curr_idx).sql_text;
+          l_sql := substr(l_sim_sqls(l_curr_idx).sql_text,1,4000);
           l_curr_stmt := l_sim_sqls(l_curr_idx).stmt_id;
           for x2 in (
             select stmt_id||':'||plh||':'||sqlid idx from (
-            SELECT st.stmt_id, c.plh, st.sqlid, UTL_MATCH.jaro_winkler_similarity(st.sql_text,l_sql) matching_pct
+            SELECT st.stmt_id, c.plh, st.sqlid, UTL_MATCH.jaro_winkler_similarity(substr(st.sql_text,1,4000),l_sql) matching_pct
               FROM trc_statement st, trc_call c
                      WHERE st.trc_file_id = p_trc_file_id
                        AND st.trc_file_id = c.trc_file_id
